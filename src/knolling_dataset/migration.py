@@ -195,6 +195,8 @@ def migrate_dataset(parent,output, *, registered_legacy_hash=LEGACY_MANIFEST):
     if tree_hashes(parent)!=snapshot: raise RuntimeError("parent dataset was modified")
     from .qc import write_qc
     write_qc(root,records,json.loads((root/"generation.json").read_text()))
+    from .qc_v13 import write_migration_qc
+    write_migration_qc(root,records,old_records,migrations,partials,partial_summary)
     audit=audit_dataset(root)
     if not audit["valid"]: raise RuntimeError(f"migration audit failed: {audit['errors']}")
     return summary

@@ -5,7 +5,7 @@ from pathlib import Path
 from .schema import scene_from_dict,instruction_from_dict,digest
 from .policies import BALANCED,policy_metadata,require_single_policy
 from .teacher import solve
-from .quality import target_hash,target_changed,layout_metrics,counterfactual_audit
+from .quality import target_hash,target_changed,layout_metrics,counterfactual_audit,partial_quality
 from .instructions import clarify_instruction
 
 
@@ -70,10 +70,12 @@ def check_v13(root,records,provenance, *, invariance=True):
             path=(root/relative).resolve()
             if not path.is_relative_to(root.resolve()) or sha!=snapshot[relative] or file_hash(path)!=sha:
                 errors.append("source_file_changed:"+relative)
+        parents=[]
         for new in records:
             sid=new["sample_id"]; path=root/f"parent_annotations/{sid}.json"
             if file_hash(path)!=parent_manifest[sid]["annotation_sha256"]: errors.append(sid+":parent_annotation_hash")
             old=json.loads(path.read_text()); row=migration_by_id[sid]
+            parents.append(old)
             if digest(old["source"])!=digest(new["source"]) or any(old[k]!=new[k] for k in ("scene_family_id","split","role","mode","no_op_type")):
                 errors.append(sid+":source_or_partition_changed")
             if clarify_instruction(instruction_from_dict(old["instruction"]))!=instruction_from_dict(new["instruction"]):
@@ -91,6 +93,9 @@ def check_v13(root,records,provenance, *, invariance=True):
             before,after=layout_metrics(source,a,ins),layout_metrics(source,b,ins)
             if row["old_metrics"]!=before or row["new_metrics"]!=after: errors.append(sid+":migration_scores")
             if old["mode"]=="partial" and after["J_move"]>before["J_move"]+1e-12: errors.append(sid+":partial_movement_increased")
+        partials,partial_summary=partial_quality(parents,records)
+        if digest(read_jsonl(root/"partial_quality.jsonl"))!=digest(partials): errors.append("partial_quality_mismatch")
+        if digest(json.loads((root/"partial_quality_summary.json").read_text()))!=digest(partial_summary): errors.append("partial_quality_summary_mismatch")
     pairs=counterfactual_audit(records)
     if digest(read_jsonl(root/"counterfactual_audit.jsonl"))!=digest(pairs): errors.append("counterfactual_audit_mismatch")
     reviews=read_jsonl(root/"human_review.jsonl")

@@ -64,6 +64,7 @@ def partial_quality(before,after):
         for label,target in targets.items():
             movements=object_movements(source,target)
             report[label]={"moved_count":sum(o["move_label"] for o in movements),"object_movements":movements,
+                           "physical_moved_count":sum(o["translation_mm"]>1e-6 or o["rotation_deg"]>1e-6 for o in movements),
                            "instruction_satisfied":validate_layout(source,target,ins,"partial").valid,
                            **layout_metrics(source,target,ins)}
         reports.append(report)

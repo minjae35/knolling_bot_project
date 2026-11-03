@@ -70,6 +70,8 @@ def test_real_migration_preserves_parent_and_only_renders_changes(tmp_path,monke
     assert before==tree_hashes(parent)
     assert (output/"AUTOMATED_VALIDATION.json").exists() and not (output/"COMPLETE.json").exists()
     assert (output/"training_approved.jsonl").read_text()==""
+    from test_qc_v13 import assert_complete_report
+    assert_complete_report(output,13)
     for relative in json.loads((output/"source_file_hashes.json").read_text()):
         assert file_hash(parent/relative)==file_hash(output/relative)
         assert (parent/relative).stat().st_ino!=(output/relative).stat().st_ino
