@@ -101,3 +101,21 @@ pretraining does not guarantee coverage of synthetic Blender objects. A
 technical GO for a controlled S0 experiment is not an S0 success claim.
 Do not start a full S0 run until the compatibility/Source/gradient/memory report
 has been presented. No S1 or new dataset generation is authorized.
+
+Reproduce the CUDA preflight into a new, nonexistent directory:
+
+```sh
+conda activate knolling
+export HF_HOME=/workspace/cache/huggingface TORCH_HOME=/workspace/cache/torch
+python scripts/gpu_preflight_s0.py --config configs/s0_rtdetr.json \
+  --report-dir artifacts/rtdetr/NEW_PREFLIGHT_DIRECTORY
+RUN_PRETRAINED_TESTS=1 python -m pytest -q
+```
+
+The preflight performs three disposable optimizer calls: one 16-scene update,
+one 9-scene tail update, then the same tail replay after checkpoint restoration.
+It never invokes the training loop. It also saves native-forward parity,
+all-32 zero-shot Source results, strict determinism evidence and Target-only
+gradient probes. Peak memory includes Adam state and these diagnostic probes.
+Use a fresh run directory and `configs/s0_rtdetr.json` when a full S0 run is
+subsequently authorized; the preflight checkpoint is not its initialization.

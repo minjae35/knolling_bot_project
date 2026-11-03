@@ -4,7 +4,8 @@ import torch
 
 
 @pytest.mark.skipif(os.environ.get('RUN_PRETRAINED_TESTS') != '1', reason='requires cached pinned pretrained assets')
-def test_real_pretrained_offline_forward_backward_without_optimizer(s0_dataset, monkeypatch):
+@pytest.mark.parametrize('pretrained', ['configs/pretrained.json', 'configs/pretrained_rtdetr.json'])
+def test_real_pretrained_offline_forward_backward_without_optimizer(s0_dataset, monkeypatch, pretrained):
     import requests
     from knolling_model.model import load_pretrained
     from knolling_model.data import Collator
@@ -13,7 +14,7 @@ def test_real_pretrained_offline_forward_backward_without_optimizer(s0_dataset, 
         raise AssertionError('offline pretrained loading must not contact the network')
     monkeypatch.setattr(requests.Session, 'request', forbidden)
     monkeypatch.setattr(torch.hub, 'download_url_to_file', forbidden)
-    model, tokenizer = load_pretrained(local_files_only=True)
+    model, tokenizer = load_pretrained(pretrained, local_files_only=True)
     collate = Collator(tokenizer)
     whole = collate([s0_dataset[i] for i in range(32)])
     assert whole.inputs['input_ids'].shape[1] <= 512
