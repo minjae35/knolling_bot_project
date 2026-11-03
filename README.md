@@ -1,8 +1,12 @@
 # Knolling dataset pipeline
 
 New implementation for `minjae35/knolling_bot_project`, based on the finalized
-v1.3 dataset specification, preserving the validated v1.2 pipeline. Scope: M0–M8 only. No neural
-network, training pipeline, or robot simulation.
+v1.3 dataset specification, preserving the validated v1.2 pipeline. Dataset
+modules M0–M8 are complete; S0 neural implementation is being added separately.
+See the [vast.ai S0 setup and readiness runbook](docs/vast-ai-s0.md) and
+[dataset storage audit and verified backups](docs/dataset-storage-audit.md).
+Dataset transfer/storage changes remain pending approval; this repository does
+not provision GPU instances.
 
 **Initial system language: English only.** The active pilot is
 `artifacts/pilot_v1_3_en/`. Both `pilot_v1_2` and the original bilingual
