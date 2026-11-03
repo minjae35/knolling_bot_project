@@ -173,13 +173,22 @@ class KnollingModel(nn.Module):
 
 
 def load_pretrained(config_path='configs/pretrained.json', local_files_only=False):
+    from huggingface_hub import snapshot_download
     from transformers import AutoModel, AutoTokenizer
     config = json.loads(Path(config_path).read_text())
-    kwargs = dict(revision=config['text_revision'], token=False, local_files_only=local_files_only)
-    tokenizer = AutoTokenizer.from_pretrained(config['text_model'], **kwargs)
-    text_encoder = AutoModel.from_pretrained(config['text_model'], use_safetensors=True, **kwargs)
+    # Resolve a pinned snapshot first. Passing a remote ID directly to this
+    # tokenizer version can make an extra Hub probe even in local-files-only mode.
+    snapshot = snapshot_download(config['text_model'], revision=config['text_revision'],
+                                 token=False, local_files_only=local_files_only,
+                                 allow_patterns=['config.json', 'model.safetensors', 'tokenizer.json',
+                                                 'tokenizer_config.json', 'special_tokens_map.json',
+                                                 'sentencepiece.bpe.model'])
+    tokenizer = AutoTokenizer.from_pretrained(snapshot, local_files_only=True)
+    text_encoder = AutoModel.from_pretrained(snapshot, local_files_only=True, use_safetensors=True)
     if text_encoder.config.hidden_size != 384 or text_encoder.config.max_position_embeddings != 512:
         raise ValueError('unexpected text encoder configuration')
+    if local_files_only and not (Path(torch.hub.get_dir()) / 'checkpoints' / 'resnet18-f37072fd.pth').is_file():
+        raise FileNotFoundError('ResNet-18 weights are not cached; prepare assets online first')
     return KnollingModel(text_encoder, pretrained_backbone=True), tokenizer
 
 
