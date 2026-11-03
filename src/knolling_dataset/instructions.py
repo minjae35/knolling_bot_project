@@ -4,13 +4,17 @@ Semantic IDs are supervision only: text never refers to hidden object IDs.
 Area always means the major/minor bounding rectangle, not mesh surface area.
 """
 import random
+from dataclasses import replace
 from .schema import Instruction, check_instruction
 
 KO_COLOR = {"red":"빨간색", "green":"초록색", "blue":"파란색"}
 
 
 def generate_instruction(scene, seed, mode="full", *, language=None, group_by=None,
-                         sort_direction=None, axis_alignment=None, gap_m=None, region=None):
+                         sort_direction=None, axis_alignment=None, gap_m=None, region=None,
+                         contract="legacy_v1_2"):
+    if contract not in ("legacy_v1_2","row_edges_v1"):
+        raise ValueError("unknown instruction contract")
     if mode not in ("full","partial","keep_all"):
         raise ValueError("unknown instruction mode")
     rng = random.Random(seed)
@@ -63,7 +67,41 @@ def generate_instruction(scene, seed, mode="full", *, language=None, group_by=No
             text += " Keep all remaining objects at their current positions and orientations."
     result = Instruction(text,language,selected,locked,group_by,sort_direction,axis_alignment,gap_m,region)
     check_instruction(scene,result)
-    return result
+    return clarify_instruction(result) if contract == "row_edges_v1" else result
+
+
+def clarify_instruction(ins):
+    """Clarify the bounded grammar, preserving every semantic field and numeral.
+
+No RNG or referent selection is rerun. Refuse unrecognized templates instead of
+silently replacing user language whose semantic correspondence is unknown.
+"""
+    if ins.keep_all or ins.expected_status != "ok":
+        return ins
+    mm=round(ins.gap_m*1000)
+    if ins.language=="ko":
+        old=f"같은 행의 물체 가장자리 간격과 연속 행의 수직 가장자리 간격은 {mm}mm로 하세요."
+        new=(f"같은 행에서 이웃한 물체의 외접 직사각형 사이 수평 간격은 {mm}mm로 하세요. "
+             "각 행의 모든 외접 직사각형을 포함하는 수평 띠를 '행 띠'라고 합니다. "
+             f"연속한 행 띠 사이의 수직 간격은 {mm}mm로 하세요. "
+             "이는 서로 다른 행의 모든 개별 물체 쌍 사이 간격을 뜻하지 않습니다.")
+        old_group=f"서로 다른 색상 행 사이의 수직 간격은 {2*mm}mm로 하세요."
+        new_group=f"단, 서로 다른 색상 행 띠 사이의 수직 간격은 {2*mm}mm로 하세요."
+    else:
+        old=f"Use {mm} mm horizontal edge gaps and vertical edge gaps between consecutive rows."
+        new=(f"Use {mm} mm horizontal gaps between neighboring object envelopes in a row. "
+             "A row band is the horizontal strip enclosing all object envelopes in that row. "
+             f"Use {mm} mm vertical gaps between consecutive row bands, not between every cross-row object pair.")
+        old_group=f"Use {2*mm} mm vertical gaps between different colors."
+        new_group=f"For different-color row bands, use {2*mm} mm vertical gaps instead."
+    if new in ins.text:
+        return ins
+    if ins.text.count(old)!=1 or (ins.group_by=="color" and ins.text.count(old_group)!=1):
+        raise ValueError("unrecognized legacy row-gap template")
+    text=ins.text.replace(old,new)
+    if ins.group_by=="color":
+        text=text.replace(old_group,new_group)
+    return replace(ins,text=text)
 
 
 def negative_instruction(scene, status):
