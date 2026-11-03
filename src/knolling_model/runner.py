@@ -59,7 +59,8 @@ def make_optimizer(model, config):
     for name, parameter in model.named_parameters():
         if not parameter.requires_grad:
             continue
-        lr = config['backbone_lr'] if name.startswith('backbone.body.') else config['new_modules_lr']
+        backbone = name.startswith(('backbone.body.', 'perception.detector.model.backbone.'))
+        lr = config['backbone_lr'] if backbone else config['new_modules_lr']
         decay = 0. if name in no_decay else config['weight_decay']
         groups.setdefault((lr, decay), []).append(parameter)
     return torch.optim.AdamW([{'params': params, 'lr': lr, 'weight_decay': decay}
@@ -115,17 +116,21 @@ def provenance(config):
     for path in sorted(Path(__file__).parent.glob('*.py')):
         source.update(path.name.encode())
         source.update(path.read_bytes())
+    pretrained = json.loads(Path(config['pretrained']).read_text())
+    rtdetr = pretrained.get('backend') == 'rtdetr_r18'
     return {'config': config, 'manifest_sha256': file_hash(Path(config['dataset'])/'manifest.jsonl'),
             'selection_sha256': file_hash(config['selection']),
             'selection': json.loads(Path(config['selection']).read_text()),
-            'pretrained': json.loads(Path(config['pretrained']).read_text()),
+            'pretrained': pretrained,
             'teacher_policy': 'balanced_rows_v1.3', 'language_policy': 'english_only_v1',
             'source_sha256': source.hexdigest(), 'git_head': git('rev-parse', 'HEAD'),
             'git_dirty': bool(git('status', '--porcelain')),
             'loss': {'position_scale_m': POSITION_SCALE, 'size_scale_m': SIZE_SCALE,
                      'angle_scale_rad': ANGLE_SCALE, 'stage_weights': list(STAGE_WEIGHTS),
                      'negative_objectness_weight': .1, 'class_weight': .1,
-                     'detection_weight': 1., 'target_weight': 1.},
+                     'detection_weight': 1., 'target_weight': 1.,
+                     'detection_supervision': 'mean_encoder_and_three_decoders_final_assignment'
+                        if rtdetr else 'final_object_decoder'},
             'tokens': {'max_length': 512, 'truncation': False, 'padding': 'batch_longest'},
             'precision': 'float32', 'dropout': 0., 'scheduler': None,
             'environment': {'python': platform.python_version(), 'torch': str(torch.__version__),

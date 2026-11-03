@@ -49,6 +49,22 @@ def match_source(source, supervision):
     return matches
 
 
+def detection_terms(source, truth, b, query, gt):
+    logits = source['objectness_logits'][b]
+    positive = torch.zeros_like(logits)
+    positive[query] = 1
+    weights = torch.where(positive.bool(), 1., NEGATIVE_WEIGHT)
+    terms = {'objectness': (F.binary_cross_entropy_with_logits(logits, positive, reduction='none') * weights).sum() / weights.sum(),
+             'source_position': position_loss(to_meters(source['uv'][b, query]), truth['source_xy'][gt]).mean(),
+             'source_size': size_loss(source['size'][b, query], truth['size'][gt]).mean(),
+             'source_angle': orientation_loss(source['angle'][b, query], truth['source_angle'][gt]).mean(),
+             'color': F.cross_entropy(source['color_logits'][b, query], truth['color'][gt]),
+             'shape': F.cross_entropy(source['shape_logits'][b, query], truth['shape'][gt])}
+    terms['detection'] = (terms['objectness'] + terms['source_position'] + terms['source_size'] + terms['source_angle']
+                          + .1 * terms['color'] + .1 * terms['shape'])
+    return terms
+
+
 class S0Criterion(nn.Module):
     def forward(self, output, supervision):
         source, targets = output['source'], output['targets']
@@ -57,18 +73,14 @@ class S0Criterion(nn.Module):
         matches = match_source(source, supervision)
         scene_losses = []
         for b, (truth, (query, gt)) in enumerate(zip(supervision, matches)):
-            logits = source['objectness_logits'][b]
-            positive = torch.zeros_like(logits)
-            positive[query] = 1
-            weights = torch.where(positive.bool(), 1., NEGATIVE_WEIGHT)
-            terms = {'objectness': (F.binary_cross_entropy_with_logits(logits, positive, reduction='none') * weights).sum() / weights.sum(),
-                     'source_position': position_loss(to_meters(source['uv'][b, query]), truth['source_xy'][gt]).mean(),
-                     'source_size': size_loss(source['size'][b, query], truth['size'][gt]).mean(),
-                     'source_angle': orientation_loss(source['angle'][b, query], truth['source_angle'][gt]).mean(),
-                     'color': F.cross_entropy(source['color_logits'][b, query], truth['color'][gt]),
-                     'shape': F.cross_entropy(source['shape_logits'][b, query], truth['shape'][gt])}
-            terms['detection'] = (terms['objectness'] + terms['source_position'] + terms['source_size'] + terms['source_angle']
-                                  + .1 * terms['color'] + .1 * terms['shape'])
+            sources = [*output.get('source_aux', []), source]
+            if any(s['uv'].shape != source['uv'].shape for s in sources):
+                raise ValueError('auxiliary source queries must retain final query identity')
+            layers = [detection_terms(s, truth, b, query, gt) for s in sources]
+            # Native RT-DETR encoder proposals + three decoder outputs share
+            # one final Source assignment and a fixed mean of the same L_D.
+            terms = {key: torch.stack([layer[key] for layer in layers]).mean()
+                     for key in layers[0]}
             for k, stage in enumerate(targets):
                 terms[f'target_stage_{k+1}'] = (position_loss(to_meters(stage['uv'][b, query]), truth['target_xy'][gt])
                                                + orientation_loss(stage['angle'][b, query], truth['target_angle'][gt])).mean()

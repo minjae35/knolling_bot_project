@@ -361,6 +361,13 @@ Partial의 현재 30개 산개 Source는 유지한다. 정돈된 상태에서의
 
 ## 10. End-to-End Neural Architecture
 
+사용자 승인 Architecture 확장(2026-11-03): 사전학습 RT-DETR-R18을 내부
+Neural Perception으로 연결하는 별도 S0 Backend를 추가한다. 아래 ResNet-18
+기본값은 기존 실험의 계약으로 보존한다. RT-DETR의 Query 수·전처리·Gradient
+경로·Detection 중간 감독 차이는 [통합 계약](rtdetr-integration.md)에 명시한다.
+Dataset·Teacher·GT·평가 Gate는 변경하지 않는다. 내부 학습형 Detector는
+허용하며 외부 규칙 기반 Layout Planner를 추가하지 않는다.
+
 ### 10.1 연결 구조
 
 Source RGB → Image Backbone/FPN → Object Decoder → 같은 Query의 Source 예측/물체 Token → 3단계 Arrangement Decoder → 같은 Query의 Target Pose.

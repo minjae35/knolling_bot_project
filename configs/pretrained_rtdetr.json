@@ -1,0 +1,9 @@
+{
+  "backend": "rtdetr_r18",
+  "text_model": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+  "text_revision": "e8f8c211226b894fcb81acc59f3b34ba3efd5f42",
+  "detector_model": "PekingU/rtdetr_r18vd_coco_o365",
+  "detector_revision": "386c43855d01bcd966e548f3296fbd2cd2a2a40b",
+  "detector_sha256": "eadade7a507b87cabe5d6a75b935dbd9fc59b1b843f36f7e3b24eafc856c0774",
+  "detector_image_size": [640, 640]
+}

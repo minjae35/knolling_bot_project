@@ -94,7 +94,7 @@ class SourceHeads(nn.Module):
         with torch.no_grad():
             self.direction[-1].bias.copy_(torch.tensor([1., 0.]))
 
-    def forward(self, tokens):
+    def physical_predictions(self, tokens):
         sizes = self.size(tokens)
         b = F.softplus(sizes[..., 0]) + 1e-4
         a = b + F.softplus(sizes[..., 1])
@@ -103,9 +103,22 @@ class SourceHeads(nn.Module):
         near_zero = raw_direction.square().sum(-1) < 1e-12
         c = torch.where(near_zero, raw_direction[..., 0] + 1e-6, raw_direction[..., 0])
         angle = .5 * torch.atan2(raw_direction[..., 1], c)
-        return {'uv': self.center(tokens).sigmoid(), 'size': torch.stack((a, b), -1),
-                'angle': angle, 'objectness_logits': self.objectness(tokens).squeeze(-1),
+        return {'size': torch.stack((a, b), -1), 'angle': angle,
                 'color_logits': self.color(tokens), 'shape_logits': self.shape(tokens)}
+
+    def forward(self, tokens):
+        return {'uv': self.center(tokens).sigmoid(), **self.physical_predictions(tokens),
+                'objectness_logits': self.objectness(tokens).squeeze(-1)}
+
+
+class PhysicalSourceHeads(SourceHeads):
+    """Reuse physical/semantic heads; pretrained detector supplies center/score."""
+    def __init__(self):
+        super().__init__()
+        del self.center, self.objectness
+
+    def forward(self, tokens):
+        return self.physical_predictions(tokens)
 
 
 class ArrangementDecoder(nn.Module):
@@ -172,11 +185,47 @@ class KnollingModel(nn.Module):
         return {'source': source, 'targets': stages, 'object_tokens': objects}
 
 
+class RTDetrKnollingModel(KnollingModel):
+    def __init__(self, text_encoder, detector, image_size=(640, 640)):
+        nn.Module.__init__(self)
+        from .rtdetr import RTDetrPerception
+        self.perception = RTDetrPerception(detector, image_size)
+        self.source_heads = PhysicalSourceHeads()
+        self.text_encoder = text_encoder.requires_grad_(False).eval()
+        self.text_projection = nn.Linear(384, 256)
+        self.arrangement = ArrangementDecoder(dropout=0.)
+
+    def forward(self, images, input_ids, attention_mask):
+        if (input_ids.ndim != 2 or input_ids.shape != attention_mask.shape or
+                input_ids.shape[0] != images.shape[0] or input_ids.shape[1] > 512 or
+                not attention_mask.bool().any(-1).all()):
+            raise ValueError('invalid or truncated text batch')
+        detections = self.perception(images)
+        sources = []
+        for detection in detections:
+            boxes = detection['boxes']
+            sources.append({**self.source_heads(detection['tokens']),
+                'uv': torch.stack((boxes[..., 0], 1-boxes[..., 1]), -1),
+                # Keep the entire pretrained classifier. Foreground means any
+                # detector class; COCO class IDs are never called object identities.
+                'objectness_logits': detection['logits'].max(-1).values})
+        with torch.no_grad():
+            text_features = self.text_encoder(input_ids=input_ids, attention_mask=attention_mask).last_hidden_state
+        text = self.text_projection(text_features)
+        tokens, source = detections[-1]['tokens'], sources[-1]
+        return {'source': source, 'source_aux': sources[:-1],
+                'targets': self.arrangement(tokens, source, text, attention_mask.bool()),
+                'object_tokens': tokens, 'detector_stages': detections}
+
+
 def load_pretrained(config_path='configs/pretrained.json', local_files_only=False):
     from huggingface_hub import snapshot_download
     from transformers import AutoModel, AutoTokenizer
     config = json.loads(Path(config_path).read_text())
-    if config['resnet_weights'] != 'IMAGENET1K_V1':
+    backend = config.get('backend', 'resnet18_queries')
+    if backend not in ('resnet18_queries', 'rtdetr_r18'):
+        raise ValueError('unsupported neural perception backend')
+    if backend == 'resnet18_queries' and config['resnet_weights'] != 'IMAGENET1K_V1':
         raise ValueError('S0 requires pinned ResNet-18 IMAGENET1K_V1 weights')
     # Resolve a pinned snapshot first. Passing a remote ID directly to this
     # tokenizer version can make an extra Hub probe even in local-files-only mode.
@@ -189,6 +238,10 @@ def load_pretrained(config_path='configs/pretrained.json', local_files_only=Fals
     text_encoder = AutoModel.from_pretrained(snapshot, local_files_only=True, use_safetensors=True)
     if text_encoder.config.hidden_size != 384 or text_encoder.config.max_position_embeddings != 512:
         raise ValueError('unexpected text encoder configuration')
+    if backend == 'rtdetr_r18':
+        from .rtdetr import load_detector
+        detector = load_detector(config, local_files_only)
+        return RTDetrKnollingModel(text_encoder, detector, config['detector_image_size']), tokenizer
     if local_files_only and not (Path(torch.hub.get_dir()) / 'checkpoints' / 'resnet18-f37072fd.pth').is_file():
         raise FileNotFoundError('ResNet-18 weights are not cached; prepare assets online first')
     return KnollingModel(text_encoder, pretrained_backbone=True), tokenizer
