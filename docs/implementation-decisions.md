@@ -42,3 +42,8 @@ API references: [SceneDisplay anti-aliasing](https://docs.blender.org/api/5.0/bp
 and [camera projection](https://docs.blender.org/manual/en/2.90/render/cameras.html).
 Runtime properties were also checked directly on installed Blender 5.1.0.
 Bitwise reproducibility is scoped to a fixed Blender build, device and platform.
+Blender's variable PNG timestamp/render-time metadata is removed by the host;
+RGB values remain in sRGB. Initial pixel equality passed, while raw-file equality
+exposed these stamps. Commit f372f76 was inadvertently pushed before reading
+that additional test result; the subsequent fix is additive, with no history
+rewrite, and the full integration suite must pass before its commit.

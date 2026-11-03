@@ -43,6 +43,10 @@ def render_batch(jobs,work_dir):
                        check=True,timeout=120+len(jobs)*90)
     for job in jobs:
         out = Path(job["output_dir"])
+        # Blender embeds wall-clock/render-time stamps. Preserve sRGB pixel
+        # values but strip variable metadata so fixed-build outputs hash equally.
+        rgb = np.asarray(Image.open(out/"rgb.png").convert("RGB"))
+        Image.fromarray(rgb).save(out/"rgb.png")
         raw = np.asarray(Image.open(out/"mask_rgb.png").convert("RGB"))
         if np.any(raw[:,:,1:]) or not set(np.unique(raw[:,:,0])).issubset(set(range(len(job["scene"]["objects"])+1))):
             raise RuntimeError("mask render did not preserve exact integer IDs")
