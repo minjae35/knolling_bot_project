@@ -38,11 +38,11 @@ def generate_instruction(scene, seed, mode="full", *, language=None, group_by=No
     region = region or rng.choice(("full","left","right"))
     mm = round(gap_m*1000)
     if language == "ko":
-        subject = "모든 물체" if ref == "all" else "가장 왼쪽 물체만" if ref == "leftmost" else f"{KO_COLOR[ref]} 물체만"
+        subject = "모든 물체를" if ref == "all" else "가장 왼쪽 물체만" if ref == "leftmost" else f"{KO_COLOR[ref]} 물체만"
         area = {"full":"작업대 전체 영역", "left":"왼쪽 영역", "right":"오른쪽 영역"}[region]
         axis = "수평" if axis_alignment == "horizontal" else "수직"
         order = "작은 것부터 큰 것" if sort_direction == "asc" else "큰 것부터 작은 것"
-        text = f"{subject}를 {area}에 행으로 정돈하세요. 긴 축은 {axis}으로 맞추세요. "
+        text = f"{subject} {area}에 행으로 정돈하세요. 긴 축은 {axis}으로 맞추세요. "
         text += "색상별로 연속된 별도 행에 모으고, 각 색상 안에서 " if group_by == "color" else "전체를 "
         text += f"외접 직사각형 면적이 {order} 순으로 왼쪽에서 오른쪽, 위에서 아래로 배치하세요. "
         text += f"같은 행의 물체 가장자리 간격과 연속 행의 수직 가장자리 간격은 {mm}mm로 하세요."

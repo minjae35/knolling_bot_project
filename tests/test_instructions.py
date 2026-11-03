@@ -11,6 +11,10 @@ def test_grammar_and_grounding(simple_scene,language,mode):
     assert ins == generate_instruction(simple_scene,6,mode,language=language,group_by="color",gap_m=.030)
     check_instruction(simple_scene,ins)
     assert not any(oid in ins.text for oid in ins.selected_ids)
+    if language == "ko":
+        assert "만를" not in ins.text
+        if mode == "full":
+            assert ins.text.startswith("모든 물체를 ")
     if mode == "partial":
         assert len(ins.selected_ids) == len(ins.locked_ids) == 1
     elif mode == "keep_all":
