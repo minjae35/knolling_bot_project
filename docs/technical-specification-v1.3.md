@@ -68,7 +68,15 @@
 
 Partial에서 고정 물체와 명시적 Keep-all에서는 기존 방향을 그대로 유지한다. 따라서 모든 Target이 0 또는 π/2여야 하는 것은 아니다. 수직 방향 지시는 물체 긴 축의 방향이며, Row를 Column 배치로 바꾸라는 뜻이 아니다.
 
-자연어는 현재 관측으로 대상을 특정할 수 있는 한·영 제한 문법을 우선한다. 색상 또는 명확한 가장 왼쪽 물체를 참조할 수 있다. 숨은 Object ID, 과거 대화에만 있는 지시, 해석 기준이 없는 “조금 더”, “아까처럼”은 초기 지원 범위 밖이다.
+자연어는 현재 관측으로 대상을 특정할 수 있는 **영어 전용 제한 문법**을 사용한다. 색상 또는 명확한 “the leftmost object”를 참조할 수 있다. 숨은 Object ID, 과거 대화에만 있는 지시, 해석 기준이 없는 “a little more”, “like before”는 초기 지원 범위 밖이다.
+
+### 2.3 English-only v1 언어 정책
+
+초기 시스템의 유일한 지원 언어는 영어다. 활성 Train/Validation/Development/Test의 모든 Instruction은 `language="en"`이어야 하며, 사용자 예시·QC·언어 반응 평가도 영어를 기본으로 한다. 한국어 및 다국어 지원은 선택적인 후속 작업이며 초기 성능 목표·학습 분포에 포함하지 않는다. 이 명세서의 설명 언어와 시스템이 지원하는 입력 언어는 별개다.
+
+기존 `pilot_v1_3`의 한국어 73개/영어 57개는 Legacy 이력으로 보존한다. 활성 데이터는 별도 `artifacts/pilot_v1_3_en/`의 영어 130개다. 구조화된 지시 필드와 Source 관측으로 영어 문장을 결정적으로 만들고, 자유 번역이나 Teacher 재실행으로 의미·좌표를 바꾸지 않는다. 기존 영어 문장도 같은 간결한 계약으로 정리한다. 위치 참조를 관측 가능하게 표현할 수 없는 선택 집합은 숨은 ID로 대체하지 않고 변환 실패로 보고한다.
+
+긴 축 방향, 선택/고정 대상, 색상별 순수·연속 Row, 외접 면적 순서, 수평 간격, Row 띠의 수직 간격, 색상 간 2g, 영역 및 Keep 의미를 빠짐없이 유지한다. Keep-all 예시는 “Keep every object at its current position and orientation.”이다. 문장을 간결하게 하기 위해 의미를 생략하거나 이미 정돈된 No-op 지시를 임의로 Keep-all로 바꾸지 않는다.
 
 ## 3. 좌표와 기하 계약
 
@@ -139,7 +147,7 @@ h_i=a_i|\sin\theta_i|+b_i|\cos\theta_i|.
 
 기존 Scene/Instruction Dataclass에 임의 필드를 끼워 넣지 않는다. 다음을 Dataset 수준 `provenance.json` 및 별도 `teacher_audit.jsonl`, `migration.jsonl`, `human_review.jsonl`에 추가한다.
 
-- `spec_version="1.3"`, `teacher_policy="balanced_rows_v1.3"`, `instruction_contract="row_edges_v1"`.
+- 활성 데이터: `spec_version="1.3"`, `teacher_policy="balanced_rows_v1.3"`, `instruction_contract="english_rows_v1"`, `language_policy="english_only_v1"`, `supported_languages=["en"]`. 기존 `row_edges_v1`은 Legacy 문장 계약으로 보존한다.
 - `parent_dataset_manifest_sha256`, Teacher 코드 Revision, 설정 Hash.
 - Sample별 기존/신규 Target Hash, 변경 종류, Template/행 크기, J_shape, J_move, 검사 수, 실패 사유.
 - Counterfactual Pair ID, 바뀐 의미 항목, 교차 지시 검증 결과.
@@ -155,7 +163,7 @@ h_i=a_i|\sin\theta_i|+b_i|\cos\theta_i|.
 | M0 Schema | Asset/Pose/Instruction → 검증된 구조 | 표준 라이브러리 | 기존 필드·단위 유지 |
 | M1 Assets | Seed·치수 → Registry/Mesh/Footprint | M0 | 유지 |
 | M2 Scenes | Registry·Seed·Split·N → Source Scene | M0/M1/Geometry | 기존 생성 보존; 연속 수정 Source는 후속 범위 |
-| M3 Instructions | Scene·의미 선택 → 한·영 문장/의미 라벨 | M0 | Row 띠 간격 설명 명확화; 의미 불변 |
+| M3 Instructions | Scene·의미 선택 → 영어 문장/의미 라벨 | M0 | English-only 기본값; Legacy 문법은 명시적 회귀 재현용 |
 | M4 Teacher | Scene+Instruction → status/Target/rows/relations | M0, 배치 기하, M5 | 후보·선택 점수·Partial 이동 기준 수정 |
 | M5 Validator | Source/Target/Instruction → 독립 판정 | M0, Shapely | 기존 기하·의미 계약 유지; 변경 규칙과 회귀 검사 |
 | M6 Rendering | Pose+Asset+Camera → RGB/Mask/Metadata | Blender bpy | 유지; 바뀐 Target만 렌더 |
@@ -180,7 +188,7 @@ h_i=a_i|\sin\theta_i|+b_i|\cos\theta_i|.
 
 명시적 Keep-all은 안전한 산개 장면도 보존할 수 있다. 반복 정돈 지시는 요청된 의미 조건까지 만족해야 한다. 초기 간격이 5 mm 이상 10 mm 미만이고 수치 허용오차 밖인 장면은 정상 No-op 정답이 아니다. Keep-all과 최종 안전 조건이 함께 만족될 수 없으면 infeasible이다.
 
-**위치 기반 참조의 재적용:** Teacher에 같은 구조화된 Instruction(`selected_ids`/`locked_ids`와 요청 조건을 유지)을 결과 Scene에 재적용하는 검사는 동일 대상에 대한 멱등성 검사다. 반면 새 관측에서 “가장 왼쪽 물체” 같은 자연어를 다시 해석하면 이동 후 다른 물체를 가리킬 수 있다. 이 경우 선택·고정 집합을 현재 관측 기준으로 다시 결정하며, 이전 ID를 숨은 대화 기억처럼 유지하지 않는다. 선택 집합이 바뀐 재해석은 새로운 의미 입력이므로 무조건 No-op을 요구하지 않는다. 새로 해석한 지시와 최종 안전 조건을 현재 Scene이 이미 만족할 때만 No-op이다. 위치 참조가 동률 등으로 모호해지면 기존 ambiguous 기준을 적용한다.
+**위치 기반 참조의 재적용:** Teacher에 같은 구조화된 Instruction(`selected_ids`/`locked_ids`와 요청 조건을 유지)을 결과 Scene에 재적용하는 검사는 동일 대상에 대한 멱등성 검사다. 반면 새 관측에서 “the leftmost object” 같은 자연어를 다시 해석하면 이동 후 다른 물체를 가리킬 수 있다. 이 경우 선택·고정 집합을 현재 관측 기준으로 다시 결정하며, 이전 ID를 숨은 대화 기억처럼 유지하지 않는다. 선택 집합이 바뀐 재해석은 새로운 의미 입력이므로 무조건 No-op을 요구하지 않는다. 새로 해석한 지시와 최종 안전 조건을 현재 Scene이 이미 만족할 때만 No-op이다. 위치 참조가 동률 등으로 모호해지면 기존 ambiguous 기준을 적용한다.
 
 ### 6.3 후보 확장
 
@@ -253,7 +261,7 @@ Teacher 결과에 선택·고정 집합과 요청 조건이 같은 구조화된 
 | 행 수 우선 점수 | 미충족 | J_shape 우선 |
 | Partial 영역 중심 우선 | 미충족 | J_move 우선, 기존 Row 후보 |
 | 동일 Seed의 결정성 | 기본 구현 충족 | 배열/언어/재적용 불변성 검사 강화 |
-| Row 간격 문장 | 수치는 일치; Row 띠 표현은 불명확 | 한·영 문장에 Row 띠 의미 명확화; 숫자·의미 필드 유지 |
+| Row 간격 문장 | 수치는 일치; Row 띠 표현은 불명확 | 활성 영어 문장에 Row 띠 의미 명확화; 숫자·의미 필드 유지 |
 | Counterfactual | 30 Family 존재, 주로 방향 전환; region도 full로 변경될 수 있음 | 변경 의미 항목 기록, 교차 조건 검증, 후속 확장에서 단일 요인 Pair 확보 |
 | 실패와 infeasible 구분 | 충족 | 유지 |
 | 독립 기하 Validator | 충족 | 유지; Teacher 점수와 결합하지 않음 |
@@ -296,18 +304,28 @@ Teacher 결과에 선택·고정 집합과 요청 조건이 같은 구조화된 
 
 학습 Loader는 단일 활성 Teacher 정책을 요구한다. v1.3 재평가에서 Target이 같았던 Legacy Sample은 v1.3 Manifest에서 재사용할 수 있지만, 서로 다른 정책이 낳은 경쟁 Target을 한 학습 집합에 혼합하지 않는다. Legacy 비교용 학습은 별도 Run으로만 관리한다.
 
+### 8.4 영어 전용 문장 Migration
+
+`pilot_v1_3`는 수정하지 않고 `pilot_v1_3_en`을 새 디렉터리에 만든다. 활성 Annotation에서는 `instruction.text`와 `instruction.language`만 변경한다. 나머지 의미 필드, Source/Target Pose, 물체 ID·자산·크기, 관계, 이동/잠금 라벨, Scene Family 및 Split은 정확히 보존한다. Source/Target RGB·Mask·Render Metadata는 해시가 같은 독립 파일로 복사하고 Blender를 호출하지 않는다. QC Overlay는 검토용 파생 자료이며 모델 입력 이미지를 변경하지 않는다.
+
+Annotation Hash와 전체/분할 Manifest 및 QC를 새로 작성한다. `language_migration.jsonl`에는 Sample별 이전 언어, 텍스트 Hash, 의미 Hash 및 영어 길이를 기록하고, `language_migration_summary.json`은 활성 언어 수·의미 불일치·0건의 재렌더를 보고한다. 원본 생성·기하 Migration 통계는 역사 기록으로 보존하고 현재 언어 분포와 혼동하지 않는다. `language_parent_manifest.jsonl`, `language_parent_annotations/` 및 기존 `parent_annotations/`는 출처 검증용이며 학습에서 제외한다. Loader는 활성 `manifest.jsonl`과 그 Split Index만 사용하고 디렉터리 전체 Annotation을 glob하지 않는다.
+
+언어 변경 후 사람 검토 상태는 pending으로 두고 `training_approved.jsonl`은 비운다. 코드와 CLI의 새 생성 기본값은 balanced Teacher + English-only다. 기본 감사도 영어 계약을 요구한다. Legacy 회귀 감사는 명시적 `--legacy --read-only`로 분리하며 활성 영어 데이터의 비영어 검사를 끄는 용도로 사용할 수 없다.
+
 ## 9. Dataset 생성과 품질 검증
 
 ### 9.1 Pipeline
 
-Asset/Geometry Family Split 고정 → Source 생성/읽기 → 의미 조건 선택 → 한·영 문장 → Teacher → 독립 Validator → Blender 렌더 → RGB/Mask/투영 검사 → Annotation/Manifest → 전체 감사 → 사람 검토 순서다.
+Asset/Geometry Family Split 고정 → Source 생성/읽기 → 의미 조건 선택 → 영어 문장 → Teacher → 독립 Validator → Blender 렌더 → RGB/Mask/투영 검사 → Annotation/Manifest → 전체 감사 → 사람 검토 순서다. 기존 자료의 언어만 변환할 때는 8.4절에 따라 Teacher 배치 생성과 렌더 단계를 생략한다.
 
 Blender 직접 bpy Backend를 유지한다. 기존 환경은 Blender 5.1.0, Host Python 3.12.16이다. RGB는 Cycles CPU 32 Samples, Instance Mask는 같은 Mesh/Camera의 Workbench flat object color, anti-aliasing 비활성화 후 uint16 ID 변환이다. PNG 시각/렌더 시간 Metadata 정규화를 유지한다. Bitwise 재현성 주장은 같은 Blender Build·장치·플랫폼에 한정한다. BlenderProc를 다시 도입하지 않는다.
 
-카메라 보정·해상도·출력 방향은 기존 Render Job 계약을 그대로 사용한다. 초기 Neural 학습에서는 임의 Crop/회전/좌우 반전 Augmentation을 사용하지 않는다. 그런 변환은 좌표와 “왼쪽/오른쪽” 지시까지 함께 바꿔야 한다. 색상 이름이 바뀌는 Hue Augmentation도 사용하지 않는다.
+카메라 보정·해상도·출력 방향은 기존 Render Job 계약을 그대로 사용한다. 초기 Neural 학습에서는 임의 Crop/회전/좌우 반전 Augmentation을 사용하지 않는다. 그런 변환은 좌표와 “left/right” 지시까지 함께 바꿔야 한다. 색상 이름이 바뀌는 Hue Augmentation도 사용하지 않는다.
 
 ### 9.2 보존할 자동 기준
 
+- 활성 네 Split 모두 `language="en"`이고, Source와 구조화된 필드에서 만든 승인된 영어 문법과 텍스트가 일치해야 한다. 언어 필드만 en으로 바꾼 한국어, ASCII로 쓴 다른 언어, 잘못된 숫자·대상·방향도 거부한다. 이는 제한 문법의 정합성 검사이며 범용 언어 감지기를 주장하지 않는다.
+- 원본 대비 text/language 외 필드 및 Source/Target 파일 Hash가 같고, 각 Split Index가 새 Manifest의 해당 부분집합과 정확히 일치해야 한다.
 - 물체 ID·개수·Asset·색상 보존, 고정 Pose 정확 복사, 단위/좌표/Relation 재계산.
 - Target 간격 ≥10 mm, 경계 ≥10 mm, Envelope 충돌 없음, 지시 영역 포함.
 - Mask–실제 Footprint IoU ≥0.98, 중심 투영 오차 ≤1 pixel.
@@ -319,6 +337,8 @@ Blender 직접 bpy Backend를 유지한다. 기존 환경은 Blender 5.1.0, Host
 
 ### 9.3 다양성과 언어 검증
 
+활성 언어 분포는 영어 100%다. 영어 지시 유형·관측 가능한 참조·문장 의미 변화와 Counterfactual을 평가한다. Legacy 한국어 회귀 검사를 활성 다국어 평가나 학습 표본으로 집계하지 않는다.
+
 N=2..8, 세 형태·색상, 종횡비·크기 조합, 수평/수직, 15/20/30 mm, 전체/좌/우 영역을 조건별로 집계한다. 색상과 크기·형태가 고정적으로 연관되지 않게 한다. 단색/두 색/세 색과 5+2+1 같은 불균형 구성도 포함한다. 특정 Row 빈도를 억지로 균등하게 만들지 않고 N·색상 구성·영역 안에서 분포를 비교한다.
 
 Counterfactual Pair에서는 의미 필드 차이뿐 아니라 각 Target을 반대편 Instruction으로 평가한다. 진단용 Pair는 양쪽 Target이 각각 반대 지시의 적어도 한 조건을 위반해야 한다. 기존 Pair가 이 기준을 통과하지 못해도 개별 Sample의 정답은 유지하고, 유효한 언어 진단 Pair 수에서 제외한다. 필요한 부족 Pair만 추가한다.
@@ -327,7 +347,7 @@ Counterfactual Pair에서는 의미 필드 차이뿐 아니라 각 Target을 반
 
 ### 9.4 데이터 확장 순서
 
-초기 100 Scene은 형식·품질 검증과 Train Split 안의 작은 Overfit에 사용한다. 학습 일반화 Pilot의 계획량은 Train 2,000 / Validation 400 / Development 1,000 / 잠금 Test 1,000 Sample이며 N=2–4부터 시작한다. 같은 Family의 모든 언어·이미지·명령 파생형은 같은 Split에 둔다. Source가 바뀐 Episode도 lineage 단위 Split을 유지한다.
+초기 100 Scene은 형식·품질 검증과 Train Split 안의 작은 Overfit에 사용한다. 학습 일반화 Pilot의 계획량은 Train 2,000 / Validation 400 / Development 1,000 / 잠금 Test 1,000 Sample이며 N=2–4부터 시작한다. 같은 Family의 모든 영어 표현·이미지·명령 파생형은 같은 Split에 둔다. 다국어 파생형은 현재 생성하지 않는다. Source가 바뀐 Episode도 lineage 단위 Split을 유지한다.
 
 초기 Pilot에서도 Full/Partial/No-op 기본 의미와 No-op 학습은 유지하되, 하나의 기본 정돈 지시부터 시작하는 Curriculum을 허용한다. Geometry-OOD Split은 유지하고 다른 Split의 Asset을 성능 향상을 위해 Train으로 옮기지 않는다.
 
@@ -363,7 +383,9 @@ Status Head는 예약된 별도 출력이며 초기에는 학습·판정에 사�
 
 Backbone/FPN/Object Decoder/Arrangement Decoder는 통합 Graph다. 초기 Text Encoder 고정은 사전학습 Neural 표현을 사용하는 학습 정책이며 외부 Rule-based 언어 처리기가 아니다.
 
-기존 128 Token 제한은 현재 긴 한·영 지시의 끝부분을 잘라낼 수 있다. v1.3에서는 **Token 길이를 측정하고 silent truncation을 금지**한다. 최대 길이는 special token 포함 512, Batch 내 동적 Padding을 기본으로 한다. 모델 Config의 position limit 512를 넘는 입력은 오류로 보고한다. 의미를 몰래 생략하지 않는다. 이는 핵심 Network 구조 변경이 아니라 입력 보존 설정이다. [공식 모델 Config](https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2/raw/main/config.json)
+English-only 정책을 적용해도 위 Neural Architecture와 현재 Text Encoder 선택은 변경하지 않는다. Encoder 이름에 multilingual이 포함되어 있다는 사실은 초기 시스템의 다국어 지원을 뜻하지 않는다. 영어 전용 사전학습 Encoder의 이점은 추후 Neural Pilot에서 별도로 비교할 수 있지만 이번 Dataset 변경에 포함하지 않는다.
+
+영어 지시를 간결하게 해도 **실제 Token 길이를 측정하고 silent truncation을 금지**한다. 최대 길이는 special token 포함 512, Batch 내 동적 Padding을 기본으로 유지한다. 모델 Config의 position limit 512를 넘는 입력은 오류로 보고한다. 단어 수를 Token 수로 간주하거나 의미를 몰래 생략하지 않는다. 이는 핵심 Network 구조 변경이 아니라 입력 보존 설정이다. [공식 모델 Config](https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2/raw/main/config.json)
 
 ### 10.3 Head 표현과 Refinement
 
@@ -583,7 +605,7 @@ Target 안전 평가는 **GT a,b + 예측 Target Pose**로 한다. 모든 물체
 
 GT Dataset Validator는 고정 Pose의 **정확 일치**를 요구한다. NN 평가의 3 mm/3° 허용을 Dataset 생성에 적용하지 않는다. Source Asset/라벨 불변성을 검사하는 M5를 예측 결과에 그대로 넣지 말고, 같은 기하·의미 Predicate를 사용하는 Prediction Adapter를 구현한다.
 
-**Partial Refinement 평가 범위:** 현재 입력 Scene에서 확정된 선택 집합 S에만 방향·Row·크기 순서·색상 그룹·요청 간격·요청 영역을 적용한다. 고정 집합 K에는 Keep를 적용하고, 전체 S∪K에는 물체 보존과 안전 기하를 적용한다. 예측 Target에서 “가장 왼쪽” 대상을 다시 골라 같은 Sample의 평가 대상을 바꾸지 않는다. 다음 Turn에서 새 지시를 해석할 때만 그 Turn의 Source로 다시 grounding한다. 고정 물체가 산개한 채 남아 있다는 이유만으로 Partial을 실패 처리하거나, 전체 장면의 Full Knolling을 요구하지 않는다.
+**Partial Refinement 평가 범위:** 현재 입력 Scene에서 확정된 선택 집합 S에만 방향·Row·크기 순서·색상 그룹·요청 간격·요청 영역을 적용한다. 고정 집합 K에는 Keep를 적용하고, 전체 S∪K에는 물체 보존과 안전 기하를 적용한다. 예측 Target에서 “the leftmost object” 대상을 다시 골라 같은 Sample의 평가 대상을 바꾸지 않는다. 다음 Turn에서 새 지시를 해석할 때만 그 Turn의 Source로 다시 grounding한다. 고정 물체가 산개한 채 남아 있다는 이유만으로 Partial을 실패 처리하거나, 전체 장면의 Full Knolling을 요구하지 않는다.
 
 Partial Task Success는 위 의미·보존·안전 조건의 동시 충족으로 판정한다. 선택 물체가 모두 움직여야 하는 것은 아니며, 이동량이 작다는 이유만으로 실패시키지도 않는다. Teacher Target과의 좌표 일치 및 J_move는 별도 모방·이동 효율 지표다. 6.6절의 유한 후보 집합 최소 이동은 Teacher 선택 기준이며 NN의 Task Success에 동일 후보나 동일 좌표를 강요하는 조건이 아니다. 의미·안전 검사를 통과하지 못한 예측을 작은 이동 비용 때문에 성공으로 인정하지 않는다.
 
@@ -598,7 +620,7 @@ Partial Task Success는 위 의미·보존·안전 조건의 동시 충족으로
 | Target errors | Source 대응을 고정한 목표 위치·각도 Median/P95 |
 | Raw Geometry Success | Count/Source 대응 성공 AND 전체 간격·충돌·테이블 경계 통과 |
 | SSR | Count/대응/Geometry/요청 영역/방향/순서/그룹/간격/Keep를 모두 통과한 Scene 비율 |
-| 조건별 성능 | N, 형태/크기, 색상 구성, 방향, 간격, 영역, 언어, Full/Partial/No-op별 SSR와 n |
+| 조건별 성능 | N, 형태/크기, 색상 구성, 방향, 간격, 영역, 영어 지시 유형, Full/Partial/No-op별 SSR와 n |
 | Language sensitivity | 동일 RGB의 명령 Pair 각각 성공, 교차 지시 조건을 실제로 구분하는지 |
 | Keep violation | 고정 물체 하나라도 기준을 넘은 Partial Scene 비율 |
 | No-op | 전체 물체 보존+해당 지시+Geometry 성공률 |
@@ -626,7 +648,7 @@ Baseline은 Source 그대로 유지, 고정 기본 지시를 넣은 동일 Neura
 
 v1.3 Teacher로 기존 130 Sample을 고정 입력 재평가하고 새/기존 Target 비교표를 만든다. 자동 검사는 새 Manifest의 모든 Sample에서 통과해야 한다. 기존 39개 Regression과 v1.3 신규 검사를 모두 실행하되, 테스트 수 자체보다 의미·기하·재현성 계약 보존을 기준으로 한다.
 
-추가 Fixture는 균형/기존 분할 모두 필요할 때, N=8·수직·불균형 색상, Partial 중앙이 막힌 경우, 동일 의미 한·영, Object 배열 순서 변경, 동일 선택·고정 집합을 유지한 No-op 재적용, 위치 기반 참조의 재해석으로 대상이 유지/변경되는 경우, Legacy ±π/2 동등성과 고정/No-op Pose 정확 복사, Legacy 정책 재현, 정책 혼합 거부를 포함한다. 위치 참조 대상이 바뀐 경우에는 새 의미의 충족 여부를 검사하며 No-op을 강제하지 않는다. 변경 없는 Source 파일의 해시와 기존 Split은 유지되어야 한다. 이번 문서 보정만으로 추가 Fixture가 모두 구현·통과했다고 표시하지 않는다.
+추가 Fixture는 균형/기존 분할 모두 필요할 때, N=8·수직·불균형 색상, Partial 중앙이 막힌 경우, 동일 의미 영어 표현, Object 배열 순서 변경, 동일 선택·고정 집합을 유지한 No-op 재적용, 위치 기반 참조의 재해석으로 대상이 유지/변경되는 경우, Legacy ±π/2 동등성과 고정/No-op Pose 정확 복사, Legacy 정책 재현, 정책 혼합 거부를 포함한다. 위치 참조 대상이 바뀐 경우에는 새 의미의 충족 여부를 검사하며 No-op을 강제하지 않는다. 변경 없는 Source 파일의 해시와 기존 Split은 유지되어야 한다. 이번 문서 보정만으로 추가 Fixture가 모두 구현·통과했다고 표시하지 않는다.
 
 전체 130 Sample을 자연어+Source+Target으로 사람이 검토한다. QC Overlay가 있는 이미지와 없는 이미지를 함께 제공한다. 정돈감/명령 충족/Partial 이동 자연스러움/관측 가능성을 각각 평가한다. Keep-all에는 정돈감 개선을 요구하지 않는다. Contact Sheet 9쌍 확인은 전수 검토가 아니다.
 
@@ -660,7 +682,7 @@ QA Gate와 단일 정책 Manifest가 준비되면 Dataset Adapter/Model/Matching
 | 데이터 처리 | Seed로 전체 생성 | 원본 보존, 고정 Source Migration, 변경 Target만 렌더 |
 | Schema | 1.2 | 구조 1.2 유지, 정책·Migration Sidecar 추가 |
 | Legacy 테스트 | 현재 Teacher로 재생성 비교 | 정책별 재현 검사, 기존 독립 감사 유지 |
-| 언어 | 긴 한·영 제한 문법 | Row 띠 설명 명확화; 의미 불변, Counterfactual 교차 검증 |
+| 언어 | Legacy 한·영 제한 문법 | 활성 데이터·사용자 예시·평가는 영어 전용; 다국어는 선택적 후속 작업; 의미 불변, Counterfactual 교차 검증 |
 | 입력 길이 | 앞선 NN 설계의 128 Token | silent truncation 금지, 최대 512/dynamic padding |
 | NN 핵심 | Object Decoder + 3-stage Arrangement | 유지; 미정 세부값을 10절 기본값으로 고정 |
 | 초기 Loss | 다수 목적 동시 적용 계획 | Detection + Target만 |

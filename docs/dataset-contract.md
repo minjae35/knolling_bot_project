@@ -1,5 +1,10 @@
 # Dataset contracts and implementation order
 
+Active v1 language policy: **English only**, with `language_policy="english_only_v1"`
+and `instruction_contract="english_rows_v1"`. `pilot_v1_3_en` is the active artifact;
+original v1.2/v1.3 datasets and bilingual fixtures are archived regression evidence.
+The schema still reads legacy `ko` values, but the active audit rejects them.
+
 | Module | Entry point | Input → output | Dependencies |
 |---|---|---|---|
 | M0 | `schema.py` | Immutable assets, poses, scenes, instructions; JSON conversions | Standard library |
@@ -49,13 +54,17 @@ use the conservative envelope, not the smaller chamfer/capsule footprint.
 - Partial semantic predicates apply to selected objects; all-scene safety and
   immutable locks apply to every object. Unselected objects need not form rows.
 
-Teacher groups colors independently, chunks each group with K=1..4, centers each
+The legacy Teacher groups colors independently, chunks each group with K=1..4, centers each
 row, and tries fewest rows, bounding area, width, then lexicographic positions.
 Within a group, ties use dimensions, color and observable source coordinates.
 Partial templates translate on a 5 mm lattice, nearest region center first,
 then upper before lower and left before right. Search budget is 20,000 candidates.
 Exhausting templates or budget is `generation_failure`, never `infeasible`.
 An independent validator disagreement raises an error and stops generation.
+
+The active balanced Teacher uses K=1..N_selected, sequential and balanced partitions,
+J_shape for Full and global J_move-first lattice ranking for Partial. This Teacher
+and its targets are unchanged by the English-only conversion.
 
 ## Identity, data flow and splits
 
@@ -66,7 +75,7 @@ poses, current poses, dimensions and semantic selection/lock sets are serialized
 Detection boxes and normalized centers are auxiliary labels, not model inputs.
 No neural architecture, matching loss, training loop or robot execution exists.
 
-The bounded grammar emits English/Korean text from the same semantic fields.
+The active bounded grammar emits English text from structured semantic fields.
 Selection references all objects, a visible color, or an unambiguous leftmost
 object. Raw IDs never appear in model-input text. Colors, directions, requested
 gaps, region, size-order convention and lock behavior are stated explicitly.
@@ -74,6 +83,14 @@ gaps, region, size-order convention and lock behavior are stated explicitly.
 in the instruction. Free-form parsing, dialogue history and unsupported arbitrary
 instructions are outside this pilot. Unsupported/ambiguous status interfaces
 have tests; the rendered pilot contains feasible positive samples only.
+
+The English conversion changes only instruction text/language; it never calls
+Blender or recomputes target layouts. Parent annotations are hash-verified archival
+evidence, excluded from active split indexes. Every active split is checked against
+the manifest, and every instruction must match the English semantic renderer.
+Original bilingual grammar remains available only through explicit legacy APIs.
+User-facing examples and language evaluation are English; multilingual support is
+optional future work. Neural architecture and the current text encoder stay fixed.
 
 Scene families are assigned before rendering. Paraphrases/counterfactual tasks
 must retain their family. The current pilot has two semantically distinct tasks

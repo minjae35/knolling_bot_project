@@ -4,6 +4,12 @@ New implementation for `minjae35/knolling_bot_project`, based on the finalized
 v1.3 dataset specification, preserving the validated v1.2 pipeline. Scope: M0–M8 only. No neural
 network, training pipeline, or robot simulation.
 
+**Initial system language: English only.** The active pilot is
+`artifacts/pilot_v1_3_en/`. Both `pilot_v1_2` and the original bilingual
+`pilot_v1_3` remain archived regression artifacts. Multilingual support is
+optional future work; the Neural Architecture/text-encoder choice is unchanged.
+See the [English conversion and validation report](docs/english-only-report.md).
+
 Use the existing Conda environment `knolling` (Python 3.12):
 
 ```sh
@@ -26,16 +32,20 @@ GPU training framework, external asset download, or previous project code is req
 # Full tests: real repeated Blender renders AND a 10-scene builder integration.
 RUN_BLENDER_TESTS=1 RUN_BUILDER_TESTS=1 conda run -n knolling python -m pytest -q
 
-# Migrate the original fixed inputs; do not regenerate the original pilot.
-conda run -n knolling python -m knolling_dataset migrate --parent artifacts/pilot_v1_2 --output artifacts/pilot_v1_3
+# One-time instruction-only conversion; refuses an existing output directory.
+# Does not invoke Blender, regenerate scenes or recompute target arrangements.
+conda run -n knolling python -m knolling_dataset english --parent artifacts/pilot_v1_3 --output artifacts/pilot_v1_3_en
 
 # Recheck hashes, identities, constraints, split leakage and all RGB/mask projections.
-conda run -n knolling python -m knolling_dataset audit artifacts/pilot_v1_2 --read-only
-conda run -n knolling python -m knolling_dataset audit artifacts/pilot_v1_3 --read-only
+conda run -n knolling python -m knolling_dataset audit --read-only
+# Archival audits must opt out explicitly; this does not disable the gate on active English data.
+conda run -n knolling python -m knolling_dataset audit artifacts/pilot_v1_2 --legacy --read-only
+conda run -n knolling python -m knolling_dataset audit artifacts/pilot_v1_3 --legacy --read-only
 
-# All regression/integration tests and both actual on-disk pilots.
-RUN_BLENDER_TESTS=1 RUN_BUILDER_TESTS=1 RUN_MIGRATION_TESTS=1 \
+# All regression/integration tests and all three on-disk pilots.
+RUN_BLENDER_TESTS=1 RUN_BUILDER_TESTS=1 RUN_MIGRATION_TESTS=1 RUN_LANGUAGE_MIGRATION_TESTS=1 \
 PILOT_DATASET=artifacts/pilot_v1_2 PILOT_V13_DATASET=artifacts/pilot_v1_3 \
+PILOT_EN_DATASET=artifacts/pilot_v1_3_en \
 conda run -n knolling python -m pytest -q
 ```
 
@@ -69,8 +79,8 @@ original generation history; migration counts are recorded separately.
 
 For an explicitly intended fresh build in a **new** directory, `build` defaults
 to `--teacher-policy balanced_rows_v1.3`. Use `--teacher-policy legacy_v1_2`
-only for legacy reproduction. The Python API retains its legacy default for
-backward compatibility; specify the policy for every new caller. Unknown or
+only for legacy reproduction. The Python builder/annotation APIs also default
+to the balanced Teacher and English instructions. Unknown or
 mixed policies are rejected. The structured Scene/Instruction schema stays 1.2;
 policy and migration metadata are separate sidecars.
 
@@ -83,15 +93,34 @@ counts are 70/10/10/10; asset-family pools are strictly disjoint. This is a smal
 strict geometry-OOD pilot, not evidence of future neural generalization.
 
 Open `qc/index.html` locally to filter by mode/split and inspect input/target
-pairs, IDs, locks and Korean/English instructions. The JSON report is automatic
+pairs, IDs, locks and English instructions. The JSON report is automatic
 verification; **human visual/language review remains a separate sign-off**.
 
-The migrated report covers **all 130 samples**, with raw/annotated RGB switching,
-source/v1.2/v1.3 targets, movement arrows and per-object translation/rotation.
-Use `qc/target_comparison.csv`, `qc/object_movements.csv`,
-`qc/partial_quality.csv` and `qc/partial_quality.md` for detailed comparisons.
+The active report covers **all 130 samples**, with raw/annotated RGB switching,
+source/target views, movement arrows and per-object translation/rotation.
+Use `qc/english_instructions.csv` and `qc/object_movements.csv` for review.
+Historical geometry comparisons remain in the archived v1.3 QC report.
 The contact sheet is only a navigation aid. Human ratings remain null until a
 reviewer records them; this phase does not implement a training export workflow.
+
+The English conversion changes only `instruction.text` and `instruction.language`.
+All source/target geometry, identity, family and split fields remain identical;
+RGB/mask/render-metadata files retain their hashes. Current language statistics
+are in `language_migration_summary.json`; inherited `generation.json` and geometry
+migration reports describe historical runs, not the active language distribution.
+`language_parent_*` and `parent_annotations/` are archival evidence only. Future
+loaders must read the active manifest/split indexes, never glob every annotation.
+
+The audit requires `language="en"` plus exact agreement with the approved English
+grammar and structured fields. A non-English string relabeled `en`, foreign text
+using ASCII, or a contradictory gap/direction is rejected. English v1 is a bounded
+instruction interface, not a claim of unrestricted English understanding. For example:
+
+> Keep every object at its current position and orientation.
+
+For arrangements, the template names the selected objects and region, long-axis
+direction, bounding-rectangle area order, row/color grouping and exact horizontal
+and vertical row-band gaps. Partial instructions explicitly keep other objects fixed.
 
 See [module and validation contracts](docs/dataset-contract.md) and
 [implementation decisions](docs/implementation-decisions.md).
