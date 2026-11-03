@@ -291,7 +291,7 @@ language-insensitive predictions, excluded pairs and JSON report integration.
 No S0 neural training or GPU optimizer updates were run.
 
 The English pilot became available during review. Its adapter and oracle
-neural tests run, but `scripts/verify_s0_data.py` currently fails the unchanged
+neural tests run, but `scripts/verify_s0_data.py` initially failed the unchanged
 full audit with five errors: `teacher_scores_or_configuration` and
 `migration_scores` for `scene_0037_primary` and `scene_0089_primary`, plus
 `partial_quality_mismatch`. Read-only comparisons isolate the numerical
@@ -299,6 +299,9 @@ mismatches to recomputed `J_move`: 4.440863602014575e-06 versus
 4.440863602014576e-06, and 0.05376727341039903 versus 0.05376727341039904.
 The audit reports no file-hash or target-reproduction failures. This is evidence
 of floating-point audit sensitivity; it is not a passing full-data audit. No
-Dataset, Teacher, approval sidecar or audit policy was changed. Resolve that
-readiness check separately before advancing the GPU launch gate. GPU preflight,
-memory requirements and convergence remain unverified.
+Dataset, Teacher or approval sidecar was changed during that review. The audit
+precision investigation subsequently resolved these five failures with a
+verifier-only, one-adjacent-float allowance for positive `J_move`; the complete
+audit and S0 adapter verification now pass. See the
+[numerical evidence and validation report](dataset-audit-precision.md).
+GPU preflight, memory requirements and convergence remain unverified.

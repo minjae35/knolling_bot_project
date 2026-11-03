@@ -1,6 +1,7 @@
 """Policy-aware audit; human approval is never synthesized by automation."""
 from dataclasses import replace
 import json
+import math
 from pathlib import Path
 from .schema import scene_from_dict,instruction_from_dict,digest
 from .policies import BALANCED,policy_metadata,require_single_policy
@@ -11,6 +12,43 @@ from .instructions import clarify_instruction
 
 def read_jsonl(path):
     return [json.loads(line) for line in Path(path).read_text().splitlines() if line.strip()]
+
+
+def _movement_score_matches(stored, computed):
+    """Allow only one adjacent binary64 value for positive derived J_move.
+
+    Squaring and summing displacements can round differently across runtimes.
+    Zero remains exact (No-op), and nonfinite/negative/non-float scores fail.
+    This is not a tolerance on target poses, geometry, or Teacher selection.
+    """
+    if (type(stored) is not float or type(computed) is not float
+            or not math.isfinite(stored) or not math.isfinite(computed)
+            or stored < 0 or computed < 0):
+        return False
+    return (stored.hex() == computed.hex() or
+            stored > 0 and computed > 0 and math.nextafter(stored, computed) == computed)
+
+
+def _movement_metrics_match(stored, computed):
+    """All keys/values stay exact except the direct J_move diagnostic."""
+    return (isinstance(stored, dict) and stored.keys() == computed.keys() and
+            all(_movement_score_matches(stored[k], v) if k == 'J_move'
+                else digest(stored[k]) == digest(v) for k, v in computed.items()))
+
+
+def _partial_quality_matches(stored, computed):
+    if len(stored) != len(computed):
+        return False
+    normalized = []
+    for saved, current in zip(stored, computed):
+        row = dict(saved)
+        for label in ('legacy', 'v1_3'):
+            if label in current:
+                if not _movement_metrics_match(saved.get(label), current[label]):
+                    return False
+                row[label] = current[label]
+        normalized.append(row)
+    return digest(normalized) == digest(computed)
 
 
 def check_v13(root,records,provenance, *, invariance=True):
@@ -37,7 +75,7 @@ def check_v13(root,records,provenance, *, invariance=True):
         if result.status!="ok" or target_hash(result.target)!=expected_hash:
             errors.append(sid+":policy_reproduction"); continue
         counts["policy_reproduction"]+=1
-        if any(digest(audit.get(k))!=digest(v) for k,v in result.audit.items()):
+        if not _movement_metrics_match({k:audit.get(k) for k in result.audit}, result.audit):
             errors.append(sid+":teacher_scores_or_configuration")
         if invariance:
             variants=[("array_order",replace(source,objects=tuple(reversed(source.objects))),replace(ins,selected_ids=tuple(reversed(ins.selected_ids)),locked_ids=tuple(reversed(ins.locked_ids)))),
@@ -97,10 +135,11 @@ def check_v13(root,records,provenance, *, invariance=True):
                         errors.append(sid+":unchanged_target_rerendered")
             source=scene_from_dict(old["source"]); ins=instruction_from_dict(new["instruction"])
             before,after=layout_metrics(source,a,ins),layout_metrics(source,b,ins)
-            if row["old_metrics"]!=before or row["new_metrics"]!=after: errors.append(sid+":migration_scores")
+            if not _movement_metrics_match(row["old_metrics"],before) or not _movement_metrics_match(row["new_metrics"],after):
+                errors.append(sid+":migration_scores")
             if old["mode"]=="partial" and after["J_move"]>before["J_move"]+1e-12: errors.append(sid+":partial_movement_increased")
         partials,partial_summary=partial_quality(parents,records)
-        if digest(read_jsonl(root/"partial_quality.jsonl"))!=digest(partials): errors.append("partial_quality_mismatch")
+        if not _partial_quality_matches(read_jsonl(root/"partial_quality.jsonl"),partials): errors.append("partial_quality_mismatch")
         if digest(json.loads((root/"partial_quality_summary.json").read_text()))!=digest(partial_summary): errors.append("partial_quality_summary_mismatch")
     pairs=counterfactual_audit(records)
     if digest(read_jsonl(root/"counterfactual_audit.jsonl"))!=digest(pairs): errors.append("counterfactual_audit_mismatch")
