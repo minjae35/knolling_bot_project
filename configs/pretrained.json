@@ -1,0 +1,5 @@
+{
+  "text_model": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+  "text_revision": "e8f8c211226b894fcb81acc59f3b34ba3efd5f42",
+  "resnet_weights": "IMAGENET1K_V1"
+}

@@ -1,0 +1,53 @@
+{
+  "version": "s0_32_v1",
+  "manifest_sha256": "8000428a04522f50cf37567d85d442ac94d1f8a87121747d4243e33974320d06",
+  "teacher_policy": "balanced_rows_v1.3",
+  "language_policy": "english_only_v1",
+  "split": "train",
+  "object_range": [
+    2,
+    4
+  ],
+  "mode_counts": {
+    "full": 16,
+    "partial": 8,
+    "no_op": 8
+  },
+  "scene_families": 25,
+  "selection_rule": "Full: all seven eligible complete counterfactual pairs plus first two remaining IDs; Partial: both multi-object selections plus first six remaining IDs; No-op: all three Keep-all plus first five repeats. Lexicographic ties. No performance-based filtering.",
+  "authorization": "User declares final dataset review complete and authorizes selecting 32 samples for S0 implementation; no historical dataset review records are rewritten. Training awaits implementation review.",
+  "sample_ids": [
+    "scene_0000_counterfactual",
+    "scene_0000_primary",
+    "scene_0001_primary",
+    "scene_0002_primary",
+    "scene_0007_counterfactual",
+    "scene_0007_primary",
+    "scene_0022_counterfactual",
+    "scene_0022_primary",
+    "scene_0028_counterfactual",
+    "scene_0028_primary",
+    "scene_0029_primary",
+    "scene_0035_primary",
+    "scene_0036_primary",
+    "scene_0037_primary",
+    "scene_0042_primary",
+    "scene_0043_counterfactual",
+    "scene_0043_primary",
+    "scene_0044_counterfactual",
+    "scene_0044_primary",
+    "scene_0049_primary",
+    "scene_0051_counterfactual",
+    "scene_0051_primary",
+    "scene_0058_primary",
+    "scene_0063_primary",
+    "scene_0065_primary",
+    "scene_0070_primary",
+    "scene_0071_primary",
+    "scene_0078_primary",
+    "scene_0084_primary",
+    "scene_0085_primary",
+    "scene_0092_primary",
+    "scene_0093_primary"
+  ]
+}
