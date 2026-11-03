@@ -319,3 +319,35 @@ def test_best_checkpoint_promotes_gate_passing_state(tmp_path, monkeypatch):
     assert best['cursor'] == last['cursor'] == result['cursor']
     assert best['best_score'] == runner.checkpoint_score(passing)
     assert_nested_equal(best['model'], last['model'])
+
+
+def test_progress_resume_restores_actual_updates_and_running_average(tmp_path, monkeypatch):
+    metrics = evaluation_metrics()
+    cfg, _, _, _ = install_optimizer_fixture(monkeypatch, tmp_path, metrics)
+    runner.train(cfg, tmp_path/'logged', device='cpu')
+    events = [json.loads(line) for line in (tmp_path/'logged/metrics.jsonl').read_text().splitlines()]
+    updates = [e for e in events if e['event'] == 'update']
+    progress = json.loads((tmp_path/'logged/progress.json').read_text())
+    assert progress['updates'] == progress['loss_updates'] == 5
+    assert progress['percent'] == 100
+    assert progress['average_loss'] == pytest.approx(sum(e['losses']['loss'] for e in updates)/5)
+    saved = torch.load(tmp_path/'logged/last.pt', weights_only=True)
+    assert saved['progress']['updates'] == 5
+    runner.train(cfg, tmp_path/'logged-resumed', device='cpu', resume=tmp_path/'logged/last.pt')
+    continued = json.loads((tmp_path/'logged-resumed/progress.json').read_text())
+    assert continued['updates'] == 5 and continued['loss_updates'] == 5
+    assert continued['average_loss'] == progress['average_loss']
+    assert continued['latest_evaluation']['s0_gate'] is False
+
+
+def test_progress_counts_updates_not_micro_batches_and_rejects_jumps(tmp_path):
+    from knolling_model.progress import TrainingProgress
+    with TrainingProgress(tmp_path, 2000, 850, 'cpu',
+                          {'loss_sum': 850., 'loss_updates': 850, 'elapsed_seconds': 100.}) as progress:
+        assert progress.bar.n == 850
+        progress.update(851, 2.)
+        assert progress.bar.n == 851
+        assert progress.snapshot()['average_loss'] == pytest.approx(852/851)
+        assert progress.snapshot()['elapsed_seconds'] >= 100
+        with pytest.raises(ValueError, match='actual optimizer'):
+            progress.update(853, 2.)

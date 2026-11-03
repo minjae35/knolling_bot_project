@@ -17,6 +17,7 @@ from .data import S0Dataset, Collator, FamilySampler
 from .evaluation import evaluate
 from .losses import S0Criterion, POSITION_SCALE, SIZE_SCALE, ANGLE_SCALE, STAGE_WEIGHTS
 from .model import load_pretrained
+from .progress import TrainingProgress
 
 
 def read_config(path):
@@ -131,20 +132,21 @@ def provenance(config):
                             'platform': platform.platform(), 'cuda_runtime': torch.version.cuda}}
 
 
-def save_checkpoint(path, model, optimizer, cursor, best_score, evidence):
+def save_checkpoint(path, model, optimizer, cursor, best_score, evidence, progress=None):
     # Frozen text weights are identified by the pinned revision and reloaded.
     # All trainable parameters AND visual FrozenBN buffers are retained.
     payload = {'format': 's0_checkpoint_v1', 'model': {k: v for k,v in model.state_dict().items()
                                                       if not k.startswith('text_encoder.')},
                'optimizer': optimizer.state_dict(), 'scheduler': None,
-               'cursor': cursor, 'best_score': best_score, 'rng': rng_state(), 'provenance': evidence}
+               'cursor': cursor, 'best_score': best_score, 'rng': rng_state(), 'provenance': evidence,
+               'progress': progress}
     path = Path(path)
     temporary = path.with_suffix(path.suffix+'.tmp')
     torch.save(payload, temporary)
     temporary.replace(path)
 
 
-def load_checkpoint(path, model, optimizer, evidence):
+def load_checkpoint(path, model, optimizer, evidence, progress=None):
     saved = torch.load(path, map_location='cpu', weights_only=True)
     if saved['format'] != 's0_checkpoint_v1':
         raise ValueError('unsupported checkpoint')
@@ -157,6 +159,8 @@ def load_checkpoint(path, model, optimizer, evidence):
         raise ValueError(f'checkpoint model keys mismatch: {mismatch}')
     optimizer.load_state_dict(saved['optimizer'])
     restore_rng(saved['rng'])
+    if progress is not None:
+        progress.update(saved.get('progress') or {})
     return saved['cursor'], saved['best_score']
 
 
@@ -235,8 +239,9 @@ def train(config, run_dir, device='cuda', offline=True, resume=None):
     evidence['device'] = str(device)
     evidence['device_name'] = torch.cuda.get_device_name(device) if str(device).startswith('cuda') else platform.machine()
     cursor, best_score = {'epoch': 0, 'group': 0, 'updates': 0}, None
+    progress_state = {}
     if resume:
-        cursor, best_score = load_checkpoint(resume, model, optimizer, evidence)
+        cursor, best_score = load_checkpoint(resume, model, optimizer, evidence, progress_state)
         evidence['resume'] = {'checkpoint': str(Path(resume).resolve()), 'sha256': file_hash(resume)}
     write_json(run_dir/'provenance.json', evidence)
     (run_dir/'resolved-requirements.txt').write_text(subprocess.check_output(
@@ -245,58 +250,61 @@ def train(config, run_dir, device='cuda', offline=True, resume=None):
     last_evaluated = None
     passed = False
 
-    def record_evaluation(preserve_rng=False):
-        nonlocal best_score, last_evaluated, passed
-        state = rng_state() if preserve_rng else None
-        try:
-            metrics, rows = evaluate(model, batches(dataset, collator, list(range(len(dataset))),
-                                                    config['micro_batch']), device)
-        finally:
-            if state is not None:
-                restore_rng(state)
-        append_event(run_dir/'metrics.jsonl', {'event': 'evaluation', **cursor, 'metrics': metrics})
-        write_json(run_dir/'evaluation-latest.json', {'cursor': cursor, 'metrics': metrics, 'samples': rows})
-        score = checkpoint_score(metrics)
-        # A resumed directory selects among its own evaluated states. The
-        # parent's historical best weights need not be in its last checkpoint.
-        if best_score is None or score < best_score or not (run_dir/'best.pt').exists():
-            best_score = score
-            save_checkpoint(run_dir/'best.pt', model, optimizer, cursor, best_score, evidence)
-        passed, last_evaluated = metrics['s0_gate'], metrics
+    with TrainingProgress(run_dir, config['max_updates'], cursor['updates'], device, progress_state) as progress:
+        def record_evaluation(preserve_rng=False):
+            nonlocal best_score, last_evaluated, passed
+            state = rng_state() if preserve_rng else None
+            try:
+                metrics, rows = evaluate(model, batches(dataset, collator, list(range(len(dataset))),
+                                                        config['micro_batch']), device)
+            finally:
+                if state is not None:
+                    restore_rng(state)
+            append_event(run_dir/'metrics.jsonl', {'event': 'evaluation', **cursor, 'metrics': metrics})
+            write_json(run_dir/'evaluation-latest.json', {'cursor': cursor, 'metrics': metrics, 'samples': rows})
+            progress.evaluation(metrics)
+            score = checkpoint_score(metrics)
+            # A resumed directory selects among its own evaluated states. The
+            # parent's historical best weights need not be in its last checkpoint.
+            if best_score is None or score < best_score or not (run_dir/'best.pt').exists():
+                best_score = score
+                save_checkpoint(run_dir/'best.pt', model, optimizer, cursor, best_score, evidence, progress.snapshot())
+            passed, last_evaluated = metrics['s0_gate'], metrics
 
-    if resume:
-        # Recheck the restored weights BEFORE any update, including checkpoints
-        # saved just before an epoch evaluation. Keep the training RNG stream
-        # unchanged by this extra diagnostic so interrupted runs replay exactly.
-        record_evaluation(preserve_rng=True)
-    while cursor['updates'] < config['max_updates'] and not passed:
-        epoch = cursor['epoch']
-        sampler.set_epoch(epoch)
-        groups = update_groups(list(sampler), config['effective_batch'])
-        for group_index in range(cursor['group'], len(groups)):
-            model.train()
-            optimizer.zero_grad(set_to_none=True)
-            terms = backward_group(model, criterion, dataset, collator, groups[group_index],
-                                   config['micro_batch'], device)
-            grad_norm = nn.utils.clip_grad_norm_(model.parameters(), config['gradient_clip'], error_if_nonfinite=True)
-            optimizer.step()
-            cursor = {'epoch': epoch, 'group': group_index+1, 'updates': cursor['updates']+1}
-            if cursor['group'] == len(groups):
-                cursor['epoch'], cursor['group'] = epoch+1, 0
-            append_event(run_dir/'metrics.jsonl', {'event': 'update', **cursor, 'losses': terms,
-                         'gradient_norm_before_clip': float(grad_norm), 'scenes': len(groups[group_index])})
-            if cursor['updates'] % config['checkpoint_every'] == 0:
-                save_checkpoint(run_dir/'last.pt', model, optimizer, cursor, best_score, evidence)
-            if cursor['updates'] >= config['max_updates']:
-                break
-        # Evaluate every family epoch and at a partial-epoch budget stop. All 32
-        # instructions are tested, regardless of that epoch's family choices.
-        record_evaluation()
-    if last_evaluated is None:
-        record_evaluation()
-    save_checkpoint(run_dir/'last.pt', model, optimizer, cursor, best_score, evidence)
-    result = {'cursor': cursor, 's0_gate': passed, 'last_evaluation': last_evaluated,
-              'stop_reason': 'memorization_gate' if passed else 'update_budget',
-              'generalization_claim': False}
-    write_json(run_dir/'result.json', result)
-    return result
+        if resume:
+            # Recheck the restored weights BEFORE any update, including checkpoints
+            # saved just before an epoch evaluation. Keep the training RNG stream
+            # unchanged by this extra diagnostic so interrupted runs replay exactly.
+            record_evaluation(preserve_rng=True)
+        while cursor['updates'] < config['max_updates'] and not passed:
+            epoch = cursor['epoch']
+            sampler.set_epoch(epoch)
+            groups = update_groups(list(sampler), config['effective_batch'])
+            for group_index in range(cursor['group'], len(groups)):
+                model.train()
+                optimizer.zero_grad(set_to_none=True)
+                terms = backward_group(model, criterion, dataset, collator, groups[group_index],
+                                       config['micro_batch'], device)
+                grad_norm = nn.utils.clip_grad_norm_(model.parameters(), config['gradient_clip'], error_if_nonfinite=True)
+                optimizer.step()
+                cursor = {'epoch': epoch, 'group': group_index+1, 'updates': cursor['updates']+1}
+                if cursor['group'] == len(groups):
+                    cursor['epoch'], cursor['group'] = epoch+1, 0
+                progress.update(cursor['updates'], terms['loss'])
+                append_event(run_dir/'metrics.jsonl', {'event': 'update', **cursor, 'losses': terms,
+                             'gradient_norm_before_clip': float(grad_norm), 'scenes': len(groups[group_index])})
+                if cursor['updates'] % config['checkpoint_every'] == 0:
+                    save_checkpoint(run_dir/'last.pt', model, optimizer, cursor, best_score, evidence, progress.snapshot())
+                if cursor['updates'] >= config['max_updates']:
+                    break
+            # Evaluate every family epoch and at a partial-epoch budget stop. All 32
+            # instructions are tested, regardless of that epoch's family choices.
+            record_evaluation()
+        if last_evaluated is None:
+            record_evaluation()
+        save_checkpoint(run_dir/'last.pt', model, optimizer, cursor, best_score, evidence, progress.snapshot())
+        result = {'cursor': cursor, 's0_gate': passed, 'last_evaluation': last_evaluated,
+                  'stop_reason': 'memorization_gate' if passed else 'update_budget',
+                  'generalization_claim': False}
+        write_json(run_dir/'result.json', result)
+        return result
