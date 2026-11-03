@@ -29,9 +29,10 @@ def test_annotations_deterministic_complete_and_balanced():
 
 
 @pytest.mark.skipif(os.environ.get("RUN_BUILDER_TESTS") != "1",reason="set RUN_BUILDER_TESTS=1 for 10-scene rendered integration")
-def test_complete_builder_with_actual_renders(tmp_path):
+@pytest.mark.parametrize("policy",["legacy_v1_2","balanced_rows_v1.3"])
+def test_complete_builder_with_actual_renders(tmp_path,policy):
     root = tmp_path/"dataset"
-    records,stats = build_dataset(root,10,1203)
+    records,stats = build_dataset(root,10,1203,policy=policy)
     assert len(records) == 13
     rows = [json.loads(line) for line in (root/"manifest.jsonl").read_text().splitlines()]
     assert len(rows) == 13
@@ -42,10 +43,14 @@ def test_complete_builder_with_actual_renders(tmp_path):
     from knolling_dataset.splits import audit_dataset
     audit = audit_dataset(root)
     assert audit["valid"],audit
-    assert (root/"COMPLETE.json").exists()
+    marker="COMPLETE.json" if policy=="legacy_v1_2" else "AUTOMATED_VALIDATION.json"
+    assert (root/marker).exists()
+    if policy=="balanced_rows_v1.3":
+        assert not (root/"COMPLETE.json").exists()
+        assert audit["policy_audit"]["invariance_counts"]["policy_reproduction"]==13
     # A dropped manifest entry is not a smaller, silently valid dataset.
     manifest_path = root/"manifest.jsonl"
     manifest_path.write_text("\n".join(manifest_path.read_text().splitlines()[1:])+"\n")
     broken = audit_dataset(root,verify_renders=False)
     assert not broken["valid"] and "manifest_count" in broken["errors"]
-    assert not (root/"COMPLETE.json").exists()
+    assert not (root/marker).exists()

@@ -42,6 +42,18 @@ def test_pi_equivalent_targets_reuse_images():
     assert target_hash(scene)==target_hash(rotated)
 
 
+def test_migration_refuses_parent_or_occupied_destination(tmp_path):
+    parent=tmp_path/"parent"; parent.mkdir()
+    sentinel=parent/"keep.txt"; sentinel.write_text("unchanged")
+    for output in (parent,parent/"nested",tmp_path):
+        with pytest.raises(ValueError,match="separate"):
+            migrate_dataset(parent,output)
+    occupied=tmp_path/"occupied"; occupied.mkdir(); (occupied/"keep.txt").write_text("keep")
+    with pytest.raises(ValueError,match="empty"):
+        migrate_dataset(parent,occupied)
+    assert sentinel.read_text()=="unchanged" and (occupied/"keep.txt").read_text()=="keep"
+
+
 def test_policy_sidecar_tampering(tmp_path):
     records=prepare_annotations(10,1202,policy=BALANCED)[1]
     initialize_balanced_sidecars(tmp_path,records)

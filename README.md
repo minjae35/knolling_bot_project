@@ -97,6 +97,8 @@ See [module and validation contracts](docs/dataset-contract.md) and
 [implementation decisions](docs/implementation-decisions.md).
 The v1.3 policy and migration choices are in
 [v1.3 implementation decisions](docs/v1.3-implementation.md).
+The completed migration counts, verification and remaining quality gaps are in
+[the v1.3 pilot report](docs/v1.3-pilot-report.md).
 
 The completed 100-scene pilot's results, milestone commits and limitations are
 documented in [the pilot report](docs/pilot-report.md).
