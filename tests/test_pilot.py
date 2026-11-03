@@ -13,13 +13,13 @@ def test_actual_pilot_acceptance_and_annotation_reproduction():
     root = Path(os.environ["PILOT_DATASET"])
     provenance = json.loads((root/"provenance.json").read_text())
     assert provenance["scene_count"] == 100 and provenance["sample_count"] == 130
-    audit = audit_dataset(root,verify_renders=True)
+    audit = audit_dataset(root,verify_renders=True,read_only=True)
     assert audit["valid"],audit
     assert audit["renders_revalidated"]
     manifest = [json.loads(line) for line in (root/"manifest.jsonl").read_text().splitlines()]
     existing = {m["sample_id"]:json.loads((root/m["annotation"]).read_text()) for m in manifest}
     # Rebuild only annotations, NOT another rendered dataset. Compare all labels.
-    _,regenerated,stats = prepare_annotations(100,provenance["seed"])
+    _,regenerated,stats = prepare_annotations(100,provenance["seed"],policy="legacy_v1_2")
     assert stats["primary_mode_counts"] == {"full":50,"partial":30,"no_op":20}
     assert stats["no_op_types"] == {"repeat":14,"keep_all":6}
     assert len({r["scene_family_id"] for r in regenerated}) == 100

@@ -15,6 +15,7 @@ from .schema import (SPLITS, canonical_json, digest, scene_dict, scene_from_dict
 from .teacher import solve
 from .validator import validate_layout, validate_source, polygon
 from .rendering import make_job, render_batch, validate_render
+from .policies import LEGACY
 
 
 def write_json(path, value):
@@ -53,7 +54,7 @@ def _record(source,ins,result,sample_id,role,noop_type=None):
             "teacher_candidates_checked":result.candidates_checked}
 
 
-def prepare_annotations(count=100,seed=1202):
+def prepare_annotations(count=100,seed=1202, *, policy=LEGACY):
     registry = build_registry()
     records,rejections = [],[]
     primary_attempts,counter_attempts,noop_number = 0,0,0
@@ -73,14 +74,14 @@ def prepare_annotations(count=100,seed=1202):
             except (SamplingFailure,ValueError) as exc:
                 rejections.append({"family_id":family,"attempt":attempt,"stage":"source_instruction","reason":str(exc)})
                 continue
-            result = solve(source,ins)
+            result = solve(source,ins,policy=policy)
             if result.status != "ok":
                 rejections.append({"family_id":family,"attempt":attempt,"stage":"teacher","reason":result.reason,"status":result.status})
                 continue
             if noop_type == "repeat":
                 source = replace(source,objects=tuple(replace(o,source_pose=o.target_pose,target_pose=None,
                                  locked=False,move_label=False) for o in result.target.objects))
-                result = solve(source,ins)
+                result = solve(source,ins,policy=policy)
             if result.mode != desired:
                 rejections.append({"family_id":family,"attempt":attempt,"stage":"mode_balance","reason":f"expected_{desired}_got_{result.mode}"})
                 continue
@@ -100,7 +101,7 @@ def prepare_annotations(count=100,seed=1202):
               group_by=original.group_by,sort_direction=original.sort_direction,
               axis_alignment="vertical" if original.axis_alignment == "horizontal" else "horizontal",
               gap_m=original.gap_m,region="full")
-        result = solve(source,ins)
+        result = solve(source,ins,policy=policy)
         if result.status != "ok" or result.mode == "no_op":
             rejections.append({"family_id":source.family_id,"stage":"counterfactual","reason":result.reason or "no_op","status":result.status})
             continue

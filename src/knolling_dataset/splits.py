@@ -106,10 +106,10 @@ def _safe_path(root,relative):
     return path
 
 
-def audit_dataset(root,verify_renders=True):
+def audit_dataset(root,verify_renders=True, *, read_only=False):
     root = Path(root)
     complete = root/"COMPLETE.json"
-    if complete.exists():
+    if complete.exists() and not read_only:
         complete.unlink()  # A failed or interrupted re-audit cannot leave stale success.
     manifest = [json.loads(line) for line in (root/"manifest.jsonl").read_text().splitlines()]
     records,integrity_errors,checked_files,render_cache = [],[],set(),{}
@@ -152,6 +152,8 @@ def audit_dataset(root,verify_renders=True):
     result["valid"] = not result["errors"]
     result["verified_file_count"] = len(checked_files)+len(manifest)
     result["renders_revalidated"] = verify_renders
+    if read_only:
+        return result
     write_json(root/"audit.json",result)
     # Explicit split manifests are derivative indexes, never independent split decisions.
     for split in SPLITS:
