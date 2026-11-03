@@ -2,7 +2,9 @@
 
 New implementation for `minjae35/knolling_bot_project`, based on the finalized
 v1.3 dataset specification, preserving the validated v1.2 pipeline. Dataset
-modules M0–M8 are complete; S0 neural implementation is being added separately.
+modules M0–M8 and the S0 neural implementation are complete. S0 has passed local
+CPU checks; training has not started. See the
+[S0 implementation, verification and exact launch commands](docs/s0-implementation.md).
 See the [vast.ai S0 setup and readiness runbook](docs/vast-ai-s0.md) and
 [dataset storage audit and verified backups](docs/dataset-storage-audit.md).
 Dataset transfer/storage changes remain pending approval; this repository does
@@ -14,7 +16,9 @@ not provision GPU instances.
 optional future work; the Neural Architecture/text-encoder choice is unchanged.
 See the [English conversion and validation report](docs/english-only-report.md).
 The [final quality review](docs/final-dataset-quality-review.md) recommends retaining
-the dataset for S0, subject to human sign-off. All-sample visual comparisons and
+the dataset for S0. The user has since confirmed the review is complete and
+authorized S0 preparation; historical dataset review sidecars remain unchanged.
+All-sample visual comparisons and
 per-sample findings are in `artifacts/final_quality_review/index.html`; no labels
 or Teacher behavior were changed by that review.
 

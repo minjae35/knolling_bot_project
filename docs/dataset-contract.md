@@ -73,7 +73,10 @@ There is no target Hungarian matching or reassignment. Instance ID i+1 maps to
 the ith source object in render metadata; annotations keep both IDs. Target
 poses, current poses, dimensions and semantic selection/lock sets are serialized.
 Detection boxes and normalized centers are auxiliary labels, not model inputs.
-No neural architecture, matching loss, training loop or robot execution exists.
+The dataset package is independent of neural training. The separate
+`knolling_model` package now implements the S0 model, matching/loss, evaluator
+and launcher; see [S0 implementation](s0-implementation.md). No training or robot
+execution has been performed.
 
 The active bounded grammar emits English text from structured semantic fields.
 Selection references all objects, a visible color, or an unambiguous leftmost

@@ -167,20 +167,31 @@ Set these cache variables consistently for download and training.
 
 ## 4. S0 launch gate
 
-The runnable S0 command is pending completion/verification of the concurrently
-developed training entry point. This workflow intentionally does not invent a
-module name or launch an unreviewed trainer. Before an actual run, the pinned
-revision must include:
+The S0 entry point is now implemented and locally verified. See the
+[S0 implementation and launch contract](s0-implementation.md) for the exact
+commands, configuration, tests and limitations. The 2026-11-03 local run passed
+108 tests with 5 dataset-regeneration integrations skipped; all 35 focused
+neural tests passed, including the real pretrained CPU forward/backward without
+optimizer updates. The model, matching/loss, evaluation and checkpoint/resume
+paths are implemented. GPU execution and convergence remain untested.
 
-- Integrated model, source-only Hungarian matching and Detection + Target losses.
-- A documented CLI/config for the selected 32 samples, CUDA device, seed, output
-  directory, effective batch 16, and maximum 2,000 optimizer updates.
-- Evaluation of all selected examples, including counterfactual instructions,
-  plus checkpoints with optimizer/RNG/config/data revision and working resume.
-- Passing model, loss, identity, gradient-flow and checkpoint/resume checks.
+After installation/data verification, download/cache the pinned weights and run
+preflight. This is not training:
 
-Until that gate is resolved, the environment/data preparation is usable but S0
-is **not claimed to be launch-ready**. Run output must go under ignored
+```sh
+python -m knolling_model preflight --device cpu --download-weights
+RUN_PRETRAINED_TESTS=1 python -m pytest -q tests/neural
+```
+
+After the user's implementation review, the future training command is:
+
+```sh
+python -m knolling_model train --config configs/s0.json --device cuda \
+  --run-dir artifacts/s0/runs/seed1203 --start-training
+```
+
+This command has **not** been run. Provisioning and dataset transfer remain
+separate, unperformed actions. Run output must go under ignored
 `artifacts/` or `runs/`, never into tracked source. Before stopping/deleting a
 future instance, copy checkpoints, metrics, logs, resolved environment and the
 code/data identifiers back to persistent storage and verify their checksums.

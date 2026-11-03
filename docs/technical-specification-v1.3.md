@@ -4,7 +4,9 @@
 
 기준 구현: `69cf56549efa7f178622e6eadcc6d0eeb6b749d6`
 
-문서 상태: 최종 통합 명세. 아래 1절의 완료 기록, 7절의 비교 및 18절의 구현 체크리스트는 `69cf565` 시점의 설계 기준을 보존한 것이다. 이후 Dataset v1.3 구현·Migration은 `400d9c4`까지 완료됐으며, 결과는 [v1.3 Pilot 보고서](v1.3-pilot-report.md)를 따른다. 사람의 전수 시각 검토는 아직 pending이다. 이번 문서 확정은 위치 기반 참조의 No-op 재적용, Legacy 방향 호환성, Partial 평가 기준을 명확히 하며, 이 보정 자체에 대한 코드 변경이나 새 검증 완료를 주장하지 않는다.
+문서 상태: 최종 통합 명세. 아래 1절의 완료 기록, 7절의 비교 및 18절의 구현 체크리스트는 `69cf565` 시점의 설계 기준을 보존한 것이다. 이후 Dataset v1.3 구현·Migration은 `400d9c4`까지 완료됐으며, 결과는 [v1.3 Pilot 보고서](v1.3-pilot-report.md)를 따른다. 해당 보고서의 사람 시각 검토 pending 기록은 당시 상태로 보존한다. 이번 문서 확정은 위치 기반 참조의 No-op 재적용, Legacy 방향 호환성, Partial 평가 기준을 명확히 하며, 이 보정 자체에 대한 코드 변경이나 새 검증 완료를 주장하지 않는다.
+
+2026-11-03 구현 상태 갱신: 사용자가 최종 Dataset 품질 검토 완료를 확인하고 S0 구현을 요청했다. 기존 Architecture·Learning Strategy를 유지한 Adapter, Model, Matching/Loss, Evaluator, Launcher의 구현 및 로컬 검증은 [S0 구현·실행 계약](s0-implementation.md)에 기록한다. Dataset·Teacher·과거 승인 Sidecar는 변경하지 않았다. 학습은 실행하지 않았으며, 실제 시작은 이번 구현 검토 이후다. 아래 설계 기준·과거 체크리스트와 실제 완료 상태를 구분한다.
 
 목표는 BEV RGB 이미지와 자연어 지시에서 물체별 목표 배치까지 하나의 Neural Network로 예측하는 Knolling System을 완성하는 것이다. 기존 M0–M8, 검증된 Annotation 계약, 100 Scene Pilot을 보존한다. Teacher는 제한된 후보 중 균형 있는 배치를 선택하도록 수정하고, 초기 Neural 학습은 Detection + Target Loss로 시작한다. Novelty보다 정돈 성공률, 구현 가능성, 실패 원인의 식별을 우선한다.
 
