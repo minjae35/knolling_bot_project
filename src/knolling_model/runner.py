@@ -182,6 +182,18 @@ def prepare(config, device, offline):
     return dataset, model, Collator(tokenizer)
 
 
+def checkpoint_score(metrics):
+    """S0 gate admission, then v1.3 §12.1 task/geometry/target ranking.
+
+    A passing memorization checkpoint must never lose to a failing one with
+    better aggregate errors or semantics. Within each gate class use the spec
+    order; target center P95 is the final tie breaker (lower is better).
+    """
+    error = metrics['target_position_mm']['p95']
+    return (not metrics['s0_gate'], -metrics['task_success'],
+            -metrics['raw_geometry_success'], error if error is not None else float('inf'))
+
+
 def preflight(config, report, device='cpu', offline=True):
     protect_dataset_output(report, config)
     dataset, model, collator = prepare(config, device, offline)
@@ -232,6 +244,31 @@ def train(config, run_dir, device='cuda', offline=True, resume=None):
     sampler = FamilySampler(dataset.records, config['seed'])
     last_evaluated = None
     passed = False
+
+    def record_evaluation(preserve_rng=False):
+        nonlocal best_score, last_evaluated, passed
+        state = rng_state() if preserve_rng else None
+        try:
+            metrics, rows = evaluate(model, batches(dataset, collator, list(range(len(dataset))),
+                                                    config['micro_batch']), device)
+        finally:
+            if state is not None:
+                restore_rng(state)
+        append_event(run_dir/'metrics.jsonl', {'event': 'evaluation', **cursor, 'metrics': metrics})
+        write_json(run_dir/'evaluation-latest.json', {'cursor': cursor, 'metrics': metrics, 'samples': rows})
+        score = checkpoint_score(metrics)
+        # A resumed directory selects among its own evaluated states. The
+        # parent's historical best weights need not be in its last checkpoint.
+        if best_score is None or score < best_score or not (run_dir/'best.pt').exists():
+            best_score = score
+            save_checkpoint(run_dir/'best.pt', model, optimizer, cursor, best_score, evidence)
+        passed, last_evaluated = metrics['s0_gate'], metrics
+
+    if resume:
+        # Recheck the restored weights BEFORE any update, including checkpoints
+        # saved just before an epoch evaluation. Keep the training RNG stream
+        # unchanged by this extra diagnostic so interrupted runs replay exactly.
+        record_evaluation(preserve_rng=True)
     while cursor['updates'] < config['max_updates'] and not passed:
         epoch = cursor['epoch']
         sampler.set_epoch(epoch)
@@ -254,26 +291,9 @@ def train(config, run_dir, device='cuda', offline=True, resume=None):
                 break
         # Evaluate every family epoch and at a partial-epoch budget stop. All 32
         # instructions are tested, regardless of that epoch's family choices.
-        metrics, rows = evaluate(model, batches(dataset, collator, list(range(len(dataset))),
-                                                config['micro_batch']), device)
-        append_event(run_dir/'metrics.jsonl', {'event': 'evaluation', **cursor, 'metrics': metrics})
-        write_json(run_dir/'evaluation-latest.json', {'cursor': cursor, 'metrics': metrics, 'samples': rows})
-        # Best checkpoint: lexicographic count, identity coverage, then normalized
-        # errors. This is overfit selection, never held-out model selection.
-        error_score = 0.
-        for key, scale in [('source_position_mm',1), ('target_position_mm',1), ('source_size_mm',1),
-                           ('source_angle_deg',2), ('target_angle_deg',2)]:
-            error_score += (metrics[key]['p95'] if metrics[key]['p95'] is not None else 1000)/scale
-        score = (1-metrics['count_accuracy'], 1-metrics['correspondence_coverage'], error_score)
-        if best_score is None or score < best_score:
-            best_score = score
-            save_checkpoint(run_dir/'best.pt', model, optimizer, cursor, best_score, evidence)
-        passed, last_evaluated = metrics['s0_gate'], metrics
+        record_evaluation()
     if last_evaluated is None:
-        last_evaluated, rows = evaluate(model, batches(dataset, collator, list(range(len(dataset))),
-                                                       config['micro_batch']), device)
-        passed = last_evaluated['s0_gate']
-        write_json(run_dir/'evaluation-latest.json', {'cursor': cursor, 'metrics': last_evaluated, 'samples': rows})
+        record_evaluation()
     save_checkpoint(run_dir/'last.pt', model, optimizer, cursor, best_score, evidence)
     result = {'cursor': cursor, 's0_gate': passed, 'last_evaluation': last_evaluated,
               'stop_reason': 'memorization_gate' if passed else 'update_budget',

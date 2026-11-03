@@ -12,8 +12,15 @@ from knolling_model.__main__ import parser
 from knolling_model.data import Batch
 
 
-def config():
-    return runner.read_config('configs/s0.json')
+def config(tmp_path=None):
+    cfg = runner.read_config('configs/s0.json')
+    if tmp_path is not None:
+        # Provenance needs a manifest, but runner unit tests need no pilot data.
+        root = tmp_path/'synthetic-data'
+        root.mkdir(exist_ok=True)
+        (root/'manifest.jsonl').write_text('{}\n')
+        cfg = {**cfg, 'dataset': str(root)}
+    return cfg
 
 
 class TinyModel(nn.Module):
@@ -70,7 +77,7 @@ def test_checkpoint_roundtrip_cursor_rng_optimizer_and_provenance(tmp_path):
     # Populate Adam buffers without an optimizer update, then verify serialization.
     p = next(p for p in model.parameters() if p.requires_grad)
     opt.state[p] = {'step': torch.tensor(7.), 'exp_avg': torch.ones_like(p), 'exp_avg_sq': torch.full_like(p, 2)}
-    evidence = runner.provenance(config())
+    evidence = runner.provenance(config(tmp_path))
     cursor = {'epoch': 4, 'group': 1, 'updates': 9}
     path = tmp_path/'last.pt'
     runner.save_checkpoint(path, model, opt, cursor, (0., 0., 7.), evidence)
@@ -133,10 +140,11 @@ def test_training_orchestration_resume_without_real_training(tmp_path, monkeypat
     monkeypatch.setattr(runner, 'backward_group', backward)
     monkeypatch.setattr(runner, 'batches', lambda *args: [])
     metrics = {'count_accuracy': 0., 'correspondence_coverage': 0., 's0_gate': False,
+               'task_success': 0., 'raw_geometry_success': 0.,
                **{k: {'p95': None} for k in ('source_position_mm','target_position_mm','source_size_mm',
                                            'source_angle_deg','target_angle_deg')}}
     monkeypatch.setattr(runner, 'evaluate', lambda *args: (metrics, []))
-    cfg = {**config(), 'max_updates': 3, 'checkpoint_every': 1}
+    cfg = {**config(tmp_path), 'max_updates': 3, 'checkpoint_every': 1}
     result = runner.train(cfg, tmp_path/'first', device='cpu')
     assert len(steps)==3 and [len(g) for g in groups]==[16,9,16]
     assert result['cursor'] == {'epoch': 1, 'group': 1, 'updates': 3}
@@ -156,3 +164,158 @@ def test_training_orchestration_resume_without_real_training(tmp_path, monkeypat
     steps.clear()
     finished = runner.train(cfg, tmp_path/'finished', device='cpu', resume=tmp_path/'continued/last.pt')
     assert not steps and finished['last_evaluation'] is not None
+
+
+def evaluation_metrics(gate=False, task=0., geometry=0., target=3.):
+    return {'count_accuracy': 1., 'correspondence_coverage': 1., 's0_gate': gate,
+            'task_success': task, 'raw_geometry_success': geometry,
+            **{k: {'p95': target} for k in ('source_position_mm', 'target_position_mm',
+                                           'source_size_mm', 'source_angle_deg', 'target_angle_deg')}}
+
+
+def test_checkpoint_gate_admission_and_spec_tie_breaks():
+    rank = runner.checkpoint_score
+    # Previously a failing model with a single 1.1 mm error could outrank
+    # a passing model with five sub-threshold errors by their summed errors.
+    failing = evaluation_metrics(task=1., geometry=1., target=0.)
+    failing['source_position_mm']['p95'] = 1.1
+    passing = evaluation_metrics(gate=True, task=.5, geometry=.5, target=.8)
+    assert rank(passing) < rank(failing)
+    assert rank(evaluation_metrics(task=.9, geometry=.1, target=5.)) < rank(
+        evaluation_metrics(task=.8, geometry=1., target=.1))
+    assert rank(evaluation_metrics(task=.9, geometry=1., target=5.)) < rank(
+        evaluation_metrics(task=.9, geometry=.9, target=.1))
+    assert rank(evaluation_metrics(target=.5)) < rank(evaluation_metrics(target=1.))
+    assert rank(evaluation_metrics(target=1.)) < rank(evaluation_metrics(target=None))
+
+
+class OptimizerFixtureModel(nn.Module):
+    """Small CPU regression fixture, exercising actual AdamW and RNG replay."""
+    def __init__(self):
+        super().__init__()
+        self.projection = nn.Linear(1, 1)
+        self.text_encoder = nn.Linear(1, 1).requires_grad_(False)
+
+    def forward(self, images):
+        jitter = torch.rand_like(images)*.01 if self.training else 0.
+        return self.projection(images+jitter)
+
+
+def install_optimizer_fixture(monkeypatch, tmp_path, metrics):
+    class Dataset:
+        records = [{'scene_family_id': str(i)} for i in range(25)]
+        def __len__(self):
+            return 25
+        def __getitem__(self, i):
+            return torch.tensor([[i/25+1.]])
+    def collate(items):
+        return Batch({'images': torch.cat(items)}, [{} for _ in items], [])
+    models, optimizers, visits = [], [], []
+    def prepare(cfg, *args):
+        runner.seed_everything(cfg['seed'])
+        model = OptimizerFixtureModel()
+        models.append(model)
+        return Dataset(), model, collate
+    class Criterion:
+        def __call__(self, output, _):
+            return {'loss': (output-2.).square().mean()}, []
+    real_optimizer, real_backward = runner.make_optimizer, runner.backward_group
+    def optimizer(*args):
+        opt = real_optimizer(*args)
+        optimizers.append(opt)
+        return opt
+    def backward(*args):
+        visits.append(list(args[4]))
+        return real_backward(*args)
+    monkeypatch.setattr(runner, 'prepare', prepare)
+    monkeypatch.setattr(runner, 'S0Criterion', Criterion)
+    monkeypatch.setattr(runner, 'make_optimizer', optimizer)
+    monkeypatch.setattr(runner, 'backward_group', backward)
+    monkeypatch.setattr(runner, 'evaluate', lambda *args: (metrics, []))
+    cfg = {**config(tmp_path), 'max_updates': 5, 'checkpoint_every': 1}
+    return cfg, models, optimizers, visits
+
+
+def assert_nested_equal(left, right):
+    if isinstance(left, torch.Tensor):
+        assert torch.equal(left, right)
+    elif isinstance(left, dict):
+        assert left.keys() == right.keys()
+        for key in left:
+            assert_nested_equal(left[key], right[key])
+    elif isinstance(left, (list, tuple)):
+        assert len(left) == len(right)
+        for a, b in zip(left, right):
+            assert_nested_equal(a, b)
+    else:
+        assert left == right
+
+
+def test_successful_resume_preserves_weights_optimizer_cursor_and_best(tmp_path, monkeypatch):
+    metrics = evaluation_metrics(gate=True, task=1., geometry=1., target=.5)
+    cfg, models, optimizers, visits = install_optimizer_fixture(monkeypatch, tmp_path, metrics)
+    first = runner.train(cfg, tmp_path/'successful', device='cpu')
+    assert first['cursor']['updates'] == 2 < cfg['max_updates']
+    saved = torch.load(tmp_path/'successful/last.pt', weights_only=True)
+    assert all(state['step'] == 2 for state in saved['optimizer']['state'].values())
+    def diagnostic_evaluation(*args):
+        random.random(); np.random.rand(); torch.rand(1)
+        return metrics, []
+    monkeypatch.setattr(runner, 'evaluate', diagnostic_evaluation)
+    visits.clear()
+    resumed = runner.train(cfg, tmp_path/'resumed-success', device='cpu', resume=tmp_path/'successful/last.pt')
+    after = torch.load(tmp_path/'resumed-success/last.pt', weights_only=True)
+    assert not visits
+    assert resumed['stop_reason'] == 'memorization_gate' and resumed['cursor'] == first['cursor']
+    for field in ('model', 'optimizer', 'cursor', 'rng'):
+        assert_nested_equal(saved[field], after[field])
+    best = torch.load(tmp_path/'resumed-success/best.pt', weights_only=True)
+    assert best['best_score'][0] is False
+    assert_nested_equal(best['model'], saved['model'])
+    assert_nested_equal(best['rng'], saved['rng'])
+
+
+@pytest.mark.parametrize('interrupt_after', [1, 2, 3])
+def test_real_optimizer_interrupted_resume_matches_uninterrupted(tmp_path, monkeypatch, interrupt_after):
+    cfg, models, optimizers, visits = install_optimizer_fixture(
+        monkeypatch, tmp_path, evaluation_metrics())
+    result = runner.train(cfg, tmp_path/'uninterrupted', device='cpu')
+    baseline = torch.load(tmp_path/'uninterrupted/last.pt', weights_only=True)
+    baseline_visits = visits[:]
+    visits.clear()
+    save = runner.save_checkpoint
+    class Interrupted(Exception):
+        pass
+    def interrupt(path, *args):
+        save(path, *args)
+        if path.name == 'last.pt' and args[2]['updates'] == interrupt_after:
+            raise Interrupted
+    monkeypatch.setattr(runner, 'save_checkpoint', interrupt)
+    with pytest.raises(Interrupted):
+        runner.train(cfg, tmp_path/'interrupted', device='cpu')
+    monkeypatch.setattr(runner, 'save_checkpoint', save)
+    assert visits == baseline_visits[:interrupt_after]
+    visits.clear()
+    resumed = runner.train(cfg, tmp_path/'continued', device='cpu', resume=tmp_path/'interrupted/last.pt')
+    actual = torch.load(tmp_path/'continued/last.pt', weights_only=True)
+    assert visits == baseline_visits[interrupt_after:]
+    assert resumed['cursor'] == result['cursor']
+    for field in ('model', 'optimizer', 'cursor', 'rng'):
+        assert_nested_equal(baseline[field], actual[field])
+    assert all(state['step'] == 5 for state in actual['optimizer']['state'].values())
+
+
+def test_best_checkpoint_promotes_gate_passing_state(tmp_path, monkeypatch):
+    failing = evaluation_metrics(task=1., geometry=1., target=0.)
+    failing['source_position_mm']['p95'] = 1.1
+    passing = evaluation_metrics(gate=True, task=.5, geometry=.5, target=.8)
+    cfg, _, _, _ = install_optimizer_fixture(monkeypatch, tmp_path, failing)
+    reports = iter([failing, passing])
+    monkeypatch.setattr(runner, 'evaluate', lambda *args: (next(reports), []))
+    result = runner.train(cfg, tmp_path/'promotion', device='cpu')
+    best = torch.load(tmp_path/'promotion/best.pt', weights_only=True)
+    last = torch.load(tmp_path/'promotion/last.pt', weights_only=True)
+    assert result['s0_gate'] and result['cursor']['updates'] == 4
+    assert best['cursor'] == last['cursor'] == result['cursor']
+    assert best['best_score'] == runner.checkpoint_score(passing)
+    assert_nested_equal(best['model'], last['model'])

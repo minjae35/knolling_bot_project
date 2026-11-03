@@ -1,7 +1,8 @@
 # S0 implementation and launch contract
 
 Status, 2026-11-03: S0 components are implemented and locally verified. **No
-neural optimizer update, GPU training or GPU provisioning has been performed.**
+S0 model training, GPU training or GPU provisioning has been performed.**
+CPU regression tests use small synthetic models with real optimizer steps.
 The user confirmed the final dataset quality review is complete and authorized
 S0 preparation. Historical dataset approval sidecars remain unchanged. Starting
 training awaits review of this implementation.
@@ -118,9 +119,13 @@ different CUDA/driver/hardware versions is not promised.
 Each run uses a **new** output directory. `metrics.jsonl` records update losses,
 gradient norm, effective scene count and per-epoch evaluation summaries.
 `evaluation-latest.json` includes all sample failures and per-stage errors.
-`last.pt` is saved every 50 updates and at normal completion; `best.pt` ranks
-count accuracy, then correspondence coverage, then summed threshold-normalized
-P95 errors lexicographically. Run completion writes `result.json`.
+`last.pt` is saved every 50 updates and at normal completion. For S0,
+`best.pt` first admits memorization-gate-passing states ahead of failing states,
+so a successful checkpoint cannot be displaced by a failing state with better
+aggregate diagnostics. Within each gate class, selection follows v1.3 §12.1:
+Task Success, then Raw Geometry, then lower target-center P95 error. This is
+selection on the 32 Train samples, not held-out model selection. Run completion
+writes `result.json`.
 
 Checkpoints contain trainable model parameters, visual buffers, Adam state,
 RNG states, the next epoch/group cursor, configuration, source-code hash, Git
@@ -131,6 +136,15 @@ The resolved dependency freeze and device information are saved with the run.
 Resume rejects changes to source code, configuration, dataset selection,
 pretrained pins, language/Teacher policy or loss/token settings. It writes into a
 new directory and records its parent checkpoint hash, preserving prior logs.
+Resume evaluates the restored weights before any optimizer update. A successful
+S0 run exits immediately with unchanged weights, optimizer, RNG and cursor; an
+interrupted run continues from the exact next group. The extra evaluation
+preserves the restored RNG stream. Each new directory selects `best.pt` among
+states evaluated there, beginning with its restored checkpoint; it does not
+claim to reconstruct an unavailable historical best from the parent run.
+Source-hash validation intentionally rejects checkpoints made by older code.
+Start the reviewed S0 run from the new revision rather than editing provenance
+to make an old checkpoint load.
 
 Training stops at the S0 memorization gate or 2,000 updates, whichever comes
 first. The gate requires count accuracy and confirmed source correspondence
