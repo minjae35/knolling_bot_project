@@ -12,6 +12,7 @@ def test_solid_footprints_and_uniform_scale_family(shape):
     assert p.bounds == pytest.approx((-.03,-.015,.03,.015))
     assert geometry_fingerprint(a) == geometry_fingerprint(b)
     assert a.family_id == b.family_id and a.asset_id != b.asset_id
+    assert a.family_id == make_asset(shape,60,30,15).family_id
 
 
 def test_registry_reproducible_disjoint_and_diverse():

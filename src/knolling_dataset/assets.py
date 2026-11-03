@@ -1,7 +1,7 @@
 """M1: original procedural solids, extruded from canonical CCW footprints.
 
-Asset families ignore color and uniform physical scale. A new aspect/height
-ratio is a new geometry family; the three shape CLASSES are not family IDs.
+Asset families ignore color, height and uniform footprint scale. A new planar
+aspect ratio is a new geometry family; shape CLASSES are not family IDs.
 """
 from dataclasses import asdict
 import math
@@ -10,7 +10,7 @@ from .schema import Asset, SHAPES, SPLITS, digest
 
 
 def geometry_fingerprint(asset):
-    return digest({"shape":asset.shape, "height_ratio":round(asset.h_m/asset.a_m,9),
+    return digest({"shape":asset.shape,
                    "footprint":[[round(x/asset.a_m,9),round(y/asset.a_m,9)]
                                 for x,y in asset.footprint]})
 

@@ -39,3 +39,13 @@ def test_complete_builder_with_actual_renders(tmp_path):
         assert file_hash(root/row["annotation"]) == row["annotation_sha256"]
     assert (root/"qc/index.html").exists() and (root/"qc/contact_sheet.png").exists()
     assert json.loads((root/"qc/summary.json").read_text())["all_render_checks_valid"]
+    from knolling_dataset.splits import audit_dataset
+    audit = audit_dataset(root)
+    assert audit["valid"],audit
+    assert (root/"COMPLETE.json").exists()
+    # A dropped manifest entry is not a smaller, silently valid dataset.
+    manifest_path = root/"manifest.jsonl"
+    manifest_path.write_text("\n".join(manifest_path.read_text().splitlines()[1:])+"\n")
+    broken = audit_dataset(root,verify_renders=False)
+    assert not broken["valid"] and "manifest_count" in broken["errors"]
+    assert not (root/"COMPLETE.json").exists()
