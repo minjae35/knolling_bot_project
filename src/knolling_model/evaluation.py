@@ -9,6 +9,7 @@ from knolling_dataset.schema import scene_from_dict, Pose, REGIONS, angle_error
 from knolling_dataset.validator import polygon, geometry, inferred_rows
 from .coordinates import to_meters, angle_delta
 from .losses import match_source
+from .diagnostics import condition_labels, success_summary, summarize_diagnostics
 
 
 def semantic_errors(objects, record):
@@ -73,6 +74,7 @@ def evaluate_batch(output, batch):
         active = torch.where(source['objectness_logits'][0].sigmoid() >= .5)[0]
         n = len(truth['source_xy'])
         row = {'sample_id': meta['sample_id'], 'mode': meta['record']['mode'], 'gt_count': n,
+               'conditions': condition_labels(meta['record']), 'keep_violation': None,
                'predicted_count': len(active), 'count_correct': len(active)==n, 'matched_objects': 0,
                'source_position_mm': [], 'source_size_mm': [], 'source_angle_deg': [],
                'target_position_mm': [], 'target_angle_deg': [], 'stages': [],
@@ -123,17 +125,22 @@ def evaluate_batch(output, batch):
             semantics = semantic_errors(positioned, meta['record'])
             row['stages'].append({'position_mm': positions, 'angle_deg': angles,
                                   'geometry_success': all(good) and safety.valid,
+                                  'geometry_errors': safety.errors,
                                   'errors': sorted(set(safety.errors+semantics))})
         final = row['stages'][-1]
         row['target_position_mm'], row['target_angle_deg'] = final['position_mm'], final['angle_deg']
         row['raw_geometry_success'] = final['geometry_success']
         row['errors'] = sorted(set(row['errors']+final['errors']))
         row['task_success'] = all(good) and not row['errors']
+        if all(good):
+            row['predicted_targets'] = {o.object_id: {'x_m': o.target_pose.x_m, 'y_m': o.target_pose.y_m,
+                                                      'theta_rad': o.target_pose.theta_rad} for o in positioned}
+            row['keep_violation'] = 'keep' in final['errors']
         rows.append(row)
     return rows
 
 
-def summarize(rows):
+def summarize(rows, records=()):
     result = {'samples': len(rows), 'count_accuracy': sum(r['count_correct'] for r in rows)/len(rows),
               'correspondence_coverage': sum(r['matched_objects'] for r in rows)/sum(r['gt_count'] for r in rows),
               'raw_geometry_success': sum(r['raw_geometry_success'] for r in rows)/len(rows),
@@ -143,13 +150,14 @@ def summarize(rows):
         values = [v for r in rows for v in r[key]]
         result[key] = {'median': float(np.median(values)) if values else None,
                        'p95': float(np.percentile(values, 95)) if values else None, 'n': len(values)}
-    result['by_mode'] = {mode: {'n': len(group), 'task_success': sum(r['task_success'] for r in group)/len(group)}
+    result['by_mode'] = {mode: success_summary(group)
                          for mode in ('full', 'partial', 'no_op') if (group := [r for r in rows if r['mode']==mode])}
     result['s0_gate'] = (result['count_accuracy']==1 and result['correspondence_coverage']==1 and
                         all(result[k]['p95'] is not None and result[k]['p95'] <= limit for k,limit in
                             [('source_position_mm',1),('target_position_mm',1),('source_size_mm',1),
                              ('source_angle_deg',2),('target_angle_deg',2)]))
     # Safety/semantic residuals remain explicit even when the memorization gate passes.
+    result.update(summarize_diagnostics(rows, records, semantic_errors))
     return result
 
 
@@ -157,9 +165,12 @@ def summarize(rows):
 def evaluate(model, batches, device):
     was_training = model.training
     model.eval()
-    rows = []
-    for batch in batches:
-        batch = batch.to(device)
-        rows.extend(evaluate_batch(model(**batch.inputs), batch))
-    model.train(was_training)
-    return summarize(rows), rows
+    rows, records = [], []
+    try:
+        for batch in batches:
+            batch = batch.to(device)
+            records.extend(meta['record'] for meta in batch.metadata)
+            rows.extend(evaluate_batch(model(**batch.inputs), batch))
+        return summarize(rows, records), rows
+    finally:
+        model.train(was_training)

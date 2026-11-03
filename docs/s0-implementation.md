@@ -253,3 +253,52 @@ authorized GPU run; no wall-clock training-duration claim is made here.
 
 Verified code milestones: adapter/selection `93594b4`; integrated model
 `3a6818d`; matching/loss/evaluation `9b80aa5`; launcher/checkpoints `198c4aa`.
+
+## Review fixes: evaluation diagnostics
+
+The v1.3 §14.3 summaries are additive diagnostics; the S0 gate and model inputs
+remain unchanged. Each condition bucket reports sample and success counts,
+Task Success, Raw Geometry and failure counts. Conditions include object count,
+shape/color composition, exact a×b sizes in mm, direction, gap, region, grouping,
+order, English subject type, and Full/Partial/No-op mode. Partial reports split
+single versus multiple selected objects and structurally organized versus
+scattered sources. The source-layout label reuses the dataset quality audit's
+conservative structural test; it does not establish interactive episode history
+or human-rated quality. Empty Partial buckets explicitly have `n=0`, null rates
+and `evaluated=false`.
+
+Keep violations count Partial scenes with at least one locked object exceeding
+3 mm/3°. Count/correspondence failures remain in Task Success denominators and
+are marked unchecked for Keep; its scene rate is null when any Partial scene
+cannot be checked. No-op success includes all-object preservation, applicable
+instruction checks and geometry. All three refinement stages report center and
+angle Median/P95, geometry successes, coverage and geometry failure counts.
+
+Language diagnostics pair different instructions within the same source family
+and RGB content hash, across all evaluation batches. Each eligible pair must
+pass both own-command evaluations and reject both cross-command evaluations.
+Pairs whose GT targets do not violate both opposite commands under prediction
+tolerances are excluded and counted explicitly. Detection failures remain
+failures in the eligible denominator. No pair coverage produces a null rate,
+not a claim of language sensitivity. Structured instructions and GT dimensions
+are used only by the offline evaluator, never by model inference or the gate.
+
+Review validation uses the isolated Python 3.12 CPU environment at
+`/tmp/knolling-s0-review-venv` with pinned neural dependencies and CPU builds of
+torch/torchvision. Synthetic tests cover real AdamW updates, exact interrupted
+resume, no-update successful resume, checkpoint promotion, diagnostic coverage,
+language-insensitive predictions, excluded pairs and JSON report integration.
+No S0 neural training or GPU optimizer updates were run.
+
+The English pilot became available during review. Its adapter and oracle
+neural tests run, but `scripts/verify_s0_data.py` currently fails the unchanged
+full audit with five errors: `teacher_scores_or_configuration` and
+`migration_scores` for `scene_0037_primary` and `scene_0089_primary`, plus
+`partial_quality_mismatch`. Read-only comparisons isolate the numerical
+mismatches to recomputed `J_move`: 4.440863602014575e-06 versus
+4.440863602014576e-06, and 0.05376727341039903 versus 0.05376727341039904.
+The audit reports no file-hash or target-reproduction failures. This is evidence
+of floating-point audit sensitivity; it is not a passing full-data audit. No
+Dataset, Teacher, approval sidecar or audit policy was changed. Resolve that
+readiness check separately before advancing the GPU launch gate. GPU preflight,
+memory requirements and convergence remain unverified.
