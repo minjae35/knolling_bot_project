@@ -176,6 +176,8 @@ def load_pretrained(config_path='configs/pretrained.json', local_files_only=Fals
     from huggingface_hub import snapshot_download
     from transformers import AutoModel, AutoTokenizer
     config = json.loads(Path(config_path).read_text())
+    if config['resnet_weights'] != 'IMAGENET1K_V1':
+        raise ValueError('S0 requires pinned ResNet-18 IMAGENET1K_V1 weights')
     # Resolve a pinned snapshot first. Passing a remote ID directly to this
     # tokenizer version can make an extra Hub probe even in local-files-only mode.
     snapshot = snapshot_download(config['text_model'], revision=config['text_revision'],
