@@ -26,3 +26,19 @@ installed into the Conda environment and no second Blender download is needed.
 - The independent validator uses polygon geometry, not the teacher's placement
   computations. Target matching cannot replace source identity.
 - Split decisions precede rendering; all descendants stay in their family split.
+
+## Blender rendering verification
+
+RGB uses Cycles CPU, 32 samples and a fixed per-family seed. Instance IDs use
+the same meshes and camera in Workbench flat object colors with anti-aliasing
+disabled, then losslessly convert red-channel IDs into uint16 PNG labels.
+This avoids mixed IDs at silhouette edges. It does not approximate masks with
+bounding rectangles. Geometry-to-mask IoU must be >= 0.98, centroid error <= 1 px,
+and interior RGB dominant-color agreement >= 99%. More than 1% clipped white
+pixels rejects a render. The actual Blender integration test also checks
+byte-identical repeated renders on the installed version/platform.
+
+API references: [SceneDisplay anti-aliasing](https://docs.blender.org/api/5.0/bpy.types.SceneDisplay.html)
+and [camera projection](https://docs.blender.org/manual/en/2.90/render/cameras.html).
+Runtime properties were also checked directly on installed Blender 5.1.0.
+Bitwise reproducibility is scoped to a fixed Blender build, device and platform.
