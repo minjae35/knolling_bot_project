@@ -1,6 +1,6 @@
 from dataclasses import replace
 import pytest
-from knolling_dataset.instructions import generate_instruction, negative_instruction
+from knolling_dataset.instructions import generate_legacy_instruction as generate_instruction, negative_instruction
 from knolling_dataset.schema import check_instruction
 
 

@@ -1,4 +1,4 @@
-"""M3: a bounded bilingual grammar with explicit, observable referents.
+"""M3: English by default; bilingual grammar only for legacy reproduction.
 
 Semantic IDs are supervision only: text never refers to hidden object IDs.
 Area always means the major/minor bounding rectangle, not mesh surface area.
@@ -10,7 +10,7 @@ from .schema import Instruction, check_instruction
 KO_COLOR = {"red":"빨간색", "green":"초록색", "blue":"파란색"}
 
 
-def generate_instruction(scene, seed, mode="full", *, language=None, group_by=None,
+def generate_legacy_instruction(scene, seed, mode="full", *, language=None, group_by=None,
                          sort_direction=None, axis_alignment=None, gap_m=None, region=None,
                          contract="legacy_v1_2"):
     if contract not in ("legacy_v1_2","row_edges_v1"):
@@ -68,6 +68,22 @@ def generate_instruction(scene, seed, mode="full", *, language=None, group_by=No
     result = Instruction(text,language,selected,locked,group_by,sort_direction,axis_alignment,gap_m,region)
     check_instruction(scene,result)
     return clarify_instruction(result) if contract == "row_edges_v1" else result
+
+
+def generate_instruction(scene, seed, mode="full", *, language=None, group_by=None,
+                         sort_direction=None, axis_alignment=None, gap_m=None, region=None,
+                         contract="english_rows_v1"):
+    """Keep semantic sampling independent of the active English surface grammar."""
+    options=dict(group_by=group_by,sort_direction=sort_direction,
+                 axis_alignment=axis_alignment,gap_m=gap_m,region=region)
+    if contract!="english_rows_v1":
+        return generate_legacy_instruction(scene,seed,mode,language=language,contract=contract,**options)
+    if language not in (None,"en"):
+        raise ValueError("v1 supports English instructions only")
+    from .english import english_instruction
+    # Retain the old RNG draw so language policy does not change sampled semantics.
+    ins=generate_legacy_instruction(scene,seed,mode,**options)
+    return english_instruction(scene,ins)
 
 
 def clarify_instruction(ins):

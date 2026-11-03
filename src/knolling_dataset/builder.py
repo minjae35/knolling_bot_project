@@ -54,8 +54,8 @@ def _record(source,ins,result,sample_id,role,noop_type=None):
             "teacher_candidates_checked":result.candidates_checked}
 
 
-def prepare_annotations(count=100,seed=1202, *, policy=LEGACY):
-    contract="row_edges_v1" if policy==BALANCED else "legacy_v1_2"
+def prepare_annotations(count=100,seed=1202, *, policy=BALANCED):
+    contract="english_rows_v1" if policy==BALANCED else "legacy_v1_2"
     registry = build_registry()
     records,rejections = [],[]
     primary_attempts,counter_attempts,noop_number = 0,0,0
@@ -152,7 +152,7 @@ def _object_annotations(record,source_render,target_render):
     return output
 
 
-def build_dataset(output,count=100,seed=1202, *, policy=LEGACY):
+def build_dataset(output,count=100,seed=1202, *, policy=BALANCED):
     root = Path(output).resolve()
     if root.exists() and any(root.iterdir()):
         raise ValueError("output directory is not empty; choose a new directory")
@@ -211,7 +211,8 @@ def build_dataset(output,count=100,seed=1202, *, policy=LEGACY):
         from .policies import policy_metadata
         from .migration import initialize_balanced_sidecars
         provenance=json.loads((root/"provenance.json").read_text())
-        provenance.update(spec_version="1.3",instruction_contract="row_edges_v1",teacher_code_revision=revision,**policy_metadata(policy))
+        provenance.update(spec_version="1.3",instruction_contract="english_rows_v1",language_policy="english_only_v1",
+                          supported_languages=["en"],teacher_code_revision=revision,**policy_metadata(policy))
         write_json(root/"provenance.json",provenance)
         initialize_balanced_sidecars(root,records)
     from .qc import write_qc

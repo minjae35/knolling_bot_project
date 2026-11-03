@@ -1,6 +1,6 @@
 from dataclasses import asdict,replace
 import pytest
-from knolling_dataset.instructions import generate_instruction,clarify_instruction
+from knolling_dataset.instructions import generate_legacy_instruction as generate_instruction,clarify_instruction
 from knolling_dataset.builder import _object_annotations
 from knolling_dataset.schema import with_targets,Pose,scene_dict
 
