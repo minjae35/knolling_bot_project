@@ -152,11 +152,11 @@ def _object_annotations(record,source_render,target_render):
     return output
 
 
-def build_dataset(output,count=100,seed=1202):
+def build_dataset(output,count=100,seed=1202, *, policy=LEGACY):
     root = Path(output).resolve()
     if root.exists() and any(root.iterdir()):
         raise ValueError("output directory is not empty; choose a new directory")
-    registry,records,stats = prepare_annotations(count,seed)
+    registry,records,stats = prepare_annotations(count,seed,policy=policy)
     root.mkdir(parents=True,exist_ok=True)
     write_json(root/"asset_registry.json",registry_dict(registry))
     write_json(root/"generation.json",stats)
@@ -207,6 +207,13 @@ def build_dataset(output,count=100,seed=1202):
               "coordinate_units":"meters, radians; uv dimensionless; pixel centers are integers",
               "camera":{"width_m":.6,"height_m":.4,"image_width":576,"image_height":384},
               "rgb_color_space":"sRGB","mask_dtype":"uint16","background_id":0})
+    if policy==BALANCED:
+        from .policies import policy_metadata
+        from .migration import initialize_balanced_sidecars
+        provenance=json.loads((root/"provenance.json").read_text())
+        provenance.update(spec_version="1.3",instruction_contract="row_edges_v1",teacher_code_revision=revision,**policy_metadata(policy))
+        write_json(root/"provenance.json",provenance)
+        initialize_balanced_sidecars(root,records)
     from .qc import write_qc
     write_qc(root,records,stats)
     return records,stats

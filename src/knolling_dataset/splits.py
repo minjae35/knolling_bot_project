@@ -111,6 +111,8 @@ def audit_dataset(root,verify_renders=True, *, read_only=False):
     complete = root/"COMPLETE.json"
     if complete.exists() and not read_only:
         complete.unlink()  # A failed or interrupted re-audit cannot leave stale success.
+    if not read_only and (root/"AUTOMATED_VALIDATION.json").exists():
+        (root/"AUTOMATED_VALIDATION.json").unlink()
     manifest = [json.loads(line) for line in (root/"manifest.jsonl").read_text().splitlines()]
     records,integrity_errors,checked_files,render_cache = [],[],set(),{}
     for entry in manifest:
@@ -148,6 +150,15 @@ def audit_dataset(root,verify_renders=True, *, read_only=False):
     provenance = json.loads((root/"provenance.json").read_text())
     if (result["samples"],result["scene_families"]) != (provenance["sample_count"],provenance["scene_count"]):
         integrity_errors.append("manifest_count")
+    if provenance.get("teacher_policy") not in (None,"legacy_v1_2","balanced_rows_v1.3"):
+        integrity_errors.append("unknown_teacher_policy")
+    if provenance.get("spec_version")=="1.3" and provenance.get("teacher_policy")!="balanced_rows_v1.3":
+        integrity_errors.append("v1.3_teacher_policy_missing_or_changed")
+    if provenance.get("teacher_policy")=="balanced_rows_v1.3":
+        from .audit_v13 import check_v13
+        policy_report=check_v13(root,records,provenance)
+        integrity_errors.extend(policy_report["errors"])
+        result["policy_audit"]=policy_report
     result["errors"].extend(integrity_errors)
     result["valid"] = not result["errors"]
     result["verified_file_count"] = len(checked_files)+len(manifest)
@@ -159,7 +170,13 @@ def audit_dataset(root,verify_renders=True, *, read_only=False):
     for split in SPLITS:
         entries = [m for m in manifest if m["split"] == split]
         (root/f"{split}.jsonl").write_text("".join(json.dumps(m,sort_keys=True)+"\n" for m in entries))
-    if result["valid"] and verify_renders:
+    if provenance.get("teacher_policy")=="balanced_rows_v1.3":
+        marker=root/"AUTOMATED_VALIDATION.json"
+        if result["valid"] and verify_renders:
+            write_json(marker,{"manifest_sha256":file_hash(root/"manifest.jsonl"),"samples":len(records),
+                               "automated_validation_complete":True,"human_review_complete":False,"training_ready":False})
+        elif marker.exists(): marker.unlink()
+    elif result["valid"] and verify_renders:
         write_json(complete,{"manifest_sha256":file_hash(root/"manifest.jsonl"),"scenes":result["scene_families"],
                             "samples":result["samples"],"human_review":"pending"})
     elif complete.exists():
