@@ -41,7 +41,8 @@ def check_v13(root,records,provenance, *, invariance=True):
             errors.append(sid+":teacher_scores_or_configuration")
         if invariance:
             variants=[("array_order",replace(source,objects=tuple(reversed(source.objects))),replace(ins,selected_ids=tuple(reversed(ins.selected_ids)),locked_ids=tuple(reversed(ins.locked_ids)))),
-                      ("language",source,replace(ins,language="en" if ins.language=="ko" else "ko",text="Equivalent semantic paraphrase / 같은 의미의 문장")),
+                      ("language",source,replace(ins,language="en" if provenance.get("language_policy")=="english_only_v1" else "en" if ins.language=="ko" else "ko",
+                                                text="Equivalent English wording for the same structured request.")),
                       ("asset_alias",replace(source,seed=source.seed+1,objects=tuple(replace(o,asset=replace(o.asset,asset_id="alias_"+o.object_id)) for o in source.objects)),ins)]
             for name,scene,instruction in variants:
                 other=solve(scene,instruction,policy=BALANCED)
@@ -78,7 +79,12 @@ def check_v13(root,records,provenance, *, invariance=True):
             parents.append(old)
             if digest(old["source"])!=digest(new["source"]) or any(old[k]!=new[k] for k in ("scene_family_id","split","role","mode","no_op_type")):
                 errors.append(sid+":source_or_partition_changed")
-            if clarify_instruction(instruction_from_dict(old["instruction"]))!=instruction_from_dict(new["instruction"]):
+            if provenance.get("instruction_contract")=="english_rows_v1":
+                from .english import english_instruction
+                expected_instruction=english_instruction(scene_from_dict(old["source"]),instruction_from_dict(old["instruction"]))
+            else:
+                expected_instruction=clarify_instruction(instruction_from_dict(old["instruction"]))
+            if expected_instruction!=instruction_from_dict(new["instruction"]):
                 errors.append(sid+":instruction_contract")
             a,b=scene_from_dict(old["target"]),scene_from_dict(new["target"])
             changed=target_changed(a,b)

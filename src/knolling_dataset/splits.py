@@ -106,7 +106,7 @@ def _safe_path(root,relative):
     return path
 
 
-def audit_dataset(root,verify_renders=True, *, read_only=False):
+def audit_dataset(root,verify_renders=True, *, read_only=False,require_english=True):
     root = Path(root)
     complete = root/"COMPLETE.json"
     if complete.exists() and not read_only:
@@ -148,6 +148,21 @@ def audit_dataset(root,verify_renders=True, *, read_only=False):
                         integrity_errors.append(entry["sample_id"]+":mask_annotation")
     result = audit_records(records)
     provenance = json.loads((root/"provenance.json").read_text())
+    if require_english or provenance.get("language_policy")=="english_only_v1":
+        from .english import audit_english_records
+        language_report=audit_english_records(records)
+        integrity_errors.extend(language_report["errors"])
+        result["language_audit"]=language_report
+        for split in SPLITS:
+            path=root/f"{split}.jsonl"
+            expected=[m for m in manifest if m["split"]==split]
+            if not path.exists() or digest([json.loads(line) for line in path.read_text().splitlines()])!=digest(expected):
+                integrity_errors.append(split+":active_split_manifest_mismatch")
+    if provenance.get("language_parent_dataset_manifest_sha256"):
+        from .language_migration import audit_language_migration
+        language_migration=audit_language_migration(root,records,provenance)
+        integrity_errors.extend(language_migration["errors"])
+        result["language_migration_audit"]=language_migration
     if (result["samples"],result["scene_families"]) != (provenance["sample_count"],provenance["scene_count"]):
         integrity_errors.append("manifest_count")
     if provenance.get("teacher_policy") not in (None,"legacy_v1_2","balanced_rows_v1.3"):

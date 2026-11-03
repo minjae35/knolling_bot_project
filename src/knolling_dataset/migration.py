@@ -104,7 +104,7 @@ def migrate_dataset(parent,output, *, registered_legacy_hash=LEGACY_MANIFEST):
         raise ValueError("migration destination must be empty")
     if resolve_dataset_policy(parent,registered_legacy_hash=registered_legacy_hash)!=LEGACY:
         raise ValueError("this migration requires a registered legacy parent")
-    baseline=audit_dataset(parent,read_only=True)
+    baseline=audit_dataset(parent,read_only=True,require_english=False)
     if not baseline["valid"]: raise ValueError(f"parent audit failed: {baseline['errors']}")
     snapshot=tree_hashes(parent)
     parent_manifest,old_records=read_records(parent)
@@ -197,6 +197,6 @@ def migrate_dataset(parent,output, *, registered_legacy_hash=LEGACY_MANIFEST):
     write_qc(root,records,json.loads((root/"generation.json").read_text()))
     from .qc_v13 import write_migration_qc
     write_migration_qc(root,records,old_records,migrations,partials,partial_summary)
-    audit=audit_dataset(root)
+    audit=audit_dataset(root,require_english=False)
     if not audit["valid"]: raise RuntimeError(f"migration audit failed: {audit['errors']}")
     return summary

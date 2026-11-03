@@ -40,7 +40,7 @@ def assert_complete_report(root,count):
 @pytest.mark.skipif(not os.environ.get("PILOT_V13_DATASET"),reason="set PILOT_V13_DATASET for full migrated deliverable acceptance")
 def test_actual_v13_all_samples_and_qc():
     root=Path(os.environ["PILOT_V13_DATASET"])
-    result=audit_dataset(root,read_only=True)
+    result=audit_dataset(root,read_only=True,require_english=False)
     assert result["valid"],result
     assert result["samples"]==130 and result["scene_families"]==100
     assert set(result["policy_audit"]["invariance_counts"].values())=={130}

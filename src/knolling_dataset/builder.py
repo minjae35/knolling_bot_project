@@ -30,6 +30,11 @@ def file_hash(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def write_split_manifests(root,manifest):
+    for split in SPLITS:
+        (Path(root)/f"{split}.jsonl").write_text("".join(canonical_json(m)+"\n" for m in manifest if m["split"]==split))
+
+
 def _plan(count,seed):
     if count < 10 or count > 100 or count%10:
         raise ValueError("Phase 1 pilot count must be a multiple of 10, from 10 to 100")
@@ -198,6 +203,7 @@ def build_dataset(output,count=100,seed=1202, *, policy=BALANCED):
                          "mode":record["mode"],"role":record["role"],"annotation":str(annotation),
                          "annotation_sha256":file_hash(root/annotation)})
     (root/"manifest.jsonl").write_text("".join(canonical_json(m)+"\n" for m in manifest))
+    write_split_manifests(root,manifest)
     try:
         revision = subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip()
     except (FileNotFoundError,subprocess.CalledProcessError):
@@ -215,6 +221,10 @@ def build_dataset(output,count=100,seed=1202, *, policy=BALANCED):
                           supported_languages=["en"],teacher_code_revision=revision,**policy_metadata(policy))
         write_json(root/"provenance.json",provenance)
         initialize_balanced_sidecars(root,records)
-    from .qc import write_qc
-    write_qc(root,records,stats)
+    if policy==BALANCED:
+        from .qc_english import write_english_qc
+        write_english_qc(root,records,stats)
+    else:
+        from .qc import write_qc
+        write_qc(root,records,stats)
     return records,stats

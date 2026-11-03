@@ -13,7 +13,7 @@ def test_actual_pilot_acceptance_and_annotation_reproduction():
     root = Path(os.environ["PILOT_DATASET"])
     provenance = json.loads((root/"provenance.json").read_text())
     assert provenance["scene_count"] == 100 and provenance["sample_count"] == 130
-    audit = audit_dataset(root,verify_renders=True,read_only=True)
+    audit = audit_dataset(root,verify_renders=True,read_only=True,require_english=False)
     assert audit["valid"],audit
     assert audit["renders_revalidated"]
     manifest = [json.loads(line) for line in (root/"manifest.jsonl").read_text().splitlines()]

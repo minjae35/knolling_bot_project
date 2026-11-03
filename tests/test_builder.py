@@ -41,7 +41,7 @@ def test_complete_builder_with_actual_renders(tmp_path,policy):
     assert (root/"qc/index.html").exists() and (root/"qc/contact_sheet.png").exists()
     assert json.loads((root/"qc/summary.json").read_text())["all_render_checks_valid"]
     from knolling_dataset.splits import audit_dataset
-    audit = audit_dataset(root)
+    audit = audit_dataset(root,require_english=policy!="legacy_v1_2")
     assert audit["valid"],audit
     marker="COMPLETE.json" if policy=="legacy_v1_2" else "AUTOMATED_VALIDATION.json"
     assert (root/marker).exists()
@@ -51,6 +51,6 @@ def test_complete_builder_with_actual_renders(tmp_path,policy):
     # A dropped manifest entry is not a smaller, silently valid dataset.
     manifest_path = root/"manifest.jsonl"
     manifest_path.write_text("\n".join(manifest_path.read_text().splitlines()[1:])+"\n")
-    broken = audit_dataset(root,verify_renders=False)
+    broken = audit_dataset(root,verify_renders=False,require_english=policy!="legacy_v1_2")
     assert not broken["valid"] and "manifest_count" in broken["errors"]
     assert not (root/marker).exists()
