@@ -78,6 +78,8 @@ Partial에서 고정 물체와 명시적 Keep-all에서는 기존 방향을 그�
 
 긴 축 방향, 선택/고정 대상, 색상별 순수·연속 Row, 외접 면적 순서, 수평 간격, Row 띠의 수직 간격, 색상 간 2g, 영역 및 Keep 의미를 빠짐없이 유지한다. Keep-all 예시는 “Keep every object at its current position and orientation.”이다. 문장을 간결하게 하기 위해 의미를 생략하거나 이미 정돈된 No-op 지시를 임의로 Keep-all로 바꾸지 않는다.
 
+최종 품질 검토에서는 현재 제한 문법을 S0에 유지한다. 짧은 사용자 표현의 의미를 보존하기 위한 기존 기본 규칙은 [English arrangement conventions](english-instruction-defaults.md)에 정리한다. 해당 문서의 짧은 예시는 후속 문법 제안이며 현재 Annotation·지원 문법을 바꾸지 않는다. Slot 값이 다른 81개 문자열을 자연스러운 영어 Paraphrase 81종으로 해석하지 않는다. S0는 고정 문법의 과적합 진단이며 자연어 일반화 검증이 아니다.
+
 ## 3. 좌표와 기하 계약
 
 원점은 작업대 좌하단, +x는 오른쪽, +y는 위쪽, θ는 +x에서 반시계 방향이다. 물체의 긴 축은 π 주기이며 표준 저장 범위는 [-π/2, π/2)이다. π/2와 -π/2는 같은 방향이다.
@@ -667,6 +669,8 @@ J_shape는 더 좋은 미감을 보장하지 않으므로 v1.2/v1.3를 같은 So
 ### 16.3 Neural 구현으로 넘어가는 Gate
 
 QA Gate와 단일 정책 Manifest가 준비되면 Dataset Adapter/Model/Matching/Loss 구현을 시작할 수 있다. S0는 검토된 Train Sample로 수행한다. 100 Scene만으로 S2 일반화 성능을 주장하지 않는다. CLI 100 제한, Chunk/Resume, 확장 Split Manifest를 해결한 뒤 계획량 데이터로 S1/S2를 진행한다.
+
+[2026-11-03 Final Dataset Quality Review](final-dataset-quality-review.md)는 영어 130개 전체의 Assistant 검토와 자동 감사를 구분하여 기록한다. S0 적합성 권고는 사람의 품질 승인과 별개이며, 기존 Human Review Gate와 Training Approval Manifest를 대체하지 않는다. Minor 문체·배치 선호만으로 정답을 재생성하지 않는다.
 
 초기 목표는 2–4개 물체의 올바른 대응과 목표 배치를 Detection+Target만으로 학습하는 것이다. 이 단계가 실패하면 순서대로 입력/단위/정답 연결 → Detection → 텍스트 조건 반응 → Refinement Gradient → 데이터 Coverage를 진단한다. S0/S1 실패 상태에서 Collision/Relation/Status를 동시에 켜지 않는다.
 

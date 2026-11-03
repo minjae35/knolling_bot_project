@@ -9,6 +9,10 @@ network, training pipeline, or robot simulation.
 `pilot_v1_3` remain archived regression artifacts. Multilingual support is
 optional future work; the Neural Architecture/text-encoder choice is unchanged.
 See the [English conversion and validation report](docs/english-only-report.md).
+The [final quality review](docs/final-dataset-quality-review.md) recommends retaining
+the dataset for S0, subject to human sign-off. All-sample visual comparisons and
+per-sample findings are in `artifacts/final_quality_review/index.html`; no labels
+or Teacher behavior were changed by that review.
 
 Use the existing Conda environment `knolling` (Python 3.12):
 
