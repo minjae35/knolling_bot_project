@@ -66,3 +66,6 @@ verification; **human visual/language review remains a separate sign-off**.
 
 See [module and validation contracts](docs/dataset-contract.md) and
 [implementation decisions](docs/implementation-decisions.md).
+
+The completed 100-scene pilot's results, milestone commits and limitations are
+documented in [the pilot report](docs/pilot-report.md).
