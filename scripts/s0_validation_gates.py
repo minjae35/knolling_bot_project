@@ -17,6 +17,22 @@ def decision_exit_code(decision):
     return 0 if decision == 'GO' else 2
 
 
+def repair_admitted(candidate, completed):
+    """A failed second candidate terminates the entire repair sequence."""
+    if any(completed.get(n) is False for n in ('detection2', 'language2')):
+        return False
+    if candidate == 'detection1':
+        return not completed
+    if candidate == 'detection2':
+        return completed.get('detection1') is False
+    detection_ok = any(completed.get(n) is True for n in ('detection1', 'detection2'))
+    if candidate == 'language1':
+        return detection_ok and 'language1' not in completed
+    if candidate == 'joint':
+        return detection_ok and completed.get('language1') is True
+    return False
+
+
 def step_allowed(completed, limit):
     if type(completed) is not int or type(limit) is not int:
         raise ValueError('update counts must be integers')

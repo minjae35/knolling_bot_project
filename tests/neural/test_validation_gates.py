@@ -38,6 +38,16 @@ def test_no_go_has_nonzero_exit_status_for_shell_admission():
         gates.decision_exit_code('loss_decreased')
 
 
+def test_repair_stops_globally_after_second_failure():
+    assert gates.repair_admitted('detection1', {})
+    assert gates.repair_admitted('detection2', {'detection1': False})
+    assert not gates.repair_admitted('detection2', {'detection1': True})
+    assert not gates.repair_admitted('language1', {'detection1': False, 'detection2': False})
+    assert gates.repair_admitted('language1', {'detection1': False, 'detection2': True})
+    assert not gates.repair_admitted('joint', {'detection1': True})
+    assert gates.repair_admitted('joint', {'detection1': True, 'language1': True})
+
+
 def test_three_retained_metric_passes_required():
     assert not gates.stable([detection()] * 2, gates.detection_pass)
     assert gates.stable([detection()] * 3, gates.detection_pass)
