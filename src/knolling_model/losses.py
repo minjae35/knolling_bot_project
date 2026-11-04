@@ -12,6 +12,28 @@ SIZE_SCALE = .005
 ANGLE_SCALE = math.pi / 18
 NEGATIVE_WEIGHT = .1
 STAGE_WEIGHTS = (.25, .25, .50)
+OBJECTNESS_NORMALIZATIONS = ('legacy_query_weight', 'balanced_groups')
+
+
+def objectness_loss(logits, positive, normalization='legacy_query_weight'):
+    """Binary foreground supervision with an explicit query-count policy.
+
+    Group means prevent duplicating empty queries from increasing their total
+    weight relative to true objects. Keep the historical policy as the default
+    so old configs and losses remain reproducible.
+    """
+    if normalization not in OBJECTNESS_NORMALIZATIONS:
+        raise ValueError('unsupported objectness normalization')
+    positive = positive.bool()
+    if positive.shape != logits.shape or not positive.any():
+        raise ValueError('objectness requires matching labels and a positive query')
+    values = F.binary_cross_entropy_with_logits(logits, positive.to(logits.dtype), reduction='none')
+    if normalization == 'balanced_groups':
+        if positive.all():
+            return values.mean()
+        return (values[positive].mean() + values[~positive].mean()) / 2
+    weights = torch.where(positive, 1., NEGATIVE_WEIGHT)
+    return (values * weights).sum() / weights.sum()
 
 
 def rho(error):
@@ -49,12 +71,11 @@ def match_source(source, supervision):
     return matches
 
 
-def detection_terms(source, truth, b, query, gt):
+def detection_terms(source, truth, b, query, gt, normalization='legacy_query_weight'):
     logits = source['objectness_logits'][b]
     positive = torch.zeros_like(logits)
     positive[query] = 1
-    weights = torch.where(positive.bool(), 1., NEGATIVE_WEIGHT)
-    terms = {'objectness': (F.binary_cross_entropy_with_logits(logits, positive, reduction='none') * weights).sum() / weights.sum(),
+    terms = {'objectness': objectness_loss(logits, positive, normalization),
              'source_position': position_loss(to_meters(source['uv'][b, query]), truth['source_xy'][gt]).mean(),
              'source_size': size_loss(source['size'][b, query], truth['size'][gt]).mean(),
              'source_angle': orientation_loss(source['angle'][b, query], truth['source_angle'][gt]).mean(),
@@ -66,6 +87,12 @@ def detection_terms(source, truth, b, query, gt):
 
 
 class S0Criterion(nn.Module):
+    def __init__(self, objectness_normalization='legacy_query_weight'):
+        super().__init__()
+        if objectness_normalization not in OBJECTNESS_NORMALIZATIONS:
+            raise ValueError('unsupported objectness normalization')
+        self.objectness_normalization = objectness_normalization
+
     def forward(self, output, supervision):
         source, targets = output['source'], output['targets']
         if len(targets) != 3 or source['uv'].shape[0] != len(supervision):
@@ -76,7 +103,7 @@ class S0Criterion(nn.Module):
             sources = [*output.get('source_aux', []), source]
             if any(s['uv'].shape != source['uv'].shape for s in sources):
                 raise ValueError('auxiliary source queries must retain final query identity')
-            layers = [detection_terms(s, truth, b, query, gt) for s in sources]
+            layers = [detection_terms(s, truth, b, query, gt, self.objectness_normalization) for s in sources]
             # Native RT-DETR encoder proposals + three decoder outputs share
             # one final Source assignment and a fixed mean of the same L_D.
             terms = {key: torch.stack([layer[key] for layer in layers]).mean()

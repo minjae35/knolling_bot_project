@@ -3,7 +3,40 @@ import pytest
 import torch
 from knolling_model.coordinates import to_normalized
 from knolling_model.losses import (S0Criterion, match_source, position_loss, size_loss,
-                                    orientation_loss)
+                                    orientation_loss, objectness_loss)
+
+
+def test_balanced_objectness_invariant_to_repeated_empty_queries_and_gradient_mass():
+    # Increasing capacity alone must not dilute the foreground objective.
+    for negatives in (10, 298, 598):
+        logits = torch.zeros(2 + negatives, requires_grad=True)
+        labels = torch.arange(len(logits)) < 2
+        loss = objectness_loss(logits, labels, 'balanced_groups')
+        loss.backward()
+        assert loss.item() == pytest.approx(math.log(2))
+        assert logits.grad[:2].sum().item() == pytest.approx(-.25)
+        assert logits.grad[2:].sum().item() == pytest.approx(.25)
+        assert (logits.grad[:2] < 0).all() and (logits.grad[2:] > 0).all()
+
+
+def test_balanced_objectness_all_positive_and_empty_positive_rejection():
+    x = torch.zeros(2, requires_grad=True)
+    loss = objectness_loss(x, torch.ones(2, dtype=torch.bool), 'balanced_groups')
+    loss.backward()
+    assert x.grad.tolist() == pytest.approx([-.25, -.25])
+    with pytest.raises(ValueError):
+        objectness_loss(x, torch.zeros(2, dtype=torch.bool), 'balanced_groups')
+    with pytest.raises(ValueError):
+        S0Criterion('unknown')
+
+
+def test_balanced_criterion_keeps_shared_assignment_and_geometry_losses():
+    output, truth = fixture()
+    legacy, m1 = S0Criterion()(output, [truth])
+    balanced, m2 = S0Criterion('balanced_groups')(output, [truth])
+    assert torch.equal(m1[0][0], m2[0][0])
+    for key in ['source_position', 'source_size', 'source_angle', 'target']:
+        assert torch.equal(legacy[key], balanced[key])
 
 
 def fixture(n=2):

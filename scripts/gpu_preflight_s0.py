@@ -18,7 +18,6 @@ from knolling_dataset.builder import file_hash
 from knolling_dataset.migration import tree_hashes
 from knolling_model import runner
 from knolling_model.data import FamilySampler
-from knolling_model.losses import S0Criterion
 from verify_s0_data import verify
 
 
@@ -104,7 +103,7 @@ def main():
             report['sampling_compatibility'] = stock_sampling_check()
             report['source_detection'] = initial_detection(model, dataset, collator, args.report_dir)
         optimizer = runner.make_optimizer(model, cfg)
-        criterion = S0Criterion()
+        criterion = runner.make_criterion(cfg)
         sampler = FamilySampler(dataset.records, cfg['seed'])
         groups = runner.update_groups(list(sampler), cfg['effective_batch'])
         initial = state_digest({n:p for n,p in model.named_parameters() if p.requires_grad})

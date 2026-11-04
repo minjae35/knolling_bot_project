@@ -98,6 +98,25 @@ def test_checkpoint_roundtrip_cursor_rng_optimizer_and_provenance(tmp_path):
     assert not list(tmp_path.glob('*.tmp'))
 
 
+def test_checkpoint_accepts_implicit_legacy_policy_and_rejects_reweighting(tmp_path):
+    cfg = config(tmp_path)
+    model = TinyModel()
+    opt = runner.make_optimizer(model, cfg)
+    evidence = runner.provenance(cfg)
+    old = dict(evidence, loss={k: v for k, v in evidence['loss'].items()
+                               if k != 'objectness_normalization'})
+    path = tmp_path/'legacy.pt'
+    runner.save_checkpoint(path, model, opt, {'updates': 0}, None, old)
+    runner.load_checkpoint(path, model, opt, evidence)
+    changed = dict(evidence, loss={**evidence['loss'], 'objectness_normalization': 'balanced_groups'})
+    with pytest.raises(ValueError, match='loss'):
+        runner.load_checkpoint(path, model, opt, changed)
+    assert runner.make_criterion(cfg).objectness_normalization == 'legacy_query_weight'
+    assert runner.make_criterion({**cfg, 'objectness_normalization': 'balanced_groups'}).objectness_normalization == 'balanced_groups'
+    grouped = runner.provenance({**cfg, 'objectness_normalization': 'balanced_groups'})
+    assert grouped['loss']['negative_objectness_weight'] is None
+
+
 def test_cli_cannot_start_training_implicitly_and_config_budget(tmp_path):
     with pytest.raises(SystemExit):
         parser().parse_args(['train', '--run-dir', str(tmp_path)])

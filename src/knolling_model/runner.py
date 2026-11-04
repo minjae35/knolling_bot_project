@@ -15,7 +15,8 @@ from torch import nn
 from knolling_dataset.builder import file_hash
 from .data import S0Dataset, Collator, FamilySampler
 from .evaluation import evaluate
-from .losses import S0Criterion, POSITION_SCALE, SIZE_SCALE, ANGLE_SCALE, STAGE_WEIGHTS
+from .losses import (S0Criterion, POSITION_SCALE, SIZE_SCALE, ANGLE_SCALE,
+                     STAGE_WEIGHTS, OBJECTNESS_NORMALIZATIONS)
 from .model import load_pretrained
 from .progress import TrainingProgress
 
@@ -29,6 +30,8 @@ def read_config(path):
             raise ValueError(f'{key} must be a positive integer')
     if config['effective_batch'] != 16 or config['micro_batch'] > 16 or config['max_updates'] > 2000:
         raise ValueError('S0 requires effective batch 16, micro batch <=16 and <=2000 updates')
+    if config.get('objectness_normalization', 'legacy_query_weight') not in OBJECTNESS_NORMALIZATIONS:
+        raise ValueError('unsupported objectness normalization')
     for key in ('backbone_lr', 'new_modules_lr', 'weight_decay', 'gradient_clip'):
         if not np.isfinite(config[key]) or config[key] <= 0:
             raise ValueError(f'invalid {key}')
@@ -65,6 +68,11 @@ def make_optimizer(model, config):
         groups.setdefault((lr, decay), []).append(parameter)
     return torch.optim.AdamW([{'params': params, 'lr': lr, 'weight_decay': decay}
                              for (lr, decay), params in sorted(groups.items())], foreach=False)
+
+
+def make_criterion(config):
+    policy = config.get('objectness_normalization', 'legacy_query_weight')
+    return S0Criterion() if policy == 'legacy_query_weight' else S0Criterion(policy)
 
 
 def update_groups(indices, effective_batch):
@@ -127,7 +135,9 @@ def provenance(config):
             'git_dirty': bool(git('status', '--porcelain')),
             'loss': {'position_scale_m': POSITION_SCALE, 'size_scale_m': SIZE_SCALE,
                      'angle_scale_rad': ANGLE_SCALE, 'stage_weights': list(STAGE_WEIGHTS),
-                     'negative_objectness_weight': .1, 'class_weight': .1,
+                     'negative_objectness_weight': (.1 if config.get('objectness_normalization', 'legacy_query_weight')
+                                                     == 'legacy_query_weight' else None), 'class_weight': .1,
+                     'objectness_normalization': config.get('objectness_normalization', 'legacy_query_weight'),
                      'detection_weight': 1., 'target_weight': 1.,
                      'detection_supervision': 'mean_encoder_and_three_decoders_final_assignment'
                         if rtdetr else 'final_object_decoder'},
@@ -157,7 +167,11 @@ def load_checkpoint(path, model, optimizer, evidence, progress=None):
         raise ValueError('unsupported checkpoint')
     for key in ('config', 'manifest_sha256', 'selection_sha256', 'pretrained', 'source_sha256',
                 'teacher_policy', 'language_policy', 'loss', 'tokens', 'precision', 'dropout'):
-        if saved['provenance'][key] != evidence[key]:
+        previous, current = saved['provenance'][key], evidence[key]
+        if key == 'loss':
+            previous = {'objectness_normalization': 'legacy_query_weight', **previous}
+            current = {'objectness_normalization': 'legacy_query_weight', **current}
+        if previous != current:
             raise ValueError(f'resume mismatch: {key}')
     mismatch = model.load_state_dict(saved['model'], strict=False)
     if mismatch.unexpected_keys or any(not key.startswith('text_encoder.') for key in mismatch.missing_keys):
@@ -210,7 +224,7 @@ def preflight(config, report, device='cpu', offline=True):
     before = {n: p.detach().clone() for n,p in model.named_parameters() if p.requires_grad}
     start = time.monotonic()
     batch = collator([dataset[i] for i in range(config['micro_batch'])]).to(device)
-    terms, _ = S0Criterion()(model(**batch.inputs), batch.supervision)
+    terms, _ = make_criterion(config)(model(**batch.inputs), batch.supervision)
     terms['loss'].backward()
     finite = bool(torch.isfinite(terms['loss'])) and all(torch.isfinite(p.grad).all().item()
                        for p in model.parameters() if p.grad is not None)
@@ -239,7 +253,7 @@ def train(config, run_dir, device='cuda', offline=True, resume=None):
     # Its parent checkpoint + exact cursor establish the continuation lineage.
     run_dir.mkdir(parents=True, exist_ok=False)
     dataset, model, collator = prepare(config, device, offline)
-    optimizer, criterion = make_optimizer(model, config), S0Criterion()
+    optimizer, criterion = make_optimizer(model, config), make_criterion(config)
     evidence = provenance(config)
     evidence['device'] = str(device)
     evidence['device_name'] = torch.cuda.get_device_name(device) if str(device).startswith('cuda') else platform.machine()
