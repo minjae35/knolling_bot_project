@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /usr/bin/python3 "$(git rev-parse --git-common-dir)/hooks/configured-identity-guard.py" commit-msg "$@"
