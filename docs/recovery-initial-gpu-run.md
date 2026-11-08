@@ -118,6 +118,10 @@ explanation. No clear runtime or GT-query replacement defect was observed.
 
 ### Proposed extension — NOT approved or executed
 
+Historical proposal at the end of the initial run. The user subsequently approved
+this extension; its implementation and completed results are recorded in
+[Stage 1 approved extension](recovery-stage1-extension.md).
+
 Continued improvement in position loss, total loss and move accuracy provides a
 reason to test **one additional 500-update Arrangement block**, starting from
 the saved checkpoint rather than restarting. Proposed total caps: **1,000
