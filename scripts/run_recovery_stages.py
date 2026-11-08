@@ -39,9 +39,14 @@ def register_terminal_run(output, total):
 
 def run_stages(config_path, approval, output, *, register=False, execute=subprocess.run, extend_from=None, stop_after='joint'):
     config = read_config(config_path)
-    if stop_after not in STAGES:
+    if config.get('allow_training') is not True:
+        raise PermissionError('training disabled; budget approval is required before launch')
+    v4=config.get('model',{}).get('architecture')=='recovery_v4_goal_joint'
+    if v4 and (stop_after!='grounding' or extend_from):
+        raise ValueError('v4 launcher supports only explicit grounding, without automatic extension')
+    if not v4 and stop_after not in STAGES:
         raise ValueError('unknown final authorized stage')
-    requested = STAGES[:STAGES.index(stop_after)+1]
+    requested = ('grounding',) if v4 else STAGES[:STAGES.index(stop_after)+1]
     output = Path(output)
     output.mkdir(parents=True, exist_ok=False)
     results, parent = {}, None
@@ -89,7 +94,7 @@ def main():
     parser.add_argument('--output', required=True)
     parser.add_argument('--register-terminal-notifications', action='store_true')
     parser.add_argument('--extend-from')
-    parser.add_argument('--stop-after', choices=STAGES, default='joint')
+    parser.add_argument('--stop-after', choices=('grounding',*STAGES), default='joint')
     args = parser.parse_args()
     if Path(sys.prefix).name != 'knolling':
         raise RuntimeError('use the knolling Conda environment')
