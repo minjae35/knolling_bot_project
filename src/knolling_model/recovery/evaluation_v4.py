@@ -131,7 +131,7 @@ def evaluate_v4(model,batches,*,stage,expected_ids=None,baseline=None,pairs=(),m
     if stage=='joint':
         result['full_set_no_regression']=bool(no_regression(result,baseline) and baseline and
             goals['correct']>=baseline.get('grounding',{}).get('correct',float('inf')) and
-            goals['min_true_probability']>=baseline.get('grounding',{}).get('min_true_probability',float('inf'))-1e-6)
+            goals['passed'] is True and baseline.get('grounding',{}).get('passed') is True)
     return result,rows
 
 

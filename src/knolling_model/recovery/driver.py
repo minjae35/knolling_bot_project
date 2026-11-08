@@ -28,7 +28,7 @@ from .batches import stage_batches
 from .counterfactuals import RecoverySuite
 from .evaluation import evaluate_recovery
 from .model import RecoveryModel
-from .stages import STAGES, configure_stage, parameter_groups, stage_loss, stage_gate
+from .stages import STAGES, ALL_STAGES, stage_order, configure_stage, parameter_groups, stage_loss, stage_gate
 from .runtime import precision_context
 
 CHECKPOINT_SCHEMA = 'recovery_checkpoint_v2'
@@ -37,34 +37,45 @@ CONFIG_SCHEMA = 'recovery_driver_v2'
 
 def read_config(path):
     config = json.loads(Path(path).read_text())
-    if config.get('schema') != CONFIG_SCHEMA or tuple(config.get('stages', {})) != STAGES:
+    architecture = config.get('model', {}).get('architecture', 'recovery_v2_ar')
+    order = stage_order(architecture)
+    if config.get('schema') != CONFIG_SCHEMA or tuple(config.get('stages', {})) != order:
         raise ValueError('invalid recovery execution schema or stage order')
     if config.get('device') not in ('cpu', 'cuda'):
         raise ValueError('device must be cpu or cuda')
     if type(config.get('seed')) is not int:
         raise ValueError('an integer seed is required')
     architecture = config.get('model', {}).get('architecture', 'recovery_v2_ar')
-    if architecture not in ('recovery_v2_ar', 'recovery_v3_joint'):
+    if architecture not in ('recovery_v2_ar', 'recovery_v3_joint', 'recovery_v4_goal_joint'):
         raise ValueError('unknown model architecture')
     if architecture == 'recovery_v3_joint' and (not config.get('data_v3') or
             config.get('evaluation_schema') != 'recovery_metrics_v3'):
         raise ValueError('v3 requires pinned v3 data and evaluation')
+    if architecture == 'recovery_v4_goal_joint':
+        from .goal_labels import CONTRACT
+        if (not config.get('data_v3') or config.get('evaluation_schema') != 'recovery_metrics_v4'
+                or digest(config.get('goal_contract')) != digest(CONTRACT) or not config.get('micro_pose')):
+            raise ValueError('v4 requires pinned data, goal contract, micro budgets and v4 evaluation')
+        if (not isinstance(config.get('goal_lr'), (int, float)) or not math.isfinite(config['goal_lr'])
+                or config['goal_lr'] <= 0):
+            raise ValueError('invalid goal learning rate')
     for key in ('batch_size', 'evaluate_every', 'checkpoint_every', 'cpu_threads'):
         if type(config.get(key)) is not int or config[key] <= 0:
             raise ValueError(f'invalid {key}')
     for key in ('layout_lr', 'perception_lr', 'weight_decay', 'gradient_clip'):
         if not isinstance(config.get(key), (int,float)) or not math.isfinite(config[key]) or config[key] <= 0:
             raise ValueError(f'invalid {key}')
-    for spec in config['stages'].values():
+    specs = list(config['stages'].values()) + ([config['micro_pose']] if architecture == 'recovery_v4_goal_joint' else [])
+    for spec in specs:
         if type(spec.get('max_updates')) is not int or spec['max_updates'] <= 0:
             raise ValueError('invalid update budget')
         if not isinstance(spec.get('max_seconds'), (int,float)) or not math.isfinite(spec['max_seconds']) or spec['max_seconds'] <= 0:
             raise ValueError('invalid time budget')
     for stage, precision in config.get('precision', {}).items():
-        if stage not in STAGES or precision not in ('fp32', 'bf16') or (precision == 'bf16' and config['device'] != 'cuda'):
+        if stage not in (*order, 'micro_pose') or precision not in ('fp32', 'bf16') or (precision == 'bf16' and config['device'] != 'cuda'):
             raise ValueError('invalid stage precision')
     for stage, size in config.get('batch_sizes', {}).items():
-        if stage not in STAGES or type(size) is not int or size < 1:
+        if stage not in (*order, 'micro_pose') or type(size) is not int or size < 1:
             raise ValueError('invalid stage batch size')
     if type(config.get('num_workers', 0)) is not int or config.get('num_workers', 0) < 0:
         raise ValueError('invalid DataLoader workers')
@@ -135,7 +146,31 @@ def load_checkpoint(path, config, fingerprint, commit):
             or saved.get('architecture','recovery_v2_ar') != config.get('model',{}).get('architecture','recovery_v2_ar')
             or saved.get('evaluation_schema','recovery_metrics_v2') != config.get('evaluation_schema','recovery_metrics_v2')):
         raise ValueError('checkpoint code/config/data contract mismatch')
+    if saved.get('architecture') == 'recovery_v4_goal_joint':
+        from .goal_labels import CONTRACT
+        if (digest(saved.get('goal_contract')) != digest(CONTRACT) or
+                saved.get('purpose') != ('diagnostic' if saved.get('stage') == 'micro_pose' else 'production')):
+            raise ValueError('checkpoint goal schema or purpose mismatch')
     return saved
+
+
+def validate_micro_checkpoints(paths, parent_sha, config, fingerprint, commit):
+    """Three independent diagnostic passes, each rooted at the SAME grounding file."""
+    from .evaluation_v4 import MICRO_CASES
+    if not paths or len(paths) != len(MICRO_CASES):
+        raise ValueError('oracle layout requires all three passed micro diagnostics')
+    evidence = {}
+    for path in paths:
+        saved = load_checkpoint(path, config, fingerprint, commit)
+        case = saved.get('micro_case')
+        if (case not in MICRO_CASES or case in evidence or saved['stage'] != 'micro_pose'
+                or saved['status'] != 'passed' or saved.get('goal_parent_sha256') != parent_sha
+                or not stage_gate('micro_pose', saved.get('metrics', {}))
+                or saved['metrics']['micro'].get('case') != case
+                or saved['metrics']['micro'].get('sample_ids') != list(MICRO_CASES[case])):
+            raise ValueError('micro diagnostic failed or has a different grounding parent/case')
+        evidence[case] = dict(path=str(path), sha256=file_hash(path), metrics=saved['metrics'])
+    return evidence
 
 
 @dataclass
@@ -166,15 +201,24 @@ class StageEngine:
         self.prepare_continuation = prepare_continuation
         self.serial = 0
 
-    def run(self, stage, *, parent=None, resume=None, extend_from=None):
+    def run(self, stage, *, parent=None, resume=None, extend_from=None, micro_case=None, micro_checkpoints=None):
         from .extensions import load_approved_extension, assess_progress
-        if stage not in STAGES or sum(bool(p) for p in (parent, resume, extend_from)) > 1:
+        architecture = self.config.get('model', {}).get('architecture', 'recovery_v2_ar')
+        v4 = architecture == 'recovery_v4_goal_joint'
+        order = stage_order(architecture)
+        if stage not in ((*order, 'micro_pose') if v4 else order) or sum(bool(p) for p in (parent, resume, extend_from)) > 1:
             raise ValueError('invalid stage/checkpoint request')
         architecture = self.config.get('model', {}).get('architecture', 'recovery_v2_ar')
         if getattr(self.model, 'architecture', 'recovery_v2_ar') != architecture:
             raise ValueError('model/config architecture mismatch')
-        if architecture == 'recovery_v3_joint' and extend_from:
-            raise ValueError('v3 does not reuse the legacy budget extension contract')
+        if architecture in ('recovery_v3_joint', 'recovery_v4_goal_joint') and extend_from:
+            raise ValueError('joint architectures do not reuse the legacy budget extension contract')
+        if stage == 'micro_pose':
+            from .evaluation_v4 import MICRO_CASES
+            if micro_case not in MICRO_CASES:
+                raise ValueError('micro pose requires an explicit fixed case')
+        elif micro_case is not None:
+            raise ValueError('micro case is diagnostic-only')
         extension = None
         if extend_from:
             prior, extension = load_approved_extension(extend_from, self.config, self.fingerprint,
@@ -183,23 +227,31 @@ class StageEngine:
             prior = load_checkpoint(resume or parent, self.config, self.fingerprint, self.commit) if (resume or parent) else None
         continuing = bool(resume or extend_from)
         completed = {} if prior is None else prior['completed']
-        position = STAGES.index(stage)
+        position = 1 if stage == 'micro_pose' else order.index(stage)
         if extend_from:
             pass  # Validated explicitly above; never relabel a budget checkpoint as paused.
         elif resume:
             if prior['stage'] != stage or prior['status'] not in ('paused', 'running'):
                 raise ValueError('only an interrupted checkpoint of the same stage can resume')
             extension = deepcopy(prior.get('extension'))
+            if prior.get('micro_case') != micro_case:
+                raise ValueError('resume micro case mismatch')
         elif position:
-            previous = STAGES[position-1]
+            previous = 'grounding' if stage == 'micro_pose' else order[position-1]
             if prior is None or prior['stage'] != previous or prior['status'] != 'passed' or not self.gate(previous, completed.get(previous, {})):
                 raise ValueError('previous stage must pass on the full pinned evaluation suite')
         elif prior is not None:
             raise ValueError('first stage must start fresh or resume itself')
+        goal_parent = prior.get('goal_parent_sha256') if prior else None
+        if v4 and parent and prior['stage'] == 'grounding':
+            goal_parent = file_hash(parent)
+        micro_evidence = deepcopy(prior.get('micro_evidence', {})) if prior else {}
+        if v4 and stage == 'oracle_layout' and not continuing:
+            micro_evidence = validate_micro_checkpoints(micro_checkpoints, goal_parent, self.config, self.fingerprint, self.commit)
         if prior:
             self.model.load_state_dict(prior['model'], strict=True)
         self.configure(self.model, stage)
-        optimizer = torch.optim.AdamW(parameter_groups(self.model, self.config['layout_lr'], self.config['perception_lr']),
+        optimizer = torch.optim.AdamW(parameter_groups(self.model, self.config['layout_lr'], self.config['perception_lr'], self.config.get('goal_lr', 3e-4)),
                                       weight_decay=self.config['weight_decay'], foreach=False)
         cursor = Cursor(**prior['cursor']) if continuing else Cursor()
         if continuing:
@@ -221,7 +273,7 @@ class StageEngine:
         anchor_sha = file_hash(self.output/'anchor.pt')
         start = self.clock()
         previous_elapsed = cursor.elapsed_seconds
-        spec = self.config['stages'][stage]
+        spec = self.config['micro_pose'] if stage == 'micro_pose' else self.config['stages'][stage]
         def elapsed():
             return previous_elapsed+self.clock()-start
         def exhausted():
@@ -239,6 +291,9 @@ class StageEngine:
                 config=deepcopy(self.config), review_receipt=self.review_receipt,
                 model=cpu_copy(self.model.state_dict()), optimizer=cpu_copy(optimizer.state_dict()),
                 cursor=vars(cursor).copy(), rng=rng_state(), baseline=baseline, completed=completed,
+                goal_contract=deepcopy(self.config.get('goal_contract')), goal_parent_sha256=goal_parent,
+                purpose='diagnostic' if stage == 'micro_pose' else 'production',
+                micro_case=micro_case, micro_evidence=micro_evidence,
                 metrics=metrics, error=error, anchor_sha256=anchor_sha, extension=extension))
             observe('checkpoint', status=status, checkpoint=str(path), error=error)
             return dict(status=status, checkpoint=str(path), updates=cursor.update,
@@ -366,11 +421,13 @@ def main():
     import argparse
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config', default='configs/recovery_execution.json')
-    parser.add_argument('--stage', choices=STAGES, required=True)
+    parser.add_argument('--stage', choices=ALL_STAGES, required=True)
     parser.add_argument('--output', required=True)
     parser.add_argument('--approval', required=True)
     parser.add_argument('--parent-checkpoint')
     parser.add_argument('--resume')
+    parser.add_argument('--micro-case', choices=('translation', 'keep', 'axis'))
+    parser.add_argument('--micro-checkpoints', nargs=3, help='three passed diagnostic checkpoint files for oracle layout')
     parser.add_argument('--extend-from', help='explicitly approved Stage 1 budget checkpoint; never ordinary resume')
     args = parser.parse_args()
     config = read_config(args.config)
@@ -382,14 +439,22 @@ def main():
     if subprocess.check_output(['git','status','--porcelain'], text=True).strip():
         raise PermissionError('training requires a clean reviewed checkout')
     parent = S0Dataset(config['dataset'], config['selection'])
+    v4 = config.get('model',{}).get('architecture') == 'recovery_v4_goal_joint'
     v3 = config.get('model',{}).get('architecture') == 'recovery_v3_joint'
-    if v3:
+    if v3 or v4:
         from .dataset_v3 import RecoveryDatasetV3
         suite = RecoveryDatasetV3(parent, config['data_v3']['path'], config['data_v3']['sha256'])
+        if v4:
+            from .goal_labels import GoalDataset
+            suite = GoalDataset(suite)
     else:
         suite = RecoverySuite(parent, config['counterfactuals']['path'], config['counterfactuals']['sha256'])
     pairs = getattr(suite, 'pairs', ())
     authorize(config, receipt, args.stage, suite.fingerprint, commit)
+    fingerprint = suite.fingerprint
+    if args.stage == 'micro_pose':
+        from .micro import MicroDataset
+        suite = MicroDataset(suite, args.micro_case)
     if Path(args.output).resolve().is_relative_to(parent.root):
         raise ValueError('run output cannot be inside the parent dataset')
     from knolling_model.runner import seed_everything
@@ -406,12 +471,16 @@ def main():
     def batches(stage, epoch):
         size = config.get('batch_sizes', {}).get(stage, config['batch_size'])
         for item in stage_batches(suite, collator, stage, seed=config['seed'], epoch=epoch, batch_size=size,
-                                  num_workers=config.get('num_workers', 0), pin_memory=config.get('pin_memory', False)):
+                                  num_workers=config.get('num_workers', 0), pin_memory=config.get('pin_memory', False), uniform=v4):
             yield item.to(config['device'], non_blocking=config.get('pin_memory', False))
     def evaluation(stage, baseline):
         def stream():
             for i in range(0,len(suite),config['batch_size']):
                 yield collator([suite[j] for j in range(i,min(len(suite),i+config['batch_size']))]).to(config['device'])
+        if v4:
+            from .evaluation_v4 import evaluate_v4
+            return evaluate_v4(model, stream(), stage=stage, pairs=pairs,
+                expected_ids=[r['sample_id'] for r in suite.records], baseline=baseline, micro_case=args.micro_case)[0]
         if v3:
             from .evaluation_v3 import evaluate_v3
             return evaluate_v3(model, stream(), stage=stage, pairs=pairs,
@@ -423,12 +492,13 @@ def main():
     def prepare_continuation(stage):
         if stage != 'perception':
             warm_text_cache(model, suite, collator, config['batch_size'], config['device'])
-    engine = StageEngine(model, config, suite.fingerprint, commit, args.output, batches, evaluation,
+    engine = StageEngine(model, config, fingerprint, commit, args.output, batches, evaluation,
                          stop_event=event, review_receipt=receipt, observer=observer,
                          prepare_continuation=prepare_continuation)
     try:
         with stop_signals(event):
-            result = engine.run(args.stage, parent=args.parent_checkpoint, resume=args.resume, extend_from=args.extend_from)
+            result = engine.run(args.stage, parent=args.parent_checkpoint, resume=args.resume, extend_from=args.extend_from,
+                                micro_case=args.micro_case, micro_checkpoints=args.micro_checkpoints)
     finally:
         if observer is not None:
             observer.close()

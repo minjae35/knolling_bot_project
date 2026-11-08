@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from .data import balanced_instruction_indices, unique_source_indices
-from .stages import STAGES
+from .stages import ALL_STAGES
 
 
 @dataclass
@@ -22,20 +22,23 @@ class StageBatch:
         return self.batch.inputs, self.batch.supervision, replay
 
 
-def stage_batches(dataset, collator, stage, *, seed, epoch, batch_size=2, num_workers=0, pin_memory=False):
+def stage_batches(dataset, collator, stage, *, seed, epoch, batch_size=2, num_workers=0, pin_memory=False, uniform=False):
     """Yield CPU batches only; no device transfer, optimizer, or file writes.
 
     Joint epochs cover both the complete instruction stream and the complete
     unique-source stream; the shorter stream cycles. This prevents partial-case
     repair subsets from silently replacing full detection replay.
     """
-    if stage not in STAGES or batch_size < 1:
+    if stage not in ALL_STAGES or batch_size < 1:
         raise ValueError('invalid stage or batch size')
     if not dataset.records or any(r['split'] != 'train' for r in dataset.records):
         raise ValueError('training batches require nonempty Train-only records')
     sources = unique_source_indices(dataset.records)
     random.Random(seed+epoch).shuffle(sources)
     indices = sources if stage == 'perception' else balanced_instruction_indices(dataset.records, seed, epoch)
+    if uniform and stage != 'perception':
+        indices = list(range(len(dataset.records)))
+        random.Random(seed+100003*epoch).shuffle(indices)
     chunks = [indices[i:i+batch_size] for i in range(0, len(indices), batch_size)]
     replay_chunks = [sources[i:i+batch_size] for i in range(0, len(sources), batch_size)]
     steps = max(len(chunks), len(replay_chunks)) if stage == 'joint' else len(chunks)

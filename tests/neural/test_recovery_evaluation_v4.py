@@ -77,7 +77,10 @@ def test_goal_counterfactual_language_and_joint_regression(suite_v3):
     before,_=evaluate_v4(m,b,stage='joint',expected_ids=ids,pairs=ds.pairs)
     m.layout.goal_encoder.confidence=3.
     after,_=evaluate_v4(m,b,stage='joint',expected_ids=ids,pairs=ds.pairs,baseline=before)
-    assert after['grounding']['passed'] and not after['full_set_no_regression']
+    assert after['grounding']['passed'] and after['full_set_no_regression']
+    m.layout.goal_encoder.confidence=1.
+    after,_=evaluate_v4(m,b,stage='joint',expected_ids=ids,pairs=ds.pairs,baseline=before)
+    assert not after['grounding']['passed'] and not after['full_set_no_regression']
     m.layout.goal_encoder.confidence=12.
     a,z=next(p for p in ds.pairs if p['factor']=='axis_alignment')['sample_ids']
     b[ids.index(z)].inputs['input_ids'][:]=ids.index(a)

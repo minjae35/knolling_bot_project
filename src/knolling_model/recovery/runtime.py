@@ -93,7 +93,8 @@ class ProgressLog:
         with (self.output/'history.jsonl').open('a') as stream:
             stream.write(json.dumps(dict(event=event, time=time.time(), **record), allow_nan=False)+'\n')
         if event == 'start':
-            labels = dict(oracle_layout='Stage 1 Arrangement', perception='Stage 2 Perception',
+            labels = dict(grounding='Goal Grounding', micro_pose='Micro Pose Diagnostic',
+                          oracle_layout='Stage 1 Arrangement', perception='Stage 2 Perception',
                           predicted_layout='Stage 3a End-to-End', joint='Stage 3b Joint')
             self.bar = tqdm(total=record['max_updates'], initial=record['update'],
                             desc=labels[record['stage']], unit='step', mininterval=1, dynamic_ncols=True)
