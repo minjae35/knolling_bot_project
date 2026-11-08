@@ -1,9 +1,12 @@
-# Knolling dataset pipeline
+# Knolling dataset and neural pipeline
 
 New implementation for `minjae35/knolling_bot_project`, based on the finalized
 v1.3 dataset specification, preserving the validated v1.2 pipeline. Dataset
-modules M0–M8 and the S0 neural implementation are complete. S0 has passed local
-CPU checks; training has not started. See the
+modules M0–M8 and the original S0 neural implementation are available. Historical
+S0 runs did not pass the full acceptance gate. A separate neural recovery path
+is now implemented for review; **its GPU training has not started**. See the
+[recovery implementation, CPU test results and independent review checklist](docs/recovery-implementation-review.md).
+The original implementation remains documented in the
 [S0 implementation, verification and exact launch commands](docs/s0-implementation.md).
 See the [vast.ai S0 setup and readiness runbook](docs/vast-ai-s0.md) and
 [dataset storage audit and verified backups](docs/dataset-storage-audit.md).
@@ -13,7 +16,8 @@ not provision GPU instances.
 **Initial system language: English only.** The active pilot is
 `artifacts/pilot_v1_3_en/`. Both `pilot_v1_2` and the original bilingual
 `pilot_v1_3` remain archived regression artifacts. Multilingual support is
-optional future work; the Neural Architecture/text-encoder choice is unchanged.
+optional future work; the English dataset conversion preserved the original
+Neural Architecture/text-encoder choice.
 See the [English conversion and validation report](docs/english-only-report.md).
 The [final quality review](docs/final-dataset-quality-review.md) recommends retaining
 the dataset for S0. The user has since confirmed the review is complete and
