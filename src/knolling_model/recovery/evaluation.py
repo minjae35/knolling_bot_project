@@ -1,5 +1,6 @@
 """Measured, complete-set stage metrics; no GT in predicted inference inputs."""
 import math
+from collections import Counter
 
 import torch
 from scipy.optimize import linear_sum_assignment
@@ -169,15 +170,29 @@ def evaluate_recovery(model, batches, *, stage='predicted_layout', expected_ids=
         for name in ('source_position', 'source_size', 'source_angle', 'target_position', 'target_angle'):
             unit = 'deg' if 'angle' in name else 'mm'
             result[f'{name}_p95_{unit}'] = result[f'{name}_{unit}']['p95']
-        mode_ok = bool(baseline and result['complete_set'] and baseline.get('complete_set')
+        mode_ok = bool(stage != 'perception' and baseline and result['complete_set'] and baseline.get('complete_set')
                        and result['sample_ids'] == baseline.get('sample_ids')
                        and all(mode in result['by_mode'] and result['by_mode'][mode]['task_success'] >= values['task_success']
                                for mode, values in baseline['by_mode'].items()))
-        result.update(per_mode_no_regression=mode_ok, full_set_no_regression=regression(result, baseline),
+        result.update(per_mode_no_regression=mode_ok,
+                      full_set_no_regression=stage != 'perception' and regression(result, baseline),
                       target_evaluated=stage != 'perception')
         if stage == 'perception':
             result.update(task_success=None, legacy_s0_gate=None, s0_gate=False,
-                          target_position_p95_mm=None, target_angle_p95_deg=None)
+                          target_position_p95_mm=None, target_angle_p95_deg=None,
+                          target_position_mm=dict(n=0, median=None, p95=None),
+                          target_angle_deg=dict(n=0, median=None, p95=None),
+                          raw_geometry_success=None, refinement=[],
+                          keep_violation=dict(evaluated=False), language_sensitivity=dict(evaluated=False))
+            for summary in list(result['by_mode'].values()) + [s for values in result['by_condition'].values() for s in values.values()]:
+                summary.update(successes=None, task_success=None, raw_geometry_success=None,
+                               failure_counts={}, evaluated=False)
+            for row in rows:
+                row.update(task_success=None, raw_geometry_success=None, stages=[],
+                           target_position_mm=[], target_angle_deg=[], keep_violation=None)
+                row.pop('predicted_targets', None)
+                row['errors'] = [e for e in row['errors'] if e in ('count', 'source_identity')]
+            result['failure_counts'] = dict(Counter(e for row in rows for e in row['errors']))
         return result, rows
     finally:
         model.train(was_training)

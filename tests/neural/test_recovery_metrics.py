@@ -56,7 +56,11 @@ def test_actual_evaluator_drives_every_stage_gate(recovery_suite):
         first, _ = evaluate_recovery(model, batches, stage=stage, expected_ids=ids)
         measured, _ = evaluate_recovery(model, batches, stage=stage, expected_ids=ids, baseline=first)
         assert stage_gate(stage, measured), (stage, measured)
-        assert len(measured['refinement']) == 1
+        assert len(measured['refinement']) == (0 if stage == 'perception' else 1)
+        if stage == 'perception':
+            assert measured['target_position_mm']['n'] == 0
+            assert measured['language_sensitivity']['evaluated'] is False
+            assert all(mode['task_success'] is None for mode in measured['by_mode'].values())
         assert measured['false_positives'] == measured['false_negatives'] == 0
         incomplete, _ = evaluate_recovery(model, batches[:1], stage=stage, expected_ids=ids, baseline=first)
         assert not stage_gate(stage, incomplete)
