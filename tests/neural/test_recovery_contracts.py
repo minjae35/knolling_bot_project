@@ -5,7 +5,7 @@ import torch
 
 from knolling_model.recovery.contracts import detector_labels, oracle_objects, pack_sources
 from knolling_model.recovery.data import (assert_family_disjoint, balanced_instruction_indices,
-    counterfactual_pair, recovery_supervision, unique_source_indices)
+    counterfactual_pair, recovery_supervision, selection_counterfactual_pair, unique_source_indices)
 
 
 def test_oracle_labels_units_and_source_only_boxes(s0_dataset):
@@ -60,3 +60,11 @@ def test_read_only_s0_exposure_and_counterfactuals(s0_dataset):
     assert_family_disjoint({'train': records, 'test': []})
     with pytest.raises(ValueError, match='leaked'):
         assert_family_disjoint({'train': records, 'test': [records[0]]})
+
+
+def test_selection_contrast_changes_only_grounding(simple_scene, simple_instruction):
+    a, b = selection_counterfactual_pair(simple_scene, simple_instruction, ['o1'])
+    assert b.selected_ids == ('o1',) and b.locked_ids == ('o2',)
+    assert 'only the red objects' in b.text
+    differences = {k for k in asdict(a) if asdict(a)[k] != asdict(b)[k]}
+    assert differences == {'text', 'selected_ids', 'locked_ids'}

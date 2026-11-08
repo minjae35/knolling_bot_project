@@ -1,0 +1,24 @@
+{
+  "schema": "neural_recovery_review_v1",
+  "execution": "review_only",
+  "allow_training": false,
+  "device": "cpu",
+  "seed": 1203,
+  "pretrained": "configs/pretrained_rtdetr.json",
+  "dataset": "artifacts/pilot_v1_3_en",
+  "selection": "configs/s0_samples.json",
+  "model": {
+    "dimension": 128,
+    "layers": 2,
+    "bins": 18,
+    "max_objects": 8,
+    "threshold": 0.5,
+    "num_denoising": 100
+  },
+  "stages": {
+    "oracle_layout": {"proposed_max_updates": 500, "proposed_max_minutes": 10},
+    "perception": {"proposed_max_updates": 1000, "proposed_max_minutes": 45},
+    "predicted_layout": {"proposed_max_updates": 1000, "proposed_max_minutes": 30},
+    "joint": {"proposed_max_updates": 300, "proposed_max_minutes": 15}
+  }
+}

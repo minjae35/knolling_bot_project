@@ -13,6 +13,21 @@ AXES = ('horizontal', 'vertical')
 REGIONS = ('full', 'left', 'right')
 
 
+class RecoveryDataset(torch.utils.data.Dataset):
+    """Wrap an existing validated dataset without changing its files or records."""
+    def __init__(self, dataset):
+        self.dataset = dataset
+        self.records = dataset.records
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, index):
+        sample = dict(self.dataset[index])
+        _, sample['supervision'] = recovery_supervision(self.records[index])
+        return sample
+
+
 def recovery_supervision(record):
     ids, truth = supervision(record)
     ins = record['instruction']
@@ -93,3 +108,14 @@ def counterfactual_pair(scene, instruction, factor, alternative):
     second = english_instruction(scene, replace(instruction, **{factor: alternative}))
     check_instruction(scene, second)
     return first, second
+
+
+def selection_counterfactual_pair(scene, instruction, selected_ids):
+    """Change only selection (and its complementary locks), with observable text."""
+    selected = tuple(selected_ids)
+    if instruction.keep_all or not selected or set(selected) == set(instruction.selected_ids):
+        raise ValueError('selection contrast requires a different nonempty selection')
+    locked = tuple(o.object_id for o in scene.objects if o.object_id not in selected)
+    alternative = replace(instruction, selected_ids=selected, locked_ids=locked)
+    check_instruction(scene, alternative)
+    return english_instruction(scene, instruction), english_instruction(scene, alternative)
