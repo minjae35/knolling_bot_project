@@ -95,6 +95,11 @@ class AutoregressiveLayout(nn.Module):
         return self.norm(hidden)
 
     def _heads(self, hidden, objects, upto):
+        # Keep sub-millimetre pose arithmetic in FP32 under BF16 attention/MLPs.
+        with torch.autocast(device_type=hidden.device.type, enabled=False):
+            return self._heads_fp32(hidden.float(), objects, upto)
+
+    def _heads_fp32(self, hidden, objects, upto):
         candidate_xy = self.xy(hidden).sigmoid()*hidden.new_tensor([.6, .4])
         logits, residual = self.bin_logits(hidden), self.bin_residual(hidden)
         candidate_angle = self.orientation.decode(logits, residual)

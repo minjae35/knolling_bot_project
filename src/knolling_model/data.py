@@ -19,9 +19,13 @@ class Batch:
     supervision: list[dict[str, torch.Tensor]]
     metadata: list[dict]
 
-    def to(self, device):
-        return Batch({k: v.to(device) for k, v in self.inputs.items()},
-                     [{k: v.to(device) for k, v in t.items()} for t in self.supervision], self.metadata)
+    def to(self, device, non_blocking=False):
+        return Batch({k: v.to(device, non_blocking=non_blocking) for k, v in self.inputs.items()},
+                     [{k: v.to(device, non_blocking=non_blocking) for k, v in t.items()} for t in self.supervision], self.metadata)
+
+    def pin_memory(self):
+        return Batch({k: v.pin_memory() for k, v in self.inputs.items()},
+                     [{k: v.pin_memory() for k, v in t.items()} for t in self.supervision], self.metadata)
 
 
 def supervision(record):

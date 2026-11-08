@@ -1,6 +1,8 @@
 """Deterministic stage batch wiring, with a separate unique-source replay stream."""
 from dataclasses import dataclass
 import random
+import torch
+from torch.utils.data import DataLoader
 
 from .data import balanced_instruction_indices, unique_source_indices
 from .stages import STAGES
@@ -11,15 +13,16 @@ class StageBatch:
     batch: object
     replay: object | None
 
-    def to(self, device):
-        return StageBatch(self.batch.to(device), None if self.replay is None else self.replay.to(device))
+    def to(self, device, non_blocking=False):
+        return StageBatch(self.batch.to(device, non_blocking=non_blocking),
+                          None if self.replay is None else self.replay.to(device, non_blocking=non_blocking))
 
     def loss_arguments(self):
         replay = None if self.replay is None else (self.replay.inputs, self.replay.supervision)
         return self.batch.inputs, self.batch.supervision, replay
 
 
-def stage_batches(dataset, collator, stage, *, seed, epoch, batch_size=2):
+def stage_batches(dataset, collator, stage, *, seed, epoch, batch_size=2, num_workers=0, pin_memory=False):
     """Yield CPU batches only; no device transfer, optimizer, or file writes.
 
     Joint epochs cover both the complete instruction stream and the complete
@@ -36,7 +39,13 @@ def stage_batches(dataset, collator, stage, *, seed, epoch, batch_size=2):
     chunks = [indices[i:i+batch_size] for i in range(0, len(indices), batch_size)]
     replay_chunks = [sources[i:i+batch_size] for i in range(0, len(sources), batch_size)]
     steps = max(len(chunks), len(replay_chunks)) if stage == 'joint' else len(chunks)
-    for step in range(steps):
-        batch = collator([dataset[i] for i in chunks[step % len(chunks)]])
-        replay = collator([dataset[i] for i in replay_chunks[step % len(replay_chunks)]]) if stage == 'joint' else None
-        yield StageBatch(batch, replay)
+    def loader(groups, offset):
+        # A private generator avoids changing model/DN RNG on iterator creation
+        # or resume, including when num_workers is zero.
+        generator = torch.Generator().manual_seed(seed+epoch+offset)
+        return DataLoader(dataset, batch_sampler=[groups[i % len(groups)] for i in range(steps)],
+                          collate_fn=collator, num_workers=num_workers, pin_memory=pin_memory,
+                          generator=generator)
+    replay = iter(loader(replay_chunks, 100003)) if stage == 'joint' else None
+    for batch in loader(chunks, 0):
+        yield StageBatch(batch, next(replay) if replay is not None else None)

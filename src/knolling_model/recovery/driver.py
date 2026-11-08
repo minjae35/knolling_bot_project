@@ -29,6 +29,7 @@ from .counterfactuals import RecoverySuite
 from .evaluation import evaluate_recovery
 from .model import RecoveryModel
 from .stages import STAGES, configure_stage, parameter_groups, stage_loss, stage_gate
+from .runtime import precision_context
 
 CHECKPOINT_SCHEMA = 'recovery_checkpoint_v2'
 CONFIG_SCHEMA = 'recovery_driver_v2'
@@ -53,6 +54,14 @@ def read_config(path):
             raise ValueError('invalid update budget')
         if not isinstance(spec.get('max_seconds'), (int,float)) or not math.isfinite(spec['max_seconds']) or spec['max_seconds'] <= 0:
             raise ValueError('invalid time budget')
+    for stage, precision in config.get('precision', {}).items():
+        if stage not in STAGES or precision not in ('fp32', 'bf16') or (precision == 'bf16' and config['device'] != 'cuda'):
+            raise ValueError('invalid stage precision')
+    for stage, size in config.get('batch_sizes', {}).items():
+        if stage not in STAGES or type(size) is not int or size < 1:
+            raise ValueError('invalid stage batch size')
+    if type(config.get('num_workers', 0)) is not int or config.get('num_workers', 0) < 0:
+        raise ValueError('invalid DataLoader workers')
     return config
 
 
@@ -137,13 +146,14 @@ class StageEngine:
     """
     def __init__(self, model, config, fingerprint, commit, output, batches, evaluate,
                  *, loss_fn=stage_loss, configure_fn=configure_stage, gate_fn=stage_gate,
-                 clock=time.monotonic, stop_event=None, review_receipt=None):
+                 clock=time.monotonic, stop_event=None, review_receipt=None, observer=None):
         self.model, self.config, self.fingerprint, self.commit = model, config, fingerprint, commit
         self.output = Path(output)
         self.batches, self.evaluate, self.loss_fn = batches, evaluate, loss_fn
         self.configure, self.gate, self.clock = configure_fn, gate_fn, clock
         self.stop = stop_event or threading.Event()
         self.review_receipt = deepcopy(review_receipt)
+        self.observer = observer
         self.serial = 0
 
     def run(self, stage, *, parent=None, resume=None):
@@ -189,6 +199,9 @@ class StageEngine:
             return previous_elapsed+self.clock()-start
         def exhausted():
             return cursor.update >= spec['max_updates'] or elapsed() >= spec['max_seconds']
+        def observe(event, **values):
+            if self.observer is not None:
+                self.observer(event, stage=stage, update=cursor.update, elapsed_seconds=elapsed(), **values)
         def checkpoint(status, metrics=None, error=None):
             cursor.elapsed_seconds = elapsed()
             self.serial += 1
@@ -199,10 +212,14 @@ class StageEngine:
                 model=cpu_copy(self.model.state_dict()), optimizer=cpu_copy(optimizer.state_dict()),
                 cursor=vars(cursor).copy(), rng=rng_state(), baseline=baseline, completed=completed,
                 metrics=metrics, error=error, anchor_sha256=anchor_sha))
+            observe('checkpoint', status=status, checkpoint=str(path), error=error)
             return dict(status=status, checkpoint=str(path), updates=cursor.update,
                         elapsed_seconds=cursor.elapsed_seconds, metrics=metrics, error=error)
         def measured():
-            return self.evaluate(stage, baseline)
+            with precision_context(self.config, stage):
+                metrics = self.evaluate(stage, baseline)
+            observe('evaluation', metrics=metrics)
+            return metrics
         def finish(metrics):
             if self.gate(stage, metrics):
                 completed[stage] = metrics
@@ -215,6 +232,7 @@ class StageEngine:
             # to the rejected trajectory. Restart from the prior passed stage.
             return checkpoint('rolled_back', metrics, reason)
         try:
+            observe('start', max_updates=spec['max_updates'], max_seconds=spec['max_seconds'])
             if not resume:
                 baseline = measured()
                 if stage == 'joint' and not self.gate('predicted_layout', completed['predicted_layout']):
@@ -240,8 +258,9 @@ class StageEngine:
                     optimizer.zero_grad(set_to_none=True)
                     attempt_rng = rng_state()
                     inputs, truths, replay = item.loss_arguments()
-                    terms, _ = self.loss_fn(self.model, inputs, truths, replay=replay)
-                    loss = sum(terms.values())
+                    with precision_context(self.config, stage):
+                        terms, _ = self.loss_fn(self.model, inputs, truths, replay=replay)
+                        loss = sum(terms.values())
                     if not torch.isfinite(loss):
                         raise FloatingPointError('nonfinite loss')
                     loss.backward()
@@ -261,10 +280,14 @@ class StageEngine:
                         # including joint regression detection and rollback.
                         break
                     optimizer.step()
-                    if any(not torch.isfinite(p).all() for p in self.model.parameters() if p.requires_grad):
+                    if not torch.stack([torch.isfinite(p).all() for p in self.model.parameters() if p.requires_grad]).all():
                         raise FloatingPointError('nonfinite parameter after update')
                     cursor.update += 1
                     cursor.batch = index+1
+                    if self.observer is not None:
+                        values = torch.stack([loss.detach(), norm.detach(), *[v.detach() for v in terms.values()]]).float().cpu().tolist()
+                        observe('update', loss=values[0], gradient_norm=values[1], losses=dict(zip(terms, values[2:])),
+                                remaining_seconds=max(0., spec['max_seconds']-elapsed()))
                     if cursor.update % self.config['evaluate_every'] == 0 or exhausted():
                         metrics = measured()
                         if stage == 'joint' and not metrics.get('full_set_no_regression', False):
@@ -328,13 +351,20 @@ def main():
         raise ValueError('run output cannot be inside the parent dataset')
     from knolling_model.runner import seed_everything
     from knolling_model.model import load_pretrained
+    from .runtime import CachedDataset, FrozenTextCache, ProgressLog
     seed_everything(config['seed'], config['cpu_threads'])
     base, tokenizer = load_pretrained(config['pretrained'], local_files_only=True)
     model = RecoveryModel(base.text_encoder, base.perception.detector, **config['model']).to(config['device'])
+    if config.get('cache_frozen_text', False):
+        model.encode_text = FrozenTextCache(model.encode_text)
+    if config.get('cache_dataset', False):
+        suite = CachedDataset(suite)
     collator = Collator(tokenizer)
     def batches(stage, epoch):
-        for item in stage_batches(suite, collator, stage, seed=config['seed'], epoch=epoch, batch_size=config['batch_size']):
-            yield item.to(config['device'])
+        size = config.get('batch_sizes', {}).get(stage, config['batch_size'])
+        for item in stage_batches(suite, collator, stage, seed=config['seed'], epoch=epoch, batch_size=size,
+                                  num_workers=config.get('num_workers', 0), pin_memory=config.get('pin_memory', False)):
+            yield item.to(config['device'], non_blocking=config.get('pin_memory', False))
     def evaluation(stage, baseline):
         def stream():
             for i in range(0,len(suite),config['batch_size']):
@@ -342,10 +372,17 @@ def main():
         return evaluate_recovery(model, stream(), stage=stage,
             expected_ids=[r['sample_id'] for r in suite.records], baseline=baseline)[0]
     event = threading.Event()
+    observer = ProgressLog(args.output) if config.get('progress', False) else None
     engine = StageEngine(model, config, suite.fingerprint, commit, args.output, batches, evaluation,
-                         stop_event=event, review_receipt=receipt)
-    with stop_signals(event):
-        result = engine.run(args.stage, parent=args.parent_checkpoint, resume=args.resume)
+                         stop_event=event, review_receipt=receipt, observer=observer)
+    try:
+        with stop_signals(event):
+            result = engine.run(args.stage, parent=args.parent_checkpoint, resume=args.resume)
+    finally:
+        if observer is not None:
+            observer.close()
+    with (Path(args.output)/'result.json').open('x') as stream:
+        json.dump(result, stream, indent=2, allow_nan=False)
     print(json.dumps(result, indent=2, allow_nan=False))
     if result['status'] not in ('passed','paused'):
         raise SystemExit(2)
