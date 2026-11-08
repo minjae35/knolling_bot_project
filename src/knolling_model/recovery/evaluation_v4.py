@@ -140,6 +140,18 @@ def evaluate_v4(model,batches,*,stage,expected_ids=None,baseline=None,pairs=(),m
     result,rows=evaluate_joint(model,batches,stage='oracle_layout' if stage=='micro_pose' else stage,
         architecture=ARCHITECTURE,schema=SCHEMA,expected_ids=expected_ids,pairs=pairs,baseline=baseline)
     result.update(stage=stage,grounding=goals)
+    from .family_manifest import breakdown
+    result['breakdown'] = breakdown(rows, [m['record'] for b in batches for m in b.metadata], result['contrasts']['checks'])
+    if stage in ('micro_pose', 'oracle_layout'):
+        # Stable identities let the phase driver retain actual passing scenes,
+        # rather than hiding regressions behind aggregate success counts/P95.
+        result['integrated_evidence'] = dict(sample_ids=ids,
+            successful_scenes=sorted(r['sample_id'] for r in rows if r['task_success']),
+            successful_pairs=sorted(p['pair_id'] for p in result['contrasts']['checks'] if p['passed']),
+            keep_violations=result['validity']['keep_violations'],
+            max_position_mm=max((v for r in rows for v in r['target_position_mm']), default=None),
+            max_angle_deg=max((v for r in rows for v in r['target_angle_deg']), default=None),
+            angle_errors_deg={r['sample_id']+'/'+str(i):v for r in rows for i,v in enumerate(r['target_angle_deg'])})
     if stage=='micro_pose':
         records={m['sample_id']:m['record'] for b in batches for m in b.metadata}
         result['micro']=micro_metrics(rows,records,micro_case)
