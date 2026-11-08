@@ -14,7 +14,7 @@ from .validator import polygon, validate_layout, validate_source, geometry
 POLICY = 'continuous_envelope_v0_review'
 
 
-def project_translation(preferred, bounds, forbidden):
+def project_translation(preferred, bounds, forbidden, *, decimals=None):
     """Closest point in a rectangle outside a union of open rectangles.
 
     Rectangle-edge coordinates plus the preferred coordinates contain a nearest
@@ -37,10 +37,13 @@ def project_translation(preferred, bounds, forbidden):
                   if not any(x0 < x < x1 and y0 < y < y1 for x0, y0, x1, y1 in forbidden)]
     if not candidates:
         return None
-    return min(candidates, key=lambda p: ((p[0]-preferred[0])**2+(p[1]-preferred[1])**2, -p[1], p[0]))
+    def key(p):
+        distance = (p[0]-preferred[0])**2+(p[1]-preferred[1])**2
+        return (distance if decimals is None else round(distance, decimals), -p[1], p[0])
+    return min(candidates, key=key)
 
 
-def template_translation(scene, ins, template):
+def template_translation(scene, ins, template, *, decimals=None):
     l, b, r, t = REGIONS[ins.region]
     half_w, half_h = template['width']/2, template['height']/2
     bounds = l+half_w, b+half_h, r-half_w, t-half_h
@@ -60,7 +63,7 @@ def template_translation(scene, ins, template):
             obstacle = polygon(fixed, fixed.source_pose).bounds
             forbidden.append((obstacle[0]-relative[2]-gap, obstacle[1]-relative[3]-gap,
                               obstacle[2]-relative[0]+gap, obstacle[3]-relative[1]+gap))
-    return project_translation(preferred, bounds, forbidden)
+    return project_translation(preferred, bounds, forbidden, decimals=decimals)
 
 
 def solve(scene, ins):

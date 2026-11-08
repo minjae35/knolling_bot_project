@@ -82,7 +82,8 @@ def inferred_rows(objects):
     return [sorted(row, key=lambda o: o.target_pose.x_m) for row in rows]
 
 
-def validate_layout(source: Scene, target: Scene, instruction: Instruction, mode: str):
+def validate_layout(source: Scene, target: Scene, instruction: Instruction, mode: str,
+                    *, axis_deg=5, gap_tolerance=.005+EPS, row_tolerance=None):
     if mode not in ("full", "partial", "no_op"):
         raise ValueError("unknown mode")
     report = ValidationReport()
@@ -130,7 +131,7 @@ def validate_layout(source: Scene, target: Scene, instruction: Instruction, mode
     region = box(*REGIONS[instruction.region]).buffer(EPS, join_style=2)
     expected_angle = 0 if instruction.axis_alignment == "horizontal" else math.pi/2
     for obj in selected:
-        if angle_error(obj.target_pose.theta_rad,expected_angle) > math.radians(5):
+        if angle_error(obj.target_pose.theta_rad,expected_angle) > math.radians(axis_deg):
             report.fail("axis_alignment")
         if not region.covers(polygon(obj,obj.target_pose)):
             report.fail("requested_region")
@@ -138,6 +139,10 @@ def validate_layout(source: Scene, target: Scene, instruction: Instruction, mode
     report.metrics["row_object_ids"] = [[o.object_id for o in row] for row in rows]
     row_colors = []
     for row in rows:
+        if row_tolerance is not None:
+            center = (max(o.target_pose.y_m for o in row)+min(o.target_pose.y_m for o in row))/2
+            if any(abs(o.target_pose.y_m-center) > row_tolerance for o in row):
+                report.fail('row_alignment')
         if instruction.group_by == "color":
             colors = {o.color for o in row}
             if len(colors) != 1:
@@ -146,7 +151,7 @@ def validate_layout(source: Scene, target: Scene, instruction: Instruction, mode
         for left,right in zip(row,row[1:]):
             lp,rp = polygon(left,left.target_pose), polygon(right,right.target_pose)
             gap = rp.bounds[0]-lp.bounds[2]
-            if abs(gap-instruction.gap_m) > .005+EPS:
+            if abs(gap-instruction.gap_m) > gap_tolerance:
                 report.fail("horizontal_gap")
     if instruction.group_by == "color":
         runs = [c for i,c in enumerate(row_colors) if i == 0 or c != row_colors[i-1]]
@@ -156,7 +161,7 @@ def validate_layout(source: Scene, target: Scene, instruction: Instruction, mode
         upper_bottom = min(polygon(o,o.target_pose).bounds[1] for o in upper)
         lower_top = max(polygon(o,o.target_pose).bounds[3] for o in lower)
         multiplier = 2 if instruction.group_by == "color" and upper[0].color != lower[0].color else 1
-        if abs(upper_bottom-lower_top-multiplier*instruction.gap_m) > .005+EPS:
+        if abs(upper_bottom-lower_top-multiplier*instruction.gap_m) > gap_tolerance:
             report.fail("vertical_gap")
     ordered = [o for row in rows for o in row]
     groups = [[o for o in ordered if o.color == c] for c in ("red","green","blue")] if instruction.group_by == "color" else [ordered]
