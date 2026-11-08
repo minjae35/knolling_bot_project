@@ -36,6 +36,8 @@ def configure(model, *, xy=True, orientation=True):
     for name, p in model.layout.pose.named_parameters():
         key = 'orientation' if name.startswith('orientation_pose.') else 'xy'
         p.requires_grad_(xy if key == 'xy' else orientation)
+        if hasattr(model.layout.pose,'move_keep_head') and not name.startswith('move_keep_head.'):
+            p.requires_grad_(False)
         if p.requires_grad: groups[key].append(p)
     model.eval()  # No dropout/BN drift; eval does not disable autograd.
     return groups
@@ -90,7 +92,11 @@ def best_key(metrics):
 
 def restore(model, saved, optimizers=None):
     if saved.get('schema') != SCHEMA: raise ValueError('not a relative-task checkpoint')
-    attach(model); model.load_state_dict(saved['model'], strict=True)
+    attach(model)
+    if saved.get('config',{}).get('keep_router')=='neural_keep_router_v1':
+        from .neural_keep import attach as attach_keep
+        attach_keep(model)
+    model.load_state_dict(saved['model'], strict=True)
     groups = configure(model, orientation=not saved.get('config', {}).get('freeze_orientation', False))
     if optimizers is not None:
         if set(optimizers) != set(saved['optimizers']): raise ValueError('optimizer branch mismatch')
