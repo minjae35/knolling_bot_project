@@ -204,7 +204,9 @@ class IntegratedEngine:
             model=self.model.state_dict(), optimizer=self.adam.state_dict(),
             cursor=vars(self.cursor).copy(), rng=rng_state(), baseline=self.baseline,
             completed=deepcopy(self.completed), goal_contract=deepcopy(self.config['goal_contract']),
-            goal_parent_sha256=self.goal_parent, purpose='diagnostic' if self.stage == 'micro_pose' else 'production',
+            goal_parent_sha256=self.goal_parent, purpose='diagnostic' if (
+                self.stage == 'micro_pose' or self.config.get('alternating_pose', {}).get('diagnostic') == 'xy_feature_only_v1'
+            ) else 'production',
             micro_case=self.case, micro_evidence=self.micro_evidence, metrics=metrics,
             error=error, anchor_sha256=self.anchor_sha, integrated=self.capture_state(),
             observer_errors=list(self.observer_errors)))

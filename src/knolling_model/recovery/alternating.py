@@ -5,6 +5,7 @@ then differentiate through features with ALL final Linear rows held fixed.
 Legacy integrated checkpoints/journals and their execution path are unchanged.
 """
 from copy import deepcopy
+from contextlib import contextmanager
 import math
 from pathlib import Path
 
@@ -27,12 +28,13 @@ POLICY = dict(schema=SCHEMA, source_sha256=SOURCE_SHA, records=76, pairs=35,
               max_feature_updates=10, max_seconds=120, head_iterations=50,
               head_seconds=10, head_time_mode='solver', finalize_reserve_seconds=10,
               xy_solver='svd_huber_v1')
+XY_POLICY = dict(POLICY, diagnostic='xy_feature_only_v1')
 
 
 def validate_config(config):
     p = config.get('alternating_pose')
     if p is None: return
-    if (p != POLICY or any(k in config for k in ('integrated_pose', 'coarse_extension', 'micro_precision'))
+    if (p not in (POLICY, XY_POLICY) or any(k in config for k in ('integrated_pose', 'coarse_extension', 'micro_precision'))
             or config['model']['architecture'] != 'recovery_v4_goal_joint'
             or config['stages']['oracle_layout'] != dict(max_updates=10, max_seconds=120)
             or config['layout_lr'] != 1e-4 or config['precision']['oracle_layout'] != 'fp32'):
@@ -118,6 +120,35 @@ def trial_gate(current, baseline):
             and retained_trial(current, baseline))
 
 
+@contextmanager
+def alternating_evaluation(model):
+    """Use the Driver's FP32 dispatch in reloads too, without building a graph.
+
+    CUDA Linear dispatch can depend on leaf requires_grad even under no_grad.
+    A fully frozen reload therefore need not be bitwise equal to FeatureAdam's
+    eval forward. Normalize those flags, then restore flags/modes/gradients.
+    This is evaluation plumbing only: no optimizer, label input or gate change.
+    """
+    flags = [(p, p.requires_grad) for p in model.parameters()]
+    modes = [(m, m.training) for m in model.modules()]
+    try:
+        model.requires_grad_(False)
+        for name, p in model.layout.pose.named_parameters():
+            if name not in ('output.1.weight', 'output.1.bias'): p.requires_grad_(True)
+        model.eval()
+        with torch.no_grad(): yield
+    finally:
+        for p, flag in flags: p.requires_grad_(flag)
+        for m, training in modes: m.training = training
+
+
+def evaluate_alternating(model, batches, **kwargs):
+    """Use for standalone Checkpoint reloads as well as Driver evaluation."""
+    from .evaluation_v4 import evaluate_v4
+    with alternating_evaluation(model):
+        return evaluate_v4(model, batches, **kwargs)
+
+
 @torch.no_grad()
 def trial_measurements(model, batches, expected_ids, fingerprint, pairs, check=lambda: None):
     """Real forward outputs, ID-aligned contrasts, and the original RMS diagnostic."""
@@ -125,7 +156,8 @@ def trial_measurements(model, batches, expected_ids, fingerprint, pairs, check=l
     captured, batch_list = [], list(batches)
     hook = model.layout.pose.register_forward_hook(lambda m, a, o: captured.append(o))
     try:
-        data = collect_readout(model, batch_list, expected_ids=expected_ids, fingerprint=fingerprint, check=check)
+        with alternating_evaluation(model):
+            data = collect_readout(model, batch_list, expected_ids=expected_ids, fingerprint=fingerprint, check=check)
     finally: hook.remove()
     rows, keep = {}, {}
     for batch, out in zip(batch_list, captured):
@@ -159,6 +191,14 @@ def trial_measurements(model, batches, expected_ids, fingerprint, pairs, check=l
 
 class AlternatingEngine(IntegratedEngine):
     """Reuse atomic storage, readout journals, caches, timing and exact RNG restore."""
+    @property
+    def xy_only(self):
+        return self.config['alternating_pose'].get('diagnostic') == 'xy_feature_only_v1'
+
+    def measured(self):
+        with alternating_evaluation(self.model):
+            return super().measured()
+
     @timed('evaluation')
     def diagnostics(self):
         rng = rng_state()
@@ -206,7 +246,8 @@ class AlternatingEngine(IntegratedEngine):
         if (not retained(metrics, self.baseline, angles=True)
                 or not retained_trial(diagnostic, self.state['accepted_trial'])):
             return self.rollback(metrics, 'angle/Keep/task regression after recalibration')
-        # Only BOTH calibrated heads can pass; never a lower uncalibrated loss.
+        # The separate XY diagnostic keeps the original orientation/residual
+        # heads. Both modes still require measured angle/Keep non-regression.
         if trial_gate(diagnostic, self.state['reference_trial']):
             return self.checkpoint('passed', metrics)
         self.anchor_current(metrics, diagnostic)
@@ -226,7 +267,7 @@ class AlternatingEngine(IntegratedEngine):
         self.solver.measurements()
         self.state['pending_head'] = None
         if pending['phase_done']:
-            if self.state['phase'] == 'head_xy': self.phase('head_angle', reuse=True)
+            if self.state['phase'] == 'head_xy' and not self.xy_only: self.phase('head_angle', reuse=True)
             else: return self.assess_complete()
         return None
 
@@ -314,6 +355,7 @@ class AlternatingEngine(IntegratedEngine):
         if resume:
             self.cursor = Cursor(**prior['cursor']); self.state = deepcopy(prior['integrated'])
             if (self.state['phase'] not in ('head_xy', 'head_angle', 'feature') or not 0 <= self.cursor.update <= 10
+                    or self.xy_only and self.state['phase'] == 'head_angle'
                     or not 0 <= self.state['phase_update'] <= self.policy['head_iterations']
                     or not 0 <= self.cursor.elapsed_seconds <= 120
                     or type(self.state['pending_feature']) is not bool

@@ -184,7 +184,8 @@ def validate_checkpoint(saved, config, fingerprint, commit):
     if saved.get('architecture') == 'recovery_v4_goal_joint':
         from .goal_labels import CONTRACT
         if (digest(saved.get('goal_contract')) != digest(CONTRACT) or
-                saved.get('purpose') != ('diagnostic' if saved.get('stage') == 'micro_pose' else 'production')):
+                saved.get('purpose') != ('diagnostic' if (saved.get('stage') == 'micro_pose' or
+                    config.get('alternating_pose', {}).get('diagnostic') == 'xy_feature_only_v1') else 'production')):
             raise ValueError('checkpoint goal schema or purpose mismatch')
     return saved
 
