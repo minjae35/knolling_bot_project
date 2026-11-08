@@ -33,6 +33,8 @@ XY_WINDOW_POLICY = dict(POLICY, diagnostic='xy_feature_window_v1')
 
 
 def validate_config(config):
+    from .split_pose import validate_config as validate_split
+    validate_split(config)
     p = config.get('alternating_pose')
     if p is None: return
     if (p not in (POLICY, XY_POLICY, XY_WINDOW_POLICY) or any(k in config for k in ('integrated_pose', 'coarse_extension', 'micro_precision'))
@@ -75,7 +77,7 @@ class FeatureAdam:
     def __init__(self, model, lr, weight_decay):
         self.model = model
         self.shared = {n: p for n, p in model.layout.pose.named_parameters()
-                       if n not in ('output.1.weight', 'output.1.bias')}
+                       if n not in ('output.1.weight', 'output.1.bias') and not n.startswith('orientation_pose.')}
         self.parameters = list(self.shared.values())
         self.optimizer = torch.optim.AdamW(self.parameters, lr=lr, weight_decay=weight_decay, foreach=False)
         self.activate()
@@ -135,7 +137,7 @@ def alternating_evaluation(model):
     try:
         model.requires_grad_(False)
         for name, p in model.layout.pose.named_parameters():
-            if name not in ('output.1.weight', 'output.1.bias'): p.requires_grad_(True)
+            if not name.endswith(('output.1.weight', 'output.1.bias')): p.requires_grad_(True)
         model.eval()
         with torch.no_grad(): yield
     finally:
@@ -161,8 +163,11 @@ def trial_measurements(model, batches, expected_ids, fingerprint, pairs, check=l
             data = collect_readout(model, batch_list, expected_ids=expected_ids, fingerprint=fingerprint, check=check)
     finally: hook.remove()
     rows, keep = {}, {}
+    bin_correct = 0
     for batch, out in zip(batch_list, captured):
         for i, (meta, truth) in enumerate(zip(batch.metadata, batch.supervision)):
+            true_bins, _ = model.layout.orientation.encode(truth['target_angle'])
+            bin_correct += int((out['angle_logits'][i, :len(meta['object_ids'])].argmax(-1) == true_bins).sum())
             for j, oid in enumerate(meta['object_ids']):
                 key = (meta['sample_id'], oid)
                 p, y = out['xy'][i, j].cpu().double(), truth['target_xy'][j].cpu().double()
@@ -185,7 +190,7 @@ def trial_measurements(model, batches, expected_ids, fingerprint, pairs, check=l
     return dict(xy_svd_rms_mm=diag['xy_svd_rms_mm'], rank=diag['rank'],
         hv_relative_error_mm=math.sqrt(sum(hv)/len(hv))*1000, hv_pairs=len(hv),
         angle_p95_deg=float(torch.quantile(torch.tensor([r[2] for r in rows.values()], dtype=torch.float64), .95)),
-        bin_correct=diag['angle_bin_correct'], keep=keep,
+        bin_correct=bin_correct, keep=keep,
         keep_rms_mm=math.sqrt(sum(v['xy_mm']**2 for v in keep.values())/max(1, len(keep))),
         keep_angle_rms_deg=math.sqrt(sum(v['angle_deg']**2 for v in keep.values())/max(1, len(keep))))
 
@@ -376,7 +381,8 @@ class AlternatingEngine(IntegratedEngine):
         else: prior = load_source(parent, self.config, e.fingerprint, e.review_receipt)
         self.stage, self.case = stage, None
         self.policy = self.config['alternating_pose']; self.spec = self.config['stages'][stage]
-        self.model.load_state_dict(prior['model'], strict=True); e.configure(self.model, stage)
+        from .split_pose import load_model_state
+        load_model_state(self.model, prior); e.configure(self.model, stage)
         self.adam = FeatureAdam(self.model, self.config['layout_lr'], self.config['weight_decay'])
         self.completed = deepcopy(prior['completed']); self.goal_parent = prior['goal_parent_sha256']
         self.micro_evidence = deepcopy(prior['micro_evidence'])
@@ -425,6 +431,11 @@ class AlternatingEngine(IntegratedEngine):
             self.observe('start', max_updates=10, max_seconds=120)
             self.checkpoint('running', prior.get('metrics'))
             while True:
+                if self.state.get('pending_split_evaluation'):
+                    self.state['pending_split_evaluation'] = False
+                    result = self.assess_complete()
+                    if result: return result
+                    continue
                 if self.state['pending_feature']:
                     self.resolve_feature(); continue
                 if self.state['pending_head'] is not None:
