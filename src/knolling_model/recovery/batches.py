@@ -11,6 +11,9 @@ class StageBatch:
     batch: object
     replay: object | None
 
+    def to(self, device):
+        return StageBatch(self.batch.to(device), None if self.replay is None else self.replay.to(device))
+
     def loss_arguments(self):
         replay = None if self.replay is None else (self.replay.inputs, self.replay.supervision)
         return self.batch.inputs, self.batch.supervision, replay
