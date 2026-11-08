@@ -25,7 +25,10 @@ class RecoveryModel(nn.Module):
             raise ValueError('invalid object capacity or foreground threshold')
         self.text_encoder = text_encoder.requires_grad_(False).eval()
         self.perception = RecoveryPerception(detector, num_denoising)
-        if architecture == 'recovery_v3_joint':
+        if architecture == 'recovery_v4_goal_joint':
+            from .goal_joint_layout import GoalJointLayout
+            self.layout = GoalJointLayout(dimension=dimension, layers=layers, bins=bins)
+        elif architecture == 'recovery_v3_joint':
             from .joint_layout import JointPoseDecoder
             self.layout = JointPoseDecoder(dimension=dimension, layers=layers, bins=bins)
         elif architecture == 'recovery_v2_ar':
@@ -39,10 +42,12 @@ class RecoveryModel(nn.Module):
     def train(self, mode=True):
         super().train(mode)
         self.text_encoder.eval()
-        if self.stage in ('oracle_layout', 'predicted_layout'):
+        if self.stage in ('grounding', 'micro_pose', 'oracle_layout', 'predicted_layout'):
             self.perception.eval()
         if self.stage == 'perception':
             self.layout.eval()
+        if self.architecture == 'recovery_v4_goal_joint' and self.stage != 'grounding':
+            self.layout.goal_encoder.eval()
         return self
 
     def encode_text(self, input_ids, attention_mask):
@@ -68,7 +73,10 @@ class RecoveryModel(nn.Module):
         objects = pack_sources(source, indices)
         text = self.encode_text(input_ids, attention_mask)
         target = self.layout(objects, text, attention_mask)
-        return dict(source=source, layout=target, perception=visual, threshold=self.threshold)
+        result = dict(source=source, layout=target, perception=visual, threshold=self.threshold)
+        if 'goal' in target:
+            result['goal'] = target['goal']
+        return result
 
 
 def load_recovery(config_path='configs/recovery_review.json'):

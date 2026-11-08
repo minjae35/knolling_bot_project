@@ -42,7 +42,7 @@ def gate(stage, metrics):
 
 def no_regression(current, baseline):
     if not (baseline and current.get('complete_set') and baseline.get('complete_set')
-            and baseline.get('schema')==SCHEMA and current['sample_ids']==baseline['sample_ids']):return False
+            and baseline.get('schema')==current.get('schema') and current['sample_ids']==baseline['sample_ids']):return False
     for key in ('task_success','count_accuracy','coverage','color_accuracy','shape_accuracy','move_accuracy'):
         if current[key] < baseline[key]-1e-9:return False
     for key in ('false_positives','false_negatives','source_position_p95_mm','source_size_p95_mm','source_angle_p95_deg'):
@@ -55,14 +55,20 @@ def no_regression(current, baseline):
 
 @torch.no_grad()
 def evaluate_v3(model, batches, *, stage, expected_ids=None, baseline=None, pairs=()):
+    return evaluate_joint(model, batches, stage=stage, expected_ids=expected_ids, baseline=baseline, pairs=pairs,
+                          architecture='recovery_v3_joint', schema=SCHEMA)
+
+
+@torch.no_grad()
+def evaluate_joint(model, batches, *, stage, architecture, schema, expected_ids=None, baseline=None, pairs=()):
     from .stages import STAGES
     if stage not in STAGES:
         raise ValueError('unknown recovery stage')
-    if getattr(model,'architecture',None) != 'recovery_v3_joint' or model.threshold != .5:
-        raise ValueError('v3 evaluator requires the v3 architecture and standard selection')
+    if getattr(model,'architecture',None) != architecture or model.threshold != .5:
+        raise ValueError('joint evaluator requires the declared architecture and standard selection')
     if stage=='perception':
         metrics,rows=evaluate_recovery(model,batches,stage=stage,expected_ids=expected_ids)
-        metrics.update(schema=SCHEMA,architecture=model.architecture,fidelity=None,validity=None,contrasts=None)
+        metrics.update(schema=schema,architecture=model.architecture,fidelity=None,validity=None,contrasts=None)
         return metrics,rows
     was_training=model.training;model.eval()
     rows,records=[],[]
@@ -106,7 +112,7 @@ def evaluate_v3(model, batches, *, stage, expected_ids=None, baseline=None, pair
         ids=[r['sample_id'] for r in rows]
         complete=(expected_ids is not None and len(ids)==len(set(ids)) and len(expected_ids)==len(set(expected_ids))
                   and set(ids)==set(expected_ids))
-        result.update(schema=SCHEMA,architecture=model.architecture,stage=stage,evaluation_mode='free_rollout',
+        result.update(schema=schema,architecture=model.architecture,stage=stage,evaluation_mode='free_rollout',
                       source_mode='oracle' if stage=='oracle_layout' else 'predicted',sample_ids=sorted(ids),complete_set=complete,
                       coverage=summary['correspondence_coverage'],false_positives=fp,false_negatives=fn,
                       color_accuracy=colors/total,shape_accuracy=shapes/total,move_accuracy=move/total,

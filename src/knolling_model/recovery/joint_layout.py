@@ -81,8 +81,8 @@ class JointPoseDecoder(nn.Module):
 
 def joint_pose_loss(output, targets, orientation):
     """Three final-only terms, scene means, all valid objects including keep."""
-    if output.get('architecture') != ARCHITECTURE or output.get('rollout') != 'free_rollout':
-        raise ValueError('v3 loss requires label-free joint predictions')
+    if output.get('architecture') not in (ARCHITECTURE, 'recovery_v4_goal_joint') or output.get('rollout') != 'free_rollout':
+        raise ValueError('pose loss requires label-free joint predictions')
     valid = output['valid']
     def mean(value):
         return (value.masked_fill(~valid, 0).sum(-1)/valid.sum(-1).clamp_min(1)).mean()

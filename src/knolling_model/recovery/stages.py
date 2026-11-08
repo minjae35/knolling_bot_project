@@ -13,6 +13,12 @@ from .layout import layout_loss
 from .selection import match_selected
 
 STAGES = ('oracle_layout', 'perception', 'predicted_layout', 'joint')
+V4_STAGES = ('grounding', 'oracle_layout', 'perception', 'predicted_layout', 'joint')
+ALL_STAGES = ('grounding', 'micro_pose', *STAGES)
+
+
+def stage_order(architecture):
+    return V4_STAGES if architecture == 'recovery_v4_goal_joint' else STAGES
 
 
 def read_review_config(path):
@@ -21,18 +27,21 @@ def read_review_config(path):
         raise ValueError('only the review-only recovery configuration is accepted')
     if config.get('allow_training') is not False or config.get('device') != 'cpu':
         raise ValueError('GPU and training execution are disabled pending review')
-    if tuple(config['stages']) != STAGES:
+    if tuple(config['stages']) != stage_order(config.get('model', {}).get('architecture')):
         raise ValueError('recovery stage order changed')
     return config
 
 
 def configure_stage(model, stage):
-    if stage not in STAGES:
+    v4 = getattr(model, 'architecture', None) == 'recovery_v4_goal_joint'
+    if stage not in (ALL_STAGES if v4 else STAGES):
         raise ValueError('unknown recovery stage')
     model.requires_grad_(False)
     model.zero_grad(set_to_none=True)
-    if stage in ('oracle_layout', 'predicted_layout', 'joint'):
-        model.layout.requires_grad_(True)
+    if stage in ('micro_pose', 'oracle_layout', 'predicted_layout', 'joint'):
+        (model.layout.pose if v4 else model.layout).requires_grad_(True)
+    if stage == 'grounding':
+        model.layout.goal_encoder.requires_grad_(True)
     if stage == 'perception':
         model.perception.requires_grad_(True)
     elif stage == 'joint':
@@ -46,10 +55,14 @@ def configure_stage(model, stage):
     return [name for name, p in model.named_parameters() if p.requires_grad]
 
 
-def parameter_groups(model, layout_lr=1e-4, perception_lr=1e-5):
+def parameter_groups(model, layout_lr=1e-4, perception_lr=1e-5, goal_lr=3e-4):
     """Construct groups without creating an optimizer or modifying parameters."""
     groups = []
-    for name, module, lr in (('layout', model.layout, layout_lr), ('perception', model.perception, perception_lr)):
+    modules = [('layout', model.layout, layout_lr), ('perception', model.perception, perception_lr)]
+    if getattr(model, 'architecture', None) == 'recovery_v4_goal_joint':
+        modules = [('goal', model.layout.goal_encoder, goal_lr), ('layout', model.layout.pose, layout_lr),
+                   ('perception', model.perception, perception_lr)]
+    for name, module, lr in modules:
         params = [p for p in module.parameters() if p.requires_grad]
         if params:
             groups.append(dict(name=name, params=params, lr=lr))
@@ -86,10 +99,11 @@ def stage_loss(model, inputs, truths, *, teacher_forcing=False, replay=None, sou
     instruction-balanced layout batch. The caller supplies that separate batch.
     """
     stage = model.stage
+    v4 = getattr(model, 'architecture', None) == 'recovery_v4_goal_joint'
     joint_v3 = getattr(model, 'architecture', None) == 'recovery_v3_joint'
-    if joint_v3 and (teacher_forcing or source_noise is not None):
-        raise ValueError('v3 has no teacher-prefix or unreviewed source-noise path')
-    if stage not in STAGES or not model.training:
+    if (joint_v3 or v4) and (teacher_forcing or source_noise is not None):
+        raise ValueError('joint models have no teacher-prefix or unreviewed source-noise path')
+    if stage not in (ALL_STAGES if v4 else STAGES) or not model.training:
         raise ValueError('configure a training stage before constructing its loss')
     if teacher_forcing and stage not in ('oracle_layout', 'predicted_layout'):
         raise ValueError('teacher forcing is limited to layout warmup stages')
@@ -99,7 +113,7 @@ def stage_loss(model, inputs, truths, *, teacher_forcing=False, replay=None, sou
         visual = model.perception.supervised(inputs['images'], truths)
         terms, _ = model.perception.detection_loss(visual, truths)
         return terms, dict(perception=visual, diagnostic='perception_only')
-    if stage == 'oracle_layout':
+    if stage in ('grounding', 'micro_pose', 'oracle_layout'):
         objects = oracle_objects(truths)
         gt_indices = [torch.arange(len(t['source_xy']), device=t['source_xy'].device) for t in truths]
         diagnostic = 'oracle_source'
@@ -116,13 +130,17 @@ def stage_loss(model, inputs, truths, *, teacher_forcing=False, replay=None, sou
     if source_noise is not None:
         from .noise import perturb_sources
         objects = perturb_sources(objects, **source_noise)
-    targets = aligned_targets(truths, gt_indices, objects)
     text = model.encode_text(inputs['input_ids'], inputs['attention_mask'])
+    if stage == 'grounding':
+        from .goal_encoder import goal_loss
+        output = model.layout.goal_encoder(objects, text, inputs['attention_mask'])
+        return {'goal/'+k: v for k, v in goal_loss(output, truths, gt_indices).items()}, dict(goal=output, objects=objects)
+    targets = aligned_targets(truths, gt_indices, objects)
     if teacher_forcing:
         output = model.layout.teacher_forced(objects, text, inputs['attention_mask'], targets['xy'], targets['angle'])
     else:
         output = model.layout(objects, text, inputs['attention_mask'])
-    if joint_v3:
+    if joint_v3 or v4:
         from .joint_layout import joint_pose_loss
         losses = joint_pose_loss(output, targets, model.layout.orientation)
     else:
@@ -144,6 +162,9 @@ def stage_gate(stage, metrics):
     Thresholds are proposed acceptance criteria, not evidence of achieved skill.
     Joint promotion additionally requires an external full-set regression check.
     """
+    if metrics.get('schema') == 'recovery_metrics_v4':
+        from .evaluation_v4 import gate
+        return gate(stage, metrics)
     if metrics.get('schema') == 'recovery_metrics_v3':
         from .evaluation_v3 import gate
         return gate(stage, metrics)
