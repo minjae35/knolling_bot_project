@@ -2,6 +2,7 @@
 import subprocess
 import sys
 import threading
+import os
 from types import SimpleNamespace
 
 import pytest
@@ -148,6 +149,72 @@ def test_time_budget_nonfinite_guard_and_immutable_checkpoints(tmp_path):
         return {'loss':model.layout.weight.sum()*float('nan')},{}
     e.loss_fn=nan
     assert e.run('oracle_layout')['status']=='rolled_back'
+
+
+@pytest.mark.parametrize('device', ['cpu', pytest.param('cuda', marks=pytest.mark.skipif(
+    os.environ.get('RUN_RECOVERY_CUDA_TESTS') != '1', reason='explicit GPU verification only'))])
+@pytest.mark.parametrize('expire_at', ['forward', 'backward'])
+@pytest.mark.parametrize('outcome', ['regression', 'budget_exhausted', 'passed', 'evaluation_error'])
+def test_joint_timeout_final_evaluation_and_rollback(tmp_path, device, expire_at, outcome):
+    """Only a scalar fixture updates; expire before an uncommitted second step."""
+    if device == 'cuda':
+        assert torch.cuda.is_available()
+    c=config()
+    c.update(evaluate_every=25, checkpoint_every=25, stop_on_initial_pass=True)
+    c['stages']['joint']['max_seconds']=1
+    parent=None
+    for stage in ('oracle_layout', 'perception', 'predicted_layout'):
+        previous=engine(tmp_path, stage, c=c,
+            evaluator=lambda *_: {'pass':True, 'full_set_no_regression':True})
+        parent=previous.run(stage, parent=parent)['checkpoint']
+    reference=load_checkpoint(parent, c, 'fixture-data', 'fixture-commit')['model']
+    now=[0.]
+    calls={'loss':0, 'evaluate':0}
+    def evaluate(stage, baseline):
+        calls['evaluate']+=1
+        if calls['evaluate'] <= 2:
+            return {'pass':False, 'full_set_no_regression':True}
+        if outcome == 'evaluation_error':
+            raise RuntimeError('final evaluation failed')
+        return {'pass':outcome == 'passed', 'full_set_no_regression':outcome != 'regression'}
+    joint=engine(tmp_path, 'timeout', model=ScalarFixture().to(device), c=c,
+                 evaluator=evaluate, clock=lambda:now[0])
+    def expire():
+        now[0]=2.
+    def timed_loss(model, inputs, truths, replay=None):
+        calls['loss']+=1
+        value=(model.layout(inputs['x'].to(device))-1.).square().mean()
+        if calls['loss']==2:
+            if expire_at == 'forward':
+                expire()
+            else:
+                def hook(gradient):
+                    expire()
+                    return gradient
+                value.register_hook(hook)
+        return {'loss':value}, {}
+    joint.loss_fn=timed_loss
+    result=joint.run('joint', parent=parent)
+    saved=load_checkpoint(result['checkpoint'], c, 'fixture-data', 'fixture-commit')
+    assert calls == {'loss':2, 'evaluate':3}
+    assert result['updates']==1 and saved['cursor']['batch']==1
+    assert saved['metrics']==result['metrics'] and saved['status']==result['status']
+    assert int(next(iter(saved['optimizer']['state'].values()))['step'])==1
+    assert all(p.grad is None for p in joint.model.parameters())
+    if outcome in ('regression', 'evaluation_error'):
+        assert result['status']=='rolled_back'
+        for name, value in joint.model.state_dict().items():
+            torch.testing.assert_close(value.cpu(), reference[name], rtol=0, atol=0)
+            torch.testing.assert_close(saved['model'][name], reference[name], rtol=0, atol=0)
+        assert 'joint' not in saved['completed']
+        if outcome=='regression':
+            assert result['metrics']['full_set_no_regression'] is False
+        else:
+            assert 'final evaluation failed' in result['error']
+    else:
+        assert result['status']==outcome and result['metrics']['full_set_no_regression'] is True
+        assert not torch.equal(saved['model']['layout.weight'], reference['layout.weight'])
+        assert ('joint' in saved['completed']) == (outcome=='passed')
 
 
 def test_default_config_and_stale_receipts_cannot_train():

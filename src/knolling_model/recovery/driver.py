@@ -255,7 +255,11 @@ class StageEngine:
                         # This batch has not advanced the cursor or optimizer.
                         # Replaying it after resume must use the same DN/dropout RNG.
                         restore_rng(attempt_rng)
-                        return checkpoint('paused' if self.stop.is_set() else 'budget_exhausted')
+                        if self.stop.is_set():
+                            return checkpoint('paused')
+                        # A timeout must reach the common final evaluation below,
+                        # including joint regression detection and rollback.
+                        break
                     optimizer.step()
                     if any(not torch.isfinite(p).all() for p in self.model.parameters() if p.requires_grad):
                         raise FloatingPointError('nonfinite parameter after update')

@@ -91,9 +91,12 @@ conda run --no-capture-output -n knolling python -m knolling_model.recovery.coun
 - Nonfinite loss/gradient/parameter, selection 실패, joint 회귀는 해당 단계 시작 anchor로 rollback하고 오류 checkpoint를 남긴다. Rollback checkpoint의 optimizer moments는 거부된 경로의 기록이므로 재개에 사용하지 않는다.
 - 이전 gate가 통과한 checkpoint 없이 다음 단계로 진입하지 않는다. 기본 `stop_on_initial_pass=true`는 처음부터 통과한 단계를 update 없이 종료한다.
 - 시간 제한은 optimizer update를 막는 cooperative 제한이다. 이미 진행 중인 kernel·평가·checkpoint 저장을 강제로 끊지는 않으므로 프로세스 종료 시각은 상한을 넘을 수 있다.
+- Forward/backward 도중 시간초과가 발생하면 미완료 update의 gradient를 지우고 RNG를 복원한 뒤 공통 최종 평가로 이동한다. Joint 회귀가 있으면 단계 시작 anchor로 rollback하며, 최종 평가 오류도 rollback으로 처리한다. 회귀가 없으면 최종 gate에 따라 `passed` 또는 평가값을 포함한 `budget_exhausted`로 종료한다.
 - 기본 경로는 free rollout이다. Source-noise/teacher-forcing 보조 API는 유지하지만 측정된 noise 정책이 없으므로 driver에서 자동 활성화하지 않는다.
 
 ## 6. 검증 결과
+
+아래 기본 검증 기록은 `9232b4c` 기준이며, 시간초과 수정 후 검증은 6.1절에 기록했다.
 
 CPU 재현:
 
@@ -119,6 +122,25 @@ HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 TOKENIZERS_PARALLELISM=false RUN_RECOVER
 - GPU peak allocated **1,146.4 MiB**, reserved **1,240.0 MiB**. Batch 1의 검증값이며 optimizer state/실제 학습 peak의 추정치가 아니다.
 - 실제 모델 **optimizer update 0회**. 검사 전후 전체 state_dict SHA 비교로 가중치·버퍼 불변 확인. 종료 시 GPU compute process 없음.
 - 기존 `artifacts/` **2,105개 파일**의 경로·크기·mtime 비교: 변경/삭제 0개. 추가된 파일은 새 bundle과 SHA 파일 2개뿐이다. 기존 checkpoint 전체 바이트를 재해시한 검증은 아니다.
+
+### 6.1 시간초과 종료 수정 후 검증
+
+- 수정 전 새 CPU 회귀 테스트 8개가 모두 실패했고, 수정 후 모두 통과했다.
+- Forward와 backward 중 시간초과 각각에 대해 최종 평가 1회, 추가 optimizer update 방지, joint 회귀 rollback, 회귀 없는 예산 종료, gate 통과, 최종 평가 오류 시 rollback을 확인했다. 반환값뿐 아니라 저장된 checkpoint의 metrics·cursor·완료 단계·복구 가중치도 검사한다.
+- 전체 CPU: **195 passed, 20 skipped**. 기존 pause/resume 및 단계 전환 검사 포함. CPU 실행에서 생략한 새 CUDA 시간초과 사례 8개는 별도 GPU 실행에서 모두 통과했다.
+- 별도 CUDA: **9 passed** — scalar driver 사례 8개와 실제 R18/MiniLM forward/backward 검사 1개. 실제 Knolling 모델 optimizer update는 0회이며 가중치·버퍼 불변을 확인했다.
+- 이번 수정 전부터 존재한 artifact **2,107개**의 경로·크기·mtime을 보존했다. 기존 데이터와 checkpoint를 덮어쓰지 않았으며 실제 GPU 학습은 시작하지 않았다.
+
+CUDA 재현 명령:
+
+```bash
+CUDA_VISIBLE_DEVICES=0 CUBLAS_WORKSPACE_CONFIG=:4096:8 \
+HF_HOME=/workspace/cache/huggingface TORCH_HOME=/workspace/cache/torch \
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 TOKENIZERS_PARALLELISM=false RUN_RECOVERY_CUDA_TESTS=1 \
+  conda run --no-capture-output -n knolling python -m pytest \
+  tests/neural/test_recovery_driver.py::test_joint_timeout_final_evaluation_and_rollback \
+  tests/neural/test_recovery_cuda.py -k 'cuda or real_r18' -q -s
+```
 
 ## 7. Work 재검토 우선순위
 
