@@ -84,6 +84,8 @@ def read_config(path):
     validate_policy(config)
     from .integrated import validate_config
     validate_config(config)
+    from .alternating import validate_config as validate_alternating
+    validate_alternating(config)
     return config
 
 
@@ -91,6 +93,8 @@ def authorize(config, receipt, stage, fingerprint, commit):
     """Must execute before creating an output directory/model/CUDA context."""
     if config.get('execution') != 'approved_training' or config.get('allow_training') is not True:
         raise PermissionError('training remains disabled pending independent review')
+    if config.get('alternating_pose') and stage != 'oracle_layout':
+        raise PermissionError('alternating trial is oracle_layout-only')
     if not (receipt and receipt.get('approved') is True and receipt.get('reviewer')
             and receipt.get('commit') == commit and receipt.get('config_sha256') == digest(config)
             and receipt.get('dataset_fingerprint') == fingerprint and stage in receipt.get('stages', [])):
@@ -264,7 +268,7 @@ class StageEngine:
     def __init__(self, model, config, fingerprint, commit, output, batches, evaluate,
                  *, loss_fn=stage_loss, configure_fn=configure_stage, gate_fn=stage_gate,
                  clock=time.monotonic, stop_event=None, review_receipt=None, observer=None,
-                 prepare_continuation=None, readout_batches=None, expected_ids=None):
+                 prepare_continuation=None, readout_batches=None, expected_ids=None, pairs=None):
         self.model, self.config, self.fingerprint, self.commit = model, config, fingerprint, commit
         self.output = Path(output)
         self.batches, self.evaluate, self.loss_fn = batches, evaluate, loss_fn
@@ -274,10 +278,15 @@ class StageEngine:
         self.observer = observer
         self.prepare_continuation = prepare_continuation
         self.readout_batches, self.expected_ids = readout_batches, expected_ids
+        self.pairs = pairs
         self.serial = 0
         self.storage = CheckpointStore(common_store(self.output))
 
     def run(self, stage, *, parent=None, resume=None, extend_from=None, micro_case=None, micro_checkpoints=None):
+        if self.config.get('alternating_pose'):
+            from .alternating import AlternatingEngine
+            return AlternatingEngine(self).run(stage, parent=parent, resume=resume, extend_from=extend_from,
+                                              micro_case=micro_case, micro_checkpoints=micro_checkpoints)
         if self.config.get('integrated_pose') and stage in ('micro_pose', 'oracle_layout'):
             from .integrated import IntegratedEngine
             return IntegratedEngine(self).run(stage, parent=parent, resume=resume, extend_from=extend_from,
@@ -592,7 +601,7 @@ def main():
     engine = StageEngine(model, config, fingerprint, commit, args.output, batches, evaluation,
                          stop_event=event, review_receipt=receipt, observer=observer,
                          prepare_continuation=prepare_continuation, readout_batches=stream,
-                         expected_ids=[r['sample_id'] for r in suite.records])
+                         expected_ids=[r['sample_id'] for r in suite.records], pairs=pairs)
     try:
         with stop_signals(event):
             result = engine.run(args.stage, parent=args.parent_checkpoint, resume=args.resume, extend_from=args.extend_from,
