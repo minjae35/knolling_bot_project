@@ -103,6 +103,13 @@ class ProgressLog:
             self.bar.set_postfix(loss=f"{record['loss']:.4f}", budget_s=f"{record['remaining_seconds']:.0f}", refresh=False)
         elif event == 'evaluation':
             m = record['metrics']
+            if record['stage'] == 'grounding':
+                g=m['grounding']
+                attributes={k:v['accuracy'] for k,v in g['attributes'].items()}
+                tqdm.write(f"grounding step={record['update']} attributes={attributes} "
+                           f"selection={g['selection']['accuracy']} pairs={g['contrast_passed']}/{g['contrast_total']} "
+                           f"min_true_p={g['min_true_probability']:.4f} gate={g['passed']}")
+                return
             tqdm.write(f"{record['stage']} step={record['update']} target_P95_mm={m.get('target_position_p95_mm')} "
                        f"task={m.get('task_success')} axis={m.get('pure_axis_success')} move={m.get('move_accuracy')}")
         elif event == 'extension':

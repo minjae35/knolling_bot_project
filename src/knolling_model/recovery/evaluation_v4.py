@@ -31,9 +31,16 @@ def goal_summary(rows, pairs, complete):
     unique = len({p['pair_id'] for p in pairs}) == len(pairs)
     required = {'axis_alignment','region','selection','gap_m','sort_direction','group_by'}
     contrast_ok = unique and len(pairs)==35 and {p['factor'] for p in pairs}==required and all(r['passed'] for r in checks)
+    def score(values):
+        correct=sum(v['correct'] for v in values);total=sum(v['total'] for v in values)
+        return dict(correct=correct,total=total,accuracy=correct/total if total else None)
+    attributes={k:score([r['attributes'][k] for r in rows if k in r.get('attributes',{})]) for k in ('keep',*VOCAB)}
+    selection=score([r['selection'] for r in rows if 'selection' in r])
     return dict(passed=bool(complete and len(rows)==76 and all(r['passed'] for r in rows) and contrast_ok),
                 correct=sum(r['correct'] for r in rows), total=sum(r['total'] for r in rows),
                 min_true_probability=min((r['min_true_probability'] for r in rows), default=0.),
+                attributes=attributes, selection=selection,
+                contrast_passed=sum(c['passed'] for c in checks), contrast_total=len(checks),
                 contrasts=checks, rows=rows)
 
 
@@ -47,6 +54,8 @@ def evaluate_goals(model, batches, *, stage, expected_ids, pairs):
                 ids,t=recovery_supervision(r)
                 t={k:v.to(x['images'].device) for k,v in t.items()}
                 labels=goal_labels(r,ids)
+                attributes={k:dict(correct=0,total=1) for k in ('keep',*VOCAB) if k=='keep' or int(labels['goal_'+k])>=0}
+                selection=dict(correct=0,total=len(ids))
                 oracle=stage in ('grounding','micro_pose','oracle_layout')
                 if oracle:
                     objects=oracle_objects([t])
@@ -55,7 +64,8 @@ def evaluate_goals(model, batches, *, stage, expected_ids, pairs):
                 else:
                     try:out=model(**x)
                     except CapacityError:
-                        rows.append(dict(sample_id=r['sample_id'],correct=0,total=1,min_true_probability=0.,passed=False))
+                        rows.append(dict(sample_id=r['sample_id'],correct=0,total=1,min_true_probability=0.,passed=False,
+                                         attributes=attributes,selection=selection))
                         continue
                     goal=out['goal']
                     source_matches,fp,fn=correspondences(out['source'],t,r)
@@ -64,19 +74,22 @@ def evaluate_goals(model, batches, *, stage, expected_ids, pairs):
                     complete_objects=not fp and not fn and len(matches)==len(ids)
                 p=goal['keep_logit'][0].sigmoid().item();keep=bool(labels['goal_keep'])
                 probs=[p if keep else 1-p];correct=[(p>=.5)==keep]
+                attributes['keep']['correct']=int(math.isfinite(p) and correct[-1])
                 for k in VOCAB:
                     label=int(labels['goal_'+k])
                     if label<0:continue
                     v=goal['logits'][k][0].softmax(-1)
                     probs.append(v[label].item());correct.append(int(v.argmax())==label)
+                    attributes[k]['correct']=int(math.isfinite(probs[-1]) and correct[-1])
                 for q,g in matches:
                     p=goal['selected'][0,q].item();label=bool(labels['goal_selected'][g])
                     probs.append(p if label else 1-p);correct.append((p>=.5)==label)
+                    selection['correct']+=int(math.isfinite(p) and correct[-1])
                 finite=all(math.isfinite(p) for p in probs)
                 minimum=min(probs) if finite else 0.
                 passed=complete_objects and finite and all(correct) and minimum>=.9
                 rows.append(dict(sample_id=r['sample_id'],correct=sum(correct),total=len(correct),
-                                 min_true_probability=minimum,passed=bool(passed)))
+                                 min_true_probability=minimum,passed=bool(passed),attributes=attributes,selection=selection))
         ids=[r['sample_id'] for r in rows]
         complete=expected_ids is not None and len(ids)==len(set(ids))==len(expected_ids)==len(set(expected_ids)) and set(ids)==set(expected_ids)
         return goal_summary(rows,pairs,complete),complete,sorted(ids)

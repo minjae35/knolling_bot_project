@@ -114,3 +114,23 @@ def test_nonfinite_goal_cannot_pass_or_emit_nan_metrics(suite_v3):
     row=out['grounding']['rows'][0]
     assert not row['passed'] and row['min_true_probability']==0
     json.dumps(out,allow_nan=False)
+
+
+def test_grounding_breakdown_distinguishes_accuracy_and_confidence(suite_v3,tmp_path):
+    from knolling_model.recovery.runtime import ProgressLog
+    records=suite_v3.records;model=ExactV4Fixture(records)
+    model.layout.goal_encoder.confidence=1.
+    out,_=evaluate_v4(model,fixture_batches(records),stage='grounding',
+        expected_ids=[r['sample_id'] for r in records],pairs=suite_v3.pairs)
+    goal=out['grounding']
+    active=sum(not r['instruction']['keep_all'] for r in records)
+    assert goal['attributes']['keep']==dict(correct=76,total=76,accuracy=1.)
+    for name in VOCAB:assert goal['attributes'][name]==dict(correct=active,total=active,accuracy=1.)
+    count=sum(len(r['source']['objects']) for r in records)
+    assert goal['selection']==dict(correct=count,total=count,accuracy=1.)
+    assert goal['contrast_total']==35 and goal['contrast_passed']==0 and not goal['passed']
+    progress=ProgressLog(tmp_path)
+    progress('evaluation',stage='grounding',update=0,metrics=out)
+    import json
+    logged=json.loads((tmp_path/'history.jsonl').read_text())
+    assert logged['metrics']['grounding']['selection']==goal['selection']
