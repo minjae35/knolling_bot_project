@@ -9,6 +9,7 @@ import torch
 from knolling_dataset.builder import file_hash
 from knolling_dataset.schema import digest
 from knolling_model.recovery.driver import load_checkpoint
+from knolling_model.recovery.storage import load_artifact
 from knolling_model.recovery.extensions import EXTENSION_SCHEMA, assess_progress
 from test_recovery_driver import config, engine, ScalarFixture
 
@@ -38,7 +39,7 @@ def make_engine(root, name, c, *, receipt=None, evaluator=None, commit='fixture-
 
 
 def grant(path, c, window=2):
-    old=torch.load(path,map_location='cpu',weights_only=True)
+    old=load_artifact(path)
     return dict(approved=True,reviewer='unit-test explicit extension',commit='extension-code',
         config_sha256=digest(c),dataset_fingerprint='fixture-data',stages=['oracle_layout'],gpu_training=True,
         extension=dict(schema=EXTENSION_SCHEMA,stage='oracle_layout',source_checkpoint_sha256=file_hash(path),

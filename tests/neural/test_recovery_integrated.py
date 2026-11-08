@@ -6,6 +6,7 @@ import pytest
 import torch
 
 from knolling_dataset.schema import digest
+from knolling_model.recovery.storage import load_artifact
 from knolling_model.recovery.batches import StageBatch
 from knolling_model.recovery.driver import StageEngine, CHECKPOINT_SCHEMA, read_config, save_exclusive, load_checkpoint
 from knolling_model.recovery.integrated import PHASES, load_integrated, retained
@@ -127,7 +128,7 @@ def test_timeout_final_evaluation_regression_rollback(tmp_path,where):
     else:
         assert result['status']=='rolled_back',result
         saved=load_integrated(result['checkpoint'],c,'fixture','test')
-        anchor=torch.load(saved['integrated']['anchor_path'],weights_only=True)
+        anchor=load_artifact(saved['integrated']['anchor_path'])
         equal(saved['model'],anchor)
 
 

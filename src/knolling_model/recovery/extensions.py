@@ -3,7 +3,7 @@ from copy import deepcopy
 import math
 from pathlib import Path
 
-import torch
+from .storage import load_artifact
 
 from knolling_dataset.builder import file_hash
 from knolling_dataset.schema import digest
@@ -36,7 +36,7 @@ def load_approved_extension(path, config, fingerprint, commit, receipt, stage):
     if (stage != 'oracle_layout' or grant.get('schema') != EXTENSION_SCHEMA
             or grant.get('stage') != stage or grant.get('source_checkpoint_sha256') != file_hash(path)):
         raise PermissionError('extension stage or source checkpoint approval mismatch')
-    saved = torch.load(path, map_location='cpu', weights_only=True)
+    saved = load_artifact(path)
     source_config = saved.get('config', {})
     if (saved.get('schema') != CHECKPOINT_SCHEMA or saved.get('status') != 'budget_exhausted'
             or saved.get('stage') != stage or saved.get('extension') is not None

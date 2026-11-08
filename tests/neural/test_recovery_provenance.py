@@ -7,9 +7,12 @@ from knolling_dataset.builder import file_hash
 from knolling_dataset.schema import digest
 from knolling_model.recovery.driver import read_config,save_exclusive,load_grounding_transfer,load_checkpoint
 from knolling_model.recovery.provenance import contract_hashes,load_evidence_transfer
+from knolling_model.recovery.storage import CheckpointStore
+import torch
 
 
-def test_grounding_transfer_contracts_and_explicit_changes(tmp_path):
+@pytest.mark.parametrize('split', [False, True])
+def test_grounding_transfer_contracts_and_explicit_changes(tmp_path, split):
     source=read_config('configs/recovery_v4_gpu_grounding.json')
     target=read_config('configs/recovery_v4_integrated_review.json')
     commit=subprocess.check_output(['git','rev-parse','7ac097a'],text=True).strip()
@@ -20,7 +23,10 @@ def test_grounding_transfer_contracts_and_explicit_changes(tmp_path):
     raw=dict(schema='recovery_checkpoint_v2',architecture='recovery_v4_goal_joint',evaluation_schema='recovery_metrics_v4',
         commit=commit,config=source,config_sha256=digest(source),dataset_fingerprint='fixture',goal_contract=source['goal_contract'],
         purpose='production',stage='grounding',status='passed',metrics=metrics,completed={'grounding':metrics})
-    path=tmp_path/'parent.pt';save_exclusive(path,raw)
+    if split:
+        raw['model']={'text_encoder.weight':torch.ones(2), 'layout.goal_encoder.weight':torch.zeros(2)}
+    save = CheckpointStore(tmp_path/'checkpoint_store').save_checkpoint if split else save_exclusive
+    path=tmp_path/'parent.pt';save(path,raw)
     grant=dict(sha256=file_hash(path),commit=commit,config_sha256=digest(source),contracts=contracts,
         allowed_config_changes=sorted(k for k in set(source)|set(target) if source.get(k)!=target.get(k)))
     before=file_hash(path)
@@ -33,6 +39,6 @@ def test_grounding_transfer_contracts_and_explicit_changes(tmp_path):
     changed=deepcopy(target);changed['micro_pose']['max_updates']+=1
     bad=deepcopy(grant);bad['allowed_config_changes'].append('micro_pose')
     with pytest.raises(ValueError):load_evidence_transfer(path,changed,'fixture',bad)
-    raw['status']='budget_exhausted';path2=tmp_path/'failed.pt';save_exclusive(path2,raw)
+    raw['status']='budget_exhausted';path2=tmp_path/'failed.pt';save(path2,raw)
     bad=deepcopy(grant);bad['sha256']=file_hash(path2)
     with pytest.raises(ValueError,match='passed'):load_evidence_transfer(path2,target,'fixture',bad)

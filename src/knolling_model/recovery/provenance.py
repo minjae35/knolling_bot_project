@@ -4,7 +4,7 @@ from copy import deepcopy
 from pathlib import Path
 import subprocess
 
-import torch
+from .storage import load_artifact
 
 from knolling_dataset.builder import file_hash
 from knolling_dataset.schema import digest
@@ -61,7 +61,7 @@ def load_evidence_transfer(path, config, fingerprint, grant):
     """A receipt pins BOTH code semantics and exactly which config fields differ."""
     from .driver import load_checkpoint
     if file_hash(path)!=grant.get('sha256'):raise ValueError('transfer checkpoint hash mismatch')
-    raw=torch.load(path,map_location='cpu',weights_only=True)
+    raw=load_artifact(path)
     old=raw.get('config',{})
     if raw.get('commit')!=grant.get('commit') or digest(old)!=grant.get('config_sha256'):
         raise ValueError('transfer source contract mismatch')

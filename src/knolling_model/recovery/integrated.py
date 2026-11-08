@@ -15,7 +15,8 @@ from knolling_dataset.builder import file_hash
 from knolling_dataset.schema import digest
 from .driver import (CHECKPOINT_SCHEMA, Cursor, cpu_copy, load_checkpoint,
                      load_grounding_transfer, restore_rng, rng_state, save_exclusive,
-                     validate_micro_checkpoints)
+                     validate_micro_checkpoints, validate_checkpoint)
+from .storage import load_artifact
 from .readout import HeadFitter, PoseAdam, ReadoutData, collect_readout
 
 PHASES = ('coarse', 'head_xy', 'head_angle', 'fine', 'final_xy', 'final_angle')
@@ -89,9 +90,9 @@ def retained(current, previous, *, angles=False):
 
 def load_integrated(path, config, fingerprint, commit):
     """A journal references an immutable, contract-validated full checkpoint."""
-    raw = torch.load(path, map_location='cpu', weights_only=True)
+    raw = load_artifact(path)
     if raw.get('schema') != JOURNAL:
-        return load_checkpoint(path, config, fingerprint, commit)
+        return validate_checkpoint(raw, config, fingerprint, commit)
     base = Path(raw['base'])
     if base.parent.resolve() != Path(path).parent.resolve() or file_hash(base) != raw['base_sha256']:
         raise ValueError('readout journal base mismatch')
@@ -192,11 +193,11 @@ class IntegratedEngine:
     def checkpoint(self, status='running', metrics=None, error=None):
         self.cursor.elapsed_seconds = self.elapsed(); self.serial += 1
         path = self.e.output / f'checkpoint-{self.cursor.update:06d}-{self.serial:04d}.pt'
-        save_exclusive(path, dict(schema=CHECKPOINT_SCHEMA, stage=self.stage, status=status,
+        self.e.storage.save_checkpoint(path, dict(schema=CHECKPOINT_SCHEMA, stage=self.stage, status=status,
             architecture=self.model.architecture, evaluation_schema=self.config['evaluation_schema'],
             config_sha256=digest(self.config), config=deepcopy(self.config),
             dataset_fingerprint=self.e.fingerprint, commit=self.e.commit, review_receipt=self.e.review_receipt,
-            model=cpu_copy(self.model.state_dict()), optimizer=cpu_copy(self.adam.state_dict()),
+            model=self.model.state_dict(), optimizer=self.adam.state_dict(),
             cursor=vars(self.cursor).copy(), rng=rng_state(), baseline=self.baseline,
             completed=deepcopy(self.completed), goal_contract=deepcopy(self.config['goal_contract']),
             goal_parent_sha256=self.goal_parent, purpose='diagnostic' if self.stage == 'micro_pose' else 'production',
@@ -279,7 +280,7 @@ class IntegratedEngine:
             self.anchor = cpu_copy(self.model.state_dict()); self.baseline = metrics
             self.serial += 1
             anchor_path = self.e.output / f'phase-anchor-{self.serial:04d}.pt'
-            save_exclusive(anchor_path, self.anchor)
+            self.e.storage.save_anchor(anchor_path, self.anchor, self.stage)
             self.anchor_sha = self.immutable_hash(anchor_path); self.state['anchor_path'] = str(anchor_path.resolve())
         if phase == 'fine':
             if self.state['fine_resets'] != 0: raise ValueError('duplicate fine reset')
@@ -414,7 +415,7 @@ class IntegratedEngine:
                 raise ValueError('integrated optimizer phase mismatch')
             anchor_path = Path(self.state['anchor_path'])
             if file_hash(anchor_path) != prior['anchor_sha256']: raise ValueError('phase anchor mismatch')
-            self.anchor = torch.load(anchor_path, map_location='cpu', weights_only=True)
+            self.anchor = load_artifact(anchor_path)
             self.baseline = prior['baseline']
             if e.prepare_continuation: e.prepare_continuation(stage)
             restore_rng(prior['rng'])
@@ -424,7 +425,7 @@ class IntegratedEngine:
         self.elapsed_origin = self.cursor.elapsed_seconds; self.started = e.clock(); self.phase_clock = self.elapsed_origin
         self._timing_mark = e.clock()
         with self.measure('checkpoint_io'):
-            save_exclusive(e.output/'anchor.pt', self.anchor)
+            e.storage.save_anchor(e.output/'anchor.pt', self.anchor, stage)
             self.anchor_sha = self.immutable_hash(e.output/'anchor.pt'); self.state['anchor_path'] = str((e.output/'anchor.pt').resolve())
         if self.state['phase'] in HEADS:
             self.model.requires_grad_(False); self.model.eval()

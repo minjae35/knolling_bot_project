@@ -31,6 +31,7 @@ from .model import RecoveryModel
 from .stages import STAGES, ALL_STAGES, stage_order, configure_stage, parameter_groups, stage_loss, stage_gate
 from .runtime import precision_context
 from .pose_precision import PosePrecision, validate_policy
+from .storage import CheckpointStore, common_store, load_artifact
 
 CHECKPOINT_SCHEMA = 'recovery_checkpoint_v2'
 CONFIG_SCHEMA = 'recovery_driver_v2'
@@ -167,7 +168,10 @@ def save_json_exclusive(path, payload):
 
 
 def load_checkpoint(path, config, fingerprint, commit):
-    saved = torch.load(path, map_location='cpu', weights_only=True)
+    return validate_checkpoint(load_artifact(path), config, fingerprint, commit)
+
+
+def validate_checkpoint(saved, config, fingerprint, commit):
     if (saved.get('schema') != CHECKPOINT_SCHEMA or saved.get('config_sha256') != digest(config)
             or saved.get('dataset_fingerprint') != fingerprint or saved.get('commit') != commit
             or saved.get('architecture','recovery_v2_ar') != config.get('model',{}).get('architecture','recovery_v2_ar')
@@ -226,7 +230,7 @@ def load_grounding_transfer(path, config, fingerprint, receipt):
         return saved
     if not config.get('micro_precision') or file_hash(path) != grant.get('sha256'):
         raise ValueError('unapproved grounding transfer')
-    raw = torch.load(path, map_location='cpu', weights_only=True)
+    raw = load_artifact(path)
     source_config = raw.get('config', {})
     if (raw.get('commit') != grant.get('commit')
             or digest(source_config) != grant.get('config_sha256')):
@@ -271,6 +275,7 @@ class StageEngine:
         self.prepare_continuation = prepare_continuation
         self.readout_batches, self.expected_ids = readout_batches, expected_ids
         self.serial = 0
+        self.storage = CheckpointStore(common_store(self.output))
 
     def run(self, stage, *, parent=None, resume=None, extend_from=None, micro_case=None, micro_checkpoints=None):
         if self.config.get('integrated_pose') and stage in ('micro_pose', 'oracle_layout'):
@@ -341,7 +346,7 @@ class StageEngine:
             anchor_path = Path(resume or extend_from).parent/'anchor.pt'
             if file_hash(anchor_path) != prior['anchor_sha256']:
                 raise ValueError('rollback anchor hash mismatch')
-            anchor = torch.load(anchor_path, map_location='cpu', weights_only=True)
+            anchor = load_artifact(anchor_path)
             baseline = prior['baseline']
             if self.prepare_continuation is not None:
                 self.prepare_continuation(stage)
@@ -355,7 +360,7 @@ class StageEngine:
                                       saved=prior.get('pose_precision') if continuing else None)
         # Every execution/resume gets a new directory; no existing run is mutated.
         self.output.mkdir(parents=True, exist_ok=False)
-        save_exclusive(self.output/'anchor.pt', anchor)
+        self.storage.save_anchor(self.output/'anchor.pt', anchor, stage)
         anchor_sha = file_hash(self.output/'anchor.pt')
         start = self.clock()
         previous_elapsed = cursor.elapsed_seconds
@@ -371,11 +376,11 @@ class StageEngine:
             cursor.elapsed_seconds = elapsed()
             self.serial += 1
             path = self.output/f'checkpoint-{cursor.update:06d}-{self.serial:04d}.pt'
-            save_exclusive(path, dict(schema=CHECKPOINT_SCHEMA, stage=stage, status=status,
+            self.storage.save_checkpoint(path, dict(schema=CHECKPOINT_SCHEMA, stage=stage, status=status,
                 architecture=architecture, evaluation_schema=self.config.get('evaluation_schema','recovery_metrics_v2'),
                 config_sha256=digest(self.config), dataset_fingerprint=self.fingerprint, commit=self.commit,
                 config=deepcopy(self.config), review_receipt=self.review_receipt,
-                model=cpu_copy(self.model.state_dict()), optimizer=cpu_copy(optimizer.state_dict()),
+                model=self.model.state_dict(), optimizer=optimizer.state_dict(),
                 cursor=vars(cursor).copy(), rng=rng_state(), baseline=baseline, completed=completed,
                 goal_contract=deepcopy(self.config.get('goal_contract')), goal_parent_sha256=goal_parent,
                 purpose='diagnostic' if stage == 'micro_pose' else 'production',
