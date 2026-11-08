@@ -187,6 +187,17 @@ class HeadFitter:
         return float(self.loss().detach()), converged
 
 
+def make_head_fitter(model, data, kind, state=None, *, xy_solver='lbfgs_v1'):
+    if xy_solver not in ('lbfgs_v1', 'svd_huber_v1'):
+        raise ValueError('unknown XY solver')
+    if kind == 'xy' and xy_solver == 'svd_huber_v1':
+        from .svd_readout import SVDXYFitter
+        return SVDXYFitter(model, data, state)
+    if state is not None and state.get('schema') is not None:
+        raise ValueError('cannot reinterpret SVD state as legacy L-BFGS')
+    return HeadFitter(model, data, kind, state)
+
+
 class PoseAdam:
     """Split optimizer leaves only; the fused model Linear and inference stay intact."""
     def __init__(self, model, lr, weight_decay):

@@ -17,7 +17,7 @@ from .driver import (CHECKPOINT_SCHEMA, Cursor, cpu_copy, load_checkpoint,
                      load_grounding_transfer, restore_rng, rng_state, save_exclusive,
                      validate_micro_checkpoints, validate_checkpoint)
 from .storage import load_artifact
-from .readout import HeadFitter, PoseAdam, ReadoutData, collect_readout
+from .readout import HeadFitter, PoseAdam, ReadoutData, collect_readout, make_head_fitter
 
 PHASES = ('coarse', 'head_xy', 'head_angle', 'fine', 'final_xy', 'final_angle')
 HEADS = {'head_xy': 'xy', 'head_angle': 'angle', 'final_xy': 'xy', 'final_angle': 'angle'}
@@ -40,7 +40,8 @@ def validate_config(config):
     if policy is None: return
     if (policy.get('schema') != SCHEMA or config['model']['architecture'] != 'recovery_v4_goal_joint'
             or config.get('micro_precision') is not None or config['layout_lr'] != 1e-4
-            or set(policy) - {'schema', 'stages', 'head_seconds', 'head_time_mode', 'finalize_reserve_seconds'}
+            or set(policy) - {'schema', 'stages', 'head_seconds', 'head_time_mode', 'finalize_reserve_seconds', 'xy_solver'}
+            or policy.get('xy_solver', 'lbfgs_v1') not in ('lbfgs_v1', 'svd_huber_v1')
             or not {'schema', 'stages', 'head_seconds'} <= set(policy)
             or policy.get('head_time_mode', 'wall') not in ('wall', 'solver')
             or type(policy.get('finalize_reserve_seconds', 0)) not in (int, float)
@@ -298,14 +299,18 @@ class IntegratedEngine:
         self.cache = ReadoutData(**raw)
         self.cache.validate(self.model, self.e.fingerprint, self.e.expected_ids)
         if self.cache.key != self.state['cache_key']: raise ValueError('cache key mismatch')
-        self.solver = HeadFitter(self.model, self.cache, HEADS[self.state['phase']], self.state['solver'])
+        self.solver = self.make_solver(self.state['solver'])
+
+    def make_solver(self, state=None):
+        return make_head_fitter(self.model, self.cache, HEADS[self.state['phase']], state,
+                                xy_solver=self.policy.get('xy_solver', 'lbfgs_v1'))
 
     @timed('feature_cache')
     def prepare_head(self):
         if self.solver is not None: return
         if self.cache is not None:
             # In-memory reuse only after the controlled frozen-head transition.
-            self.solver = HeadFitter(self.model, self.cache, HEADS[self.state['phase']])
+            self.solver = self.make_solver()
             return
         if self.state['cache_path']:
             self.restore_cache(); return
@@ -314,7 +319,7 @@ class IntegratedEngine:
         self.serial += 1; path = self.e.output / f'features-{self.serial:04d}.pt'
         save_exclusive(path, self.cache.payload())
         self.state.update(cache_path=str(path.resolve()), cache_sha256=file_hash(path), cache_key=self.cache.key)
-        self.solver = HeadFitter(self.model, self.cache, HEADS[self.state['phase']])
+        self.solver = self.make_solver()
         self.state['solver'] = cpu_copy(self.solver.state_dict())
         # Base already captures phase/anchor/optimizer. Publish cache and solver
         # metadata durably without duplicating the full frozen model a second time.
