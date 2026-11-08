@@ -146,7 +146,8 @@ class StageEngine:
     """
     def __init__(self, model, config, fingerprint, commit, output, batches, evaluate,
                  *, loss_fn=stage_loss, configure_fn=configure_stage, gate_fn=stage_gate,
-                 clock=time.monotonic, stop_event=None, review_receipt=None, observer=None):
+                 clock=time.monotonic, stop_event=None, review_receipt=None, observer=None,
+                 prepare_continuation=None):
         self.model, self.config, self.fingerprint, self.commit = model, config, fingerprint, commit
         self.output = Path(output)
         self.batches, self.evaluate, self.loss_fn = batches, evaluate, loss_fn
@@ -154,17 +155,28 @@ class StageEngine:
         self.stop = stop_event or threading.Event()
         self.review_receipt = deepcopy(review_receipt)
         self.observer = observer
+        self.prepare_continuation = prepare_continuation
         self.serial = 0
 
-    def run(self, stage, *, parent=None, resume=None):
-        if stage not in STAGES or (parent and resume):
+    def run(self, stage, *, parent=None, resume=None, extend_from=None):
+        from .extensions import load_approved_extension, assess_progress
+        if stage not in STAGES or sum(bool(p) for p in (parent, resume, extend_from)) > 1:
             raise ValueError('invalid stage/checkpoint request')
-        prior = load_checkpoint(resume or parent, self.config, self.fingerprint, self.commit) if (resume or parent) else None
+        extension = None
+        if extend_from:
+            prior, extension = load_approved_extension(extend_from, self.config, self.fingerprint,
+                                                       self.commit, self.review_receipt, stage)
+        else:
+            prior = load_checkpoint(resume or parent, self.config, self.fingerprint, self.commit) if (resume or parent) else None
+        continuing = bool(resume or extend_from)
         completed = {} if prior is None else prior['completed']
         position = STAGES.index(stage)
-        if resume:
+        if extend_from:
+            pass  # Validated explicitly above; never relabel a budget checkpoint as paused.
+        elif resume:
             if prior['stage'] != stage or prior['status'] not in ('paused', 'running'):
                 raise ValueError('only an interrupted checkpoint of the same stage can resume')
+            extension = deepcopy(prior.get('extension'))
         elif position:
             previous = STAGES[position-1]
             if prior is None or prior['stage'] != previous or prior['status'] != 'passed' or not self.gate(previous, completed.get(previous, {})):
@@ -176,14 +188,16 @@ class StageEngine:
         self.configure(self.model, stage)
         optimizer = torch.optim.AdamW(parameter_groups(self.model, self.config['layout_lr'], self.config['perception_lr']),
                                       weight_decay=self.config['weight_decay'], foreach=False)
-        cursor = Cursor(**prior['cursor']) if resume else Cursor()
-        if resume:
+        cursor = Cursor(**prior['cursor']) if continuing else Cursor()
+        if continuing:
             optimizer.load_state_dict(prior['optimizer'])
-            anchor_path = Path(resume).parent/'anchor.pt'
+            anchor_path = Path(resume or extend_from).parent/'anchor.pt'
             if file_hash(anchor_path) != prior['anchor_sha256']:
                 raise ValueError('rollback anchor hash mismatch')
             anchor = torch.load(anchor_path, map_location='cpu', weights_only=True)
             baseline = prior['baseline']
+            if self.prepare_continuation is not None:
+                self.prepare_continuation(stage)
             restore_rng(prior['rng'])
         else:
             anchor = cpu_copy(self.model.state_dict())
@@ -211,7 +225,7 @@ class StageEngine:
                 config=deepcopy(self.config), review_receipt=self.review_receipt,
                 model=cpu_copy(self.model.state_dict()), optimizer=cpu_copy(optimizer.state_dict()),
                 cursor=vars(cursor).copy(), rng=rng_state(), baseline=baseline, completed=completed,
-                metrics=metrics, error=error, anchor_sha256=anchor_sha))
+                metrics=metrics, error=error, anchor_sha256=anchor_sha, extension=extension))
             observe('checkpoint', status=status, checkpoint=str(path), error=error)
             return dict(status=status, checkpoint=str(path), updates=cursor.update,
                         elapsed_seconds=cursor.elapsed_seconds, metrics=metrics, error=error)
@@ -231,9 +245,16 @@ class StageEngine:
             # Failed checkpoints are deliberately non-resumable: moments belong
             # to the rejected trajectory. Restart from the prior passed stage.
             return checkpoint('rolled_back', metrics, reason)
+        def check_progress(metrics):
+            if assess_progress(extension, cursor.update, metrics):
+                return checkpoint('early_stopped', metrics, 'no improvement over the approved extension window')
+            return None
         try:
             observe('start', max_updates=spec['max_updates'], max_seconds=spec['max_seconds'])
-            if not resume:
+            if extend_from:
+                observe('extension', authorization=extension)
+                checkpoint('running', prior['metrics'])
+            if not continuing:
                 baseline = measured()
                 if stage == 'joint' and not self.gate('predicted_layout', completed['predicted_layout']):
                     raise ValueError('joint requires a passed predicted-layout reference')
@@ -288,11 +309,12 @@ class StageEngine:
                         values = torch.stack([loss.detach(), norm.detach(), *[v.detach() for v in terms.values()]]).float().cpu().tolist()
                         observe('update', loss=values[0], gradient_norm=values[1], losses=dict(zip(terms, values[2:])),
                                 remaining_seconds=max(0., spec['max_seconds']-elapsed()))
-                    if cursor.update % self.config['evaluate_every'] == 0 or exhausted():
+                    progress_due = extension is not None and not extension['checked'] and cursor.update >= extension['progress_update']
+                    if cursor.update % self.config['evaluate_every'] == 0 or exhausted() or progress_due:
                         metrics = measured()
                         if stage == 'joint' and not metrics.get('full_set_no_regression', False):
                             return rollback(metrics, 'full-set regression')
-                        done = finish(metrics)
+                        done = check_progress(metrics) or finish(metrics)
                         if done:
                             return done
                     if cursor.update % self.config['checkpoint_every'] == 0:
@@ -309,7 +331,7 @@ class StageEngine:
             metrics = measured()
             if stage == 'joint' and not metrics.get('full_set_no_regression', False):
                 return rollback(metrics, 'full-set regression at budget')
-            return finish(metrics) or checkpoint('budget_exhausted', metrics)
+            return check_progress(metrics) or finish(metrics) or checkpoint('budget_exhausted', metrics)
         except Exception as exc:
             return rollback(None, f'{type(exc).__name__}: {exc}')
 
@@ -335,6 +357,7 @@ def main():
     parser.add_argument('--approval', required=True)
     parser.add_argument('--parent-checkpoint')
     parser.add_argument('--resume')
+    parser.add_argument('--extend-from', help='explicitly approved Stage 1 budget checkpoint; never ordinary resume')
     args = parser.parse_args()
     config = read_config(args.config)
     # Fail closed before data/model loading, CUDA setup or artifact creation.
@@ -351,7 +374,7 @@ def main():
         raise ValueError('run output cannot be inside the parent dataset')
     from knolling_model.runner import seed_everything
     from knolling_model.model import load_pretrained
-    from .runtime import CachedDataset, FrozenTextCache, ProgressLog
+    from .runtime import CachedDataset, FrozenTextCache, ProgressLog, warm_text_cache
     seed_everything(config['seed'], config['cpu_threads'])
     base, tokenizer = load_pretrained(config['pretrained'], local_files_only=True)
     model = RecoveryModel(base.text_encoder, base.perception.detector, **config['model']).to(config['device'])
@@ -373,11 +396,15 @@ def main():
             expected_ids=[r['sample_id'] for r in suite.records], baseline=baseline)[0]
     event = threading.Event()
     observer = ProgressLog(args.output) if config.get('progress', False) else None
+    def prepare_continuation(stage):
+        if stage != 'perception':
+            warm_text_cache(model, suite, collator, config['batch_size'], config['device'])
     engine = StageEngine(model, config, suite.fingerprint, commit, args.output, batches, evaluation,
-                         stop_event=event, review_receipt=receipt, observer=observer)
+                         stop_event=event, review_receipt=receipt, observer=observer,
+                         prepare_continuation=prepare_continuation)
     try:
         with stop_signals(event):
-            result = engine.run(args.stage, parent=args.parent_checkpoint, resume=args.resume)
+            result = engine.run(args.stage, parent=args.parent_checkpoint, resume=args.resume, extend_from=args.extend_from)
     finally:
         if observer is not None:
             observer.close()

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run approved recovery stages exactly once; never extend budgets or retry."""
+"""Run approved recovery stages once; extensions require an explicit source grant."""
 import argparse
 import json
 import os
@@ -37,7 +37,7 @@ def register_terminal_run(output, total):
     temporary.replace(path)
 
 
-def run_stages(config_path, approval, output, *, register=False, execute=subprocess.run):
+def run_stages(config_path, approval, output, *, register=False, execute=subprocess.run, extend_from=None):
     config = read_config(config_path)
     output = Path(output)
     output.mkdir(parents=True, exist_ok=False)
@@ -52,6 +52,8 @@ def run_stages(config_path, approval, output, *, register=False, execute=subproc
                        '--stage', stage, '--output', str(destination)]
             if parent:
                 command += ['--parent-checkpoint', parent]
+            elif extend_from and stage == 'oracle_layout':
+                command += ['--extend-from', str(extend_from)]
             print(f'\nStarting {stage}: {config["stages"][stage]}', flush=True)
             process = execute(command, check=False)
             path = destination/'result.json'
@@ -82,10 +84,12 @@ def main():
     parser.add_argument('--approval', required=True)
     parser.add_argument('--output', required=True)
     parser.add_argument('--register-terminal-notifications', action='store_true')
+    parser.add_argument('--extend-from')
     args = parser.parse_args()
     if Path(sys.prefix).name != 'knolling':
         raise RuntimeError('use the knolling Conda environment')
-    result = run_stages(args.config, args.approval, args.output, register=args.register_terminal_notifications)
+    result = run_stages(args.config, args.approval, args.output, register=args.register_terminal_notifications,
+                        extend_from=args.extend_from)
     print(json.dumps(dict(status=result['status'], stop_reason=result['stop_reason'], output=args.output)), flush=True)
     raise SystemExit(0 if result['status'] == 'passed' else 2)
 

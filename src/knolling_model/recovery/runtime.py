@@ -65,6 +65,25 @@ class FrozenTextCache:
             input_ids.shape[1]-n, self.values[key].shape[-1]))) for key, n in zip(keys, lengths)])
 
 
+@torch.no_grad()
+def warm_text_cache(model, dataset, collator, batch_size, device):
+    """Rebuild derived text state in the same order/shapes as initial evaluation.
+
+    The initial evaluator visits one instruction at a time within padded batches.
+    Replaying that order avoids changing frozen-encoder batch shapes on resume.
+    Only input tokens enter the encoder; labels and images are not transferred.
+    """
+    if not isinstance(model.encode_text, FrozenTextCache):
+        return
+    model.encode_text.values.clear()
+    for start in range(0, len(dataset), batch_size):
+        batch = collator([dataset[i] for i in range(start, min(start+batch_size, len(dataset)))])
+        ids = batch.inputs['input_ids'].to(device)
+        mask = batch.inputs['attention_mask'].to(device)
+        for i in range(len(ids)):
+            model.encode_text(ids[i:i+1], mask[i:i+1])
+
+
 class ProgressLog:
     """tqdm on the local terminal plus append-only per-stage JSONL evidence."""
     def __init__(self, output):
@@ -85,6 +104,11 @@ class ProgressLog:
             m = record['metrics']
             tqdm.write(f"{record['stage']} step={record['update']} target_P95_mm={m.get('target_position_p95_mm')} "
                        f"task={m.get('task_success')} axis={m.get('pure_axis_success')} move={m.get('move_accuracy')}")
+        elif event == 'extension':
+            grant = record['authorization']
+            tqdm.write(f"Approved extension from step {grant['origin_update']}, cumulative elapsed "
+                       f"{grant['origin_elapsed_seconds']:.2f}s; progress check at step {grant['progress_update']}; "
+                       f"total caps {grant['total_max_updates']} updates / {grant['total_max_seconds']}s.")
 
     def close(self):
         if self.bar is not None:

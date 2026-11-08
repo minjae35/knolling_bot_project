@@ -8,7 +8,7 @@ from knolling_model.data import Collator, S0Dataset
 from knolling_model.recovery.batches import stage_batches
 from knolling_model.recovery.counterfactuals import RecoverySuite
 from knolling_model.recovery.driver import read_config
-from knolling_model.recovery.runtime import CachedDataset, FrozenTextCache, ProgressLog, precision_context
+from knolling_model.recovery.runtime import CachedDataset, FrozenTextCache, ProgressLog, precision_context, warm_text_cache
 
 
 def test_frozen_text_cache_respects_tokens_and_padding():
@@ -38,6 +38,28 @@ def test_dataloader_does_not_consume_model_rng(s0_dataset):
     assert [b.batch for b in first]==[b.batch for b in second]
     assert set(x for b in first for x in b.batch)=={r['sample_id'] for r in s0_dataset.records}
     assert len(set(x for b in first for x in b.replay))==25
+
+
+def test_continuation_cache_uses_initial_evaluation_order_and_shapes():
+    from types import SimpleNamespace
+    calls=[]
+    def encode(ids,mask):
+        calls.append((ids.clone(),mask.clone()))
+        return ids.float()[...,None].expand(-1,-1,4)
+    model=SimpleNamespace(encode_text=FrozenTextCache(encode))
+    def collate(samples):
+        n=max(len(s) for s in samples)
+        ids=torch.tensor([s+[0]*(n-len(s)) for s in samples])
+        return SimpleNamespace(inputs={'input_ids':ids,'attention_mask':ids!=0})
+    dataset=[[1,2],[3],[4,5,6],[1,2]]
+    warm_text_cache(model,dataset,collate,2,'cpu')
+    assert [ids.tolist() for ids,_ in calls]==[[[1,2]],[[3,0]],[[4,5,6]]]
+    expected={k:v.clone() for k,v in model.encode_text.values.items()}
+    calls.clear()
+    warm_text_cache(model,dataset,collate,2,'cpu')
+    assert len(calls)==3
+    for key in expected:
+        torch.testing.assert_close(expected[key],model.encode_text.values[key],rtol=0,atol=0)
 
 
 def test_progress_records_measured_loss_and_evaluations(tmp_path):
