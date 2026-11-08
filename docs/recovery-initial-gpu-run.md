@@ -50,6 +50,91 @@ boundary. No next stage, retry, or extension is launched after a failed gate.
 
 ## Launch and results
 
-The launch directory records the exact receipt, command and console log. Actual
-metrics and the stopping decision will be recorded here after the initial run.
-Budget extension requires a separate user decision based on those results.
+- Run: `recovery_initial_20261108T021741Z` (UTC timestamp).
+- Executed code: `4b1cbd5a51518b5ddd84a883e6f26c1a951da0e7`.
+- Session: `knolling-recovery-initial`; reconnect with
+  `tmux attach -t knolling-recovery-initial`.
+- Launch config, authorization receipt and console log:
+  `artifacts/recovery_launches/recovery_initial_20261108T021741Z/`.
+- Results and checkpoints:
+  `artifacts/recovery_runs/recovery_initial_20261108T021741Z/`.
+- Preflight CPU: **201 passed / 21 skipped**; GPU runtime smoke: **1 passed**.
+
+### Stage 1 outcome: budget exhausted, gate failed
+
+Stage 1 stopped at **500 updates in 172.09 seconds**. The update limit was reached
+before the 600-second time limit. Final evaluation covered all 96 records and 21
+pure-axis pairs. Stage 2, Stage 3a and Stage 3b **were not started**. There was no
+automatic retry or budget extension and no runtime/nonfinite error.
+
+| Metric | Initial | Final | Oracle gate requirement |
+|---|---:|---:|---:|
+| Target position P95 | 301.00 mm | 140.84 mm | ≤1 mm |
+| Target angle P95 | about 90° | 89.84° | ≤2° |
+| Move accuracy | 29.52% | 76.75% | 100% |
+| Pure-axis success | 0/21 | 0/21 | 21/21 |
+| Full task success | 15/96 | 15/96 | Diagnostic at this stage |
+
+All source attributes in this stage are GT. Its perfect source/count metrics
+are **not a Perception training result**.
+
+| Updates | Mean total loss | Position | Orientation | Move |
+|---|---:|---:|---:|---:|
+| 1–100 | 16.389 | 13.508 | 1.384 | 0.690 |
+| 101–200 | 12.202 | 10.200 | 0.808 | 0.641 |
+| 201–300 | 10.536 | 8.681 | 0.737 | 0.629 |
+| 301–400 | 5.575 | 3.834 | 0.699 | 0.613 |
+| 401–500 | 4.118 | 2.529 | 0.634 | 0.578 |
+
+The sequence result is `stopped/update_budget`, not a successful end-to-end
+system. The final checkpoint is
+`oracle_layout/checkpoint-000500-0022.pt`; all intermediate checkpoints remain.
+
+### Read-only failure diagnosis
+
+`arrangement-diagnosis.json` records an additional forward-only examination of
+the final checkpoint (zero optimizer updates):
+
+- Of 185 objects that should move, 41 were incorrectly kept. Of 86 that should
+  stay, 22 were incorrectly moved. The hard move/keep branch therefore amplifies
+  classification mistakes into large final pose errors.
+- Candidate positions for moved objects have median **25.58 mm**, P95
+  **75.07 mm** error. After move/keep selection, moved-object P95 is **151.68 mm**.
+  Both position regression and move classification still require learning.
+- **55/185** moved objects select the wrong horizontal/vertical orientation bin.
+  Candidate-angle median is **0.57°**, but P95 is **89.82°**. The major angle error
+  is bin selection, not merely within-bin residual precision. The axis auxiliary
+  head is correct on **69.89%** of 93 defined commands.
+- BF16 versus FP32 forward comparison has candidate-position P95 difference
+  **0.46 mm**, much smaller than the model's 75 mm regression error. One of 271
+  move decisions flips near its threshold, causing a 54.92 mm maximum deployed
+  difference. BF16 is not the main failure cause, but this supports retaining
+  FP32 for the later connected stages as configured.
+
+These are observations, not proof that a particular loss-weight change would
+solve the problem. Position loss dominates early training; orientation/move
+losses improve more slowly. An undertrained language/decision path is a plausible
+explanation. No clear runtime or GT-query replacement defect was observed.
+
+### Proposed extension — NOT approved or executed
+
+Continued improvement in position loss, total loss and move accuracy provides a
+reason to test **one additional 500-update Arrangement block**, starting from
+the saved checkpoint rather than restarting. Proposed total caps: **1,000
+updates and 600 cumulative seconds**, with the same full evaluation every 25
+updates. No automatic second extension or admission to Stage 2 without its gate.
+
+This requires explicit user approval and an audited continuation path for a
+budget-exhausted checkpoint; the current driver intentionally refuses ordinary
+resume of that status. The checkpoint's original code/config/data contract must
+not be silently edited or bypassed. If approved, lack of improvement in position,
+move and pure-axis metrics over 200 additional updates should trigger an early
+stop and a loss/conditioning review. Passing the strict gate is not guaranteed.
+
+### Preservation
+
+All **2,107 pre-existing artifact files** retained their paths, sizes and mtimes;
+`preservation-check.json` records the check. The new run occupies approximately
+13 GiB, primarily full checkpoints; no checkpoint was deleted. Remaining storage
+must be considered before extending or running later stages. The tmux session
+remains available at a shell prompt; no GPU training process remains active.
