@@ -1,0 +1,62 @@
+{
+  "schema": "recovery_driver_v2",
+  "execution": "approved_training",
+  "allow_training": true,
+  "device": "cuda",
+  "seed": 1203,
+  "cpu_threads": 2,
+  "batch_size": 8,
+  "evaluate_every": 25,
+  "checkpoint_every": 25,
+  "layout_lr": 0.0001,
+  "perception_lr": 1e-05,
+  "weight_decay": 0.0001,
+  "gradient_clip": 1.0,
+  "stop_on_initial_pass": true,
+  "pretrained": "configs/pretrained_rtdetr.json",
+  "dataset": "artifacts/pilot_v1_3_en",
+  "selection": "configs/s0_samples.json",
+  "model": {
+    "dimension": 128,
+    "layers": 2,
+    "bins": 18,
+    "max_objects": 8,
+    "threshold": 0.5,
+    "num_denoising": 100,
+    "architecture": "recovery_v3_joint"
+  },
+  "stages": {
+    "oracle_layout": {
+      "max_updates": 500,
+      "max_seconds": 600
+    },
+    "perception": {
+      "max_updates": 1000,
+      "max_seconds": 2700
+    },
+    "predicted_layout": {
+      "max_updates": 1000,
+      "max_seconds": 1800
+    },
+    "joint": {
+      "max_updates": 300,
+      "max_seconds": 900
+    }
+  },
+  "data_v3": {
+    "path": "artifacts/recovery_v3_verification_r1/annotations.json",
+    "sha256": "b42ee5b9e99afeeb37036a63f4e180b791719212faa68be226f7745beb051e7c"
+  },
+  "evaluation_schema": "recovery_metrics_v3",
+  "precision": {
+    "oracle_layout": "bf16",
+    "perception": "fp32",
+    "predicted_layout": "fp32",
+    "joint": "fp32"
+  },
+  "cache_frozen_text": true,
+  "cache_dataset": true,
+  "num_workers": 0,
+  "pin_memory": true,
+  "progress": true
+}
