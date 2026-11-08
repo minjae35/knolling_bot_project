@@ -1,0 +1,23 @@
+{
+  "schema": "recovery_v4_relative_task_v1",
+  "task_refinement": "adjacent_vertical_gap_v1",
+  "freeze_orientation": true,
+  "keep_router": "neural_keep_router_v1",
+  "source": "artifacts/recovery_runs/recovery_v4_vertical_gap_once_20261108T093400Z/checkpoint-001200.pt",
+  "source_sha256": "983a6a5fd8579edc08a10be6054c3b94b870af66db3b9215524988e0e72ed54d",
+  "oracle_diagnostic": "artifacts/recovery_diagnostics/oracle_keep_once/result.json",
+  "oracle_sha256": "438331358d1fa125b219467f1fbb94413d3b5f1f90c039585fbc284eb218f461",
+  "seed": 1203,
+  "cpu_threads": 2,
+  "max_updates": 1200,
+  "max_seconds": 1200,
+  "final_reserve_seconds": 30,
+  "evaluate_every": 50,
+  "lr": 0.0001,
+  "min_lr": 0.000001,
+  "weight_decay": 0.0001,
+  "gradient_clip": 1.0,
+  "loss_weights": [1, 1, 1, 1, 1],
+  "precision": "fp32",
+  "batch": "full_76_with_all_35_counterfactual_pairs"
+}

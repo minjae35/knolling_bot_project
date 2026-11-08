@@ -27,16 +27,21 @@ from knolling_model.recovery.split_pose import load_model_state
 from knolling_model.recovery.relative_task import SCHEMA, configure, pair_indices, losses, best_key, restore
 from knolling_model.recovery.alternating import evaluate_alternating
 from knolling_model.recovery.vertical_gap import POLICY as GAP_POLICY, supervision as gap_supervision, loss as gap_loss
+from knolling_model.recovery.neural_keep import (POLICY as KEEP_POLICY, attach as attach_keep,
+    labels as keep_labels, loss as keep_loss, metrics as keep_metrics, adopt as keep_adopt)
 from run_recovery_stages import register_terminal_run
 
 
 def run(config_path, output, cpu_check=False):
     c = json.loads(Path(config_path).read_text())
     refine = c.get('task_refinement') == GAP_POLICY
+    keep_mode = c.get('keep_router') == KEEP_POLICY
     if (c['schema'] != SCHEMA or c['max_updates'] != 1200 or c['max_seconds'] != 1200
             or c['loss_weights'] != [1, 1, 1, 1, 1]
             or (c.get('task_refinement') is not None and not refine)
-            or (refine and c.get('freeze_orientation') is not True)): raise ValueError('unapproved run contract')
+            or (refine and c.get('freeze_orientation') is not True)
+            or (c.get('keep_router') is not None and not keep_mode)
+            or (keep_mode and not refine)): raise ValueError('unapproved run contract')
     output = Path(output); output.mkdir(parents=True, exist_ok=False)
     start = time.monotonic(); elapsed = lambda: time.monotonic()-start
     result = dict(status='FAIL', updates=0, cpu_check=cpu_check)
@@ -49,16 +54,27 @@ def run(config_path, output, cpu_check=False):
         source = Path(c['source'])
         if file_hash(source) != c['source_sha256']: raise ValueError('source checkpoint changed')
         raw = load_artifact(source)
+        oracle = None
+        if keep_mode:
+            if file_hash(c['oracle_diagnostic']) != c['oracle_sha256']: raise ValueError('Oracle diagnostic changed')
+            oracle=json.loads(Path(c['oracle_diagnostic']).read_text())
+            if (oracle['source_sha256']!=c['source_sha256'] or
+                    oracle['after']['validity']-oracle['before']['validity']<5):
+                raise ValueError('insufficient Oracle Keep effect')
         if refine:
             if (raw['schema'] != SCHEMA or raw['updates'] != 1200
                     or raw['config_sha256'] != digest(raw['config'])): raise ValueError('not pinned relative-task Best')
             donor = raw
             # Preserve the original dataset contract through the immutable donor chain.
-            parent_path = Path(donor['config']['source'])
-            if file_hash(parent_path) != donor['config']['source_sha256']: raise ValueError('dataset ancestor changed')
-            parent = load_artifact(parent_path)
-            if parent['dataset_fingerprint'] != donor['dataset_fingerprint']: raise ValueError('dataset ancestor mismatch')
-            dc = parent['config']
+            dc=donor['config'];seen=set()
+            while 'dataset' not in dc:
+                parent_path=Path(dc['source'])
+                if str(parent_path) in seen or len(seen)>=8: raise ValueError('cyclic dataset ancestry')
+                seen.add(str(parent_path))
+                if file_hash(parent_path)!=dc['source_sha256']: raise ValueError('dataset ancestor changed')
+                parent=load_artifact(parent_path)
+                if parent['dataset_fingerprint']!=donor['dataset_fingerprint']: raise ValueError('dataset ancestor mismatch')
+                dc=parent['config']
         else:
             donor = load_checkpoint(source, raw['config'], raw['dataset_fingerprint'], raw['commit'])
             if donor['status'] != 'passed' or donor['cursor']['update'] != 2: raise ValueError('not validated split candidate')
@@ -75,6 +91,7 @@ def run(config_path, output, cpu_check=False):
         m, tok = load_recovery('configs/recovery_v4_review.json')
         if refine: restore(m, donor)
         else: load_model_state(m, donor)
+        if keep_mode: attach_keep(m)
         m.to(device)
         # Recollect references after device transfer.
         groups = {k:v for k,v in configure(m, orientation=not refine).items() if v}
@@ -90,14 +107,32 @@ def run(config_path, output, cpu_check=False):
         pairs = pair_indices(full.metadata, d.pairs, device)
         gap_labels = gap_supervision(full.metadata) if refine else []
         ids = [r['sample_id'] for r in d.records]
+        move_labels=keep_labels(full.metadata,device) if keep_mode else None
         def forward():
             return m.layout(objects, m.encode_text(full.inputs['input_ids'], full.inputs['attention_mask']), full.inputs['attention_mask'])
         def objective():
+            if keep_mode:
+                out=forward();return out,{'move_keep_bce':keep_loss(out,move_labels)}
             out = forward(); terms = losses(out, targets, m.layout.orientation, pairs)
             if refine: terms['vertical_edge_gap_huber'] = gap_loss(out, objects, gap_labels)
             return out, terms
         def evaluate():
-            return evaluate_alternating(m, batches, stage='oracle_layout', expected_ids=ids, pairs=d.pairs)
+            captured=[]
+            hook=m.layout.register_forward_hook(lambda module,args,out:captured.append(
+                {k:out[k].detach().cpu() for k in ('move_mask','valid')})) if keep_mode else None
+            try:metrics,rows=evaluate_alternating(m, batches, stage='oracle_layout', expected_ids=ids, pairs=d.pairs)
+            finally:
+                if hook is not None:hook.remove()
+            if keep_mode:
+                if len(captured)!=len(ids): raise ValueError('incomplete router evaluation')
+                total=dict(correct=0,total=0,false_keep=0,false_move=0);errors=[]
+                for i,out in enumerate(captured):
+                    n=out['valid'].shape[1];target=move_labels[i:i+1,:n].cpu();score=keep_metrics(out,target)
+                    for k in total:total[k]+=score[k]
+                    errors.append(dict(sample_id=ids[i],false_keep=[oid for j,oid in enumerate(full.metadata[i]['object_ids']) if not out['move_mask'][0,j] and target[0,j]],
+                        false_move=[oid for j,oid in enumerate(full.metadata[i]['object_ids']) if out['move_mask'][0,j] and not target[0,j]]))
+                metrics.update(move_keep=total,move_keep_errors=errors)
+            return metrics,rows
         store = CheckpointStore(common_store(output))
         def save(update, metrics):
             path = output/f'checkpoint-{update:06d}.pt'
@@ -108,10 +143,11 @@ def run(config_path, output, cpu_check=False):
                 batch_order=ids, pairs=d.pairs, best_checkpoint=str(best_path) if best_path else None))
             return path
         baseline, rows = evaluate()
-        if refine and best_key(baseline)[:2] != (18,2): raise ValueError('baseline task metrics differ from pinned Best')
+        if refine and best_key(baseline)[:2] != ((28,3) if keep_mode else (18,2)): raise ValueError('baseline task metrics differ from pinned Best')
         def rank(metrics):
             key = best_key(metrics)
             if not refine: return key
+            if keep_mode:return (keep_adopt(metrics,baseline),*key)
             eligible = (key[0]>18 and key[1]>2 and
                         metrics['integrated_evidence']['angle_errors_deg']==baseline['integrated_evidence']['angle_errors_deg'])
             return (eligible, *key)
@@ -119,6 +155,7 @@ def run(config_path, output, cpu_check=False):
         log('evaluation', update=0, metrics=baseline)
         best_metrics = deepcopy(baseline); best_path = save(0, baseline)
         def frozen_state():
+            if keep_mode:return {k:v for k,v in m.state_dict().items() if not k.startswith('layout.pose.move_keep_head.')}
             return {k:v for k,v in m.state_dict().items() if not k.startswith('layout.pose.') or
                     (refine and k.startswith('layout.pose.orientation_pose.'))}
         frozen = tensor_digest(frozen_state())
@@ -130,11 +167,16 @@ def run(config_path, output, cpu_check=False):
                 assert all(p.grad is None or torch.isfinite(p.grad).all() for p in ps)
             assert all(p.grad is None for name,p in m.named_parameters() if not name.startswith('layout.pose.'))
             if refine: assert all(p.grad is None for p in m.layout.pose.orientation_pose.parameters())
+            if keep_mode:
+                assert all(p.grad is None for name,p in m.named_parameters() if not name.startswith('layout.pose.move_keep_head.'))
             # No real optimizer step. Reload actual outputs exactly, including frozen Goal.
             saved = load_artifact(best_path); restore(m,saved)
             with torch.no_grad(): again = forward()
             for key in ('xy','angle','angle_logits','angle_residual'):
                 torch.testing.assert_close(out[key],again[key],rtol=0,atol=0)
+            if keep_mode:
+                for key in ('move_logit','move_mask'):
+                    torch.testing.assert_close(out[key],again[key],rtol=0,atol=0)
             assert not torch.cuda.is_initialized()
             result.update(status='PASS', loss={k:float(v.detach()) for k,v in terms.items()}, optimizer_steps=0)
         else:
@@ -162,6 +204,11 @@ def run(config_path, output, cpu_check=False):
                     if rank(metrics)>rank(best_metrics): best_metrics, best_path = deepcopy(metrics),path
                     tqdm.write(f'update={update} validity={best_key(metrics)[0]}/76 contrasts={best_key(metrics)[1]}/35 xy_p95={metrics["target_position_p95_mm"]:.3f} angle_p95={metrics["target_angle_p95_deg"]:.3f}')
                     if best_key(metrics)[:2] == (76,35): stop='task_success';break
+                    if (keep_mode and metrics['move_keep']['correct']==metrics['move_keep']['total']
+                            and keep_adopt(metrics,baseline)
+                            and best_key(metrics)[0]>=oracle['after']['validity']
+                            and best_key(metrics)[1]>=oracle['after']['counterfactual']):
+                        stop='oracle_keep_effect_reproduced';break
             bar.close()
             if result['updates'] != last_evaluated:
                 metrics,rows=evaluate();path=save(result['updates'],metrics)
