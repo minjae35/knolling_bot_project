@@ -108,3 +108,22 @@ Logs: `artifacts/repository_consolidation/20261108/pytest-cpu.log`,
 `canonical-forward/result.json`, `canonical-forward/arrangement.json`,
 `canonical-forward/perception.json`, and `assets-preservation.json`.
 The registry contains no checkpoint binary; all large assets remain ignored.
+
+## Completed Git cleanup
+
+Integration commit `92b9f23` was pushed normally to `main`. After passing
+verification and confirming the other chat remained idle, both unused
+Perception and detached Telegram worktrees were removed. Six old local and
+remote branches were deleted; **`main` is the sole local/remote branch**, with
+one primary worktree at `/workspace/knolling_bot_project`. The failed Pairwise
+tip is retained in the verified pre-cleanup Bundle rather than main's graph.
+Existing tags were not removed. No force push or hard reset was used.
+
+The final current-system CPU tests also passed **3/3** after the cache wiring.
+Post-cleanup checks revalidated all asset sizes/mtimes and every relocated
+Perception hash. The notification dispatcher and existing listeners remain
+alive and unchanged. Completion evidence is in
+`artifacts/repository_consolidation/20261108/completion.json`.
+Disk usage is approximately **67/100 GiB used, 34 GiB free**; retained project
+artifacts occupy approximately **47 GiB**. This operation removed duplicate
+checkouts and old branch references, not research assets.
