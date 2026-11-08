@@ -1,0 +1,20 @@
+{
+  "schema": "recovery_v4_relative_task_v1",
+  "task_refinement": "adjacent_vertical_gap_v1",
+  "freeze_orientation": true,
+  "source": "artifacts/recovery_runs/recovery_v4_relative_task_once_20261108T092000Z/checkpoint-001200.pt",
+  "source_sha256": "fbbb70a8354171bc453e6642d12c8c53963e064abdc33d25c67be3ba9193ea79",
+  "seed": 1203,
+  "cpu_threads": 2,
+  "max_updates": 1200,
+  "max_seconds": 1200,
+  "final_reserve_seconds": 30,
+  "evaluate_every": 50,
+  "lr": 0.0001,
+  "min_lr": 0.000001,
+  "weight_decay": 0.0001,
+  "gradient_clip": 1.0,
+  "loss_weights": [1, 1, 1, 1, 1],
+  "precision": "fp32",
+  "batch": "full_76_with_all_35_counterfactual_pairs"
+}
