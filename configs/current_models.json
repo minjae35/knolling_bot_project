@@ -1,0 +1,18 @@
+{
+  "schema": "knolling_current_models_v1",
+  "arrangement": {
+    "checkpoint": "artifacts/recovery_runs/recovery_v4_neural_keep_once_20261108T101334Z/checkpoint-000400.pt",
+    "sha256": "d92ad1ffcabf1842c7d805e8a8445b3dfca7cf3bfad05aa92318db3c010ba3d9",
+    "model_config": "configs/recovery_v4_review.json",
+    "evaluation": "artifacts/recovery_runs/recovery_v4_neural_keep_once_20261108T101334Z/best-evaluation.json",
+    "validity": 40,
+    "counterfactual": 7,
+    "scope": "76 training scenes with GT source objects"
+  },
+  "perception": {
+    "checkpoint": "artifacts/perception/gpu-once-20261108/training/best.pt",
+    "sha256": "c02dc5e9501a39cfcb9d1de8d512ace765050d675155e66bbde0ec2889105491",
+    "evaluation": "artifacts/perception/gpu-once-demo-evaluation/validation-metrics.json",
+    "scope": "10 held-out source families; source precision gate not passed"
+  }
+}

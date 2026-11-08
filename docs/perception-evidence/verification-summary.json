@@ -1,0 +1,69 @@
+{
+  "schema": "perception_cpu_completion_v1",
+  "date": "2026-11-08",
+  "device": "cpu",
+  "gpu_training_run": false,
+  "training_authorization": "user selected CPU verification only; no exclusive GPU time",
+  "tests": {
+    "distinct_passed": 30,
+    "initial_selection": {
+      "passed": 28,
+      "skipped": 2
+    },
+    "skipped_data_tests_retried": {
+      "passed": 2,
+      "skipped": 0
+    },
+    "checkpoint_test_after_change": {
+      "passed": 1
+    }
+  },
+  "cli_inference_passed": true,
+  "cli_validation_replay_exact": true,
+  "configuration_training_disabled": true,
+  "arrangement_files_changed": [],
+  "checkpoints": [
+    {
+      "path": "/root/.codex/worktrees/perception/knolling_bot_project/artifacts/perception/cpu-final/initial.pt",
+      "sha256": "c9c1c3a19f4ce2a3a8a59f0726fbf2d5a28d831ee7310372e1ec4625a40fe820",
+      "bytes": 82773913,
+      "purpose": "untrained_baseline_not_best",
+      "optimizer_updates": 0,
+      "architecture": "standalone_rtdetr_r18_physical_v1",
+      "dataset_fingerprint": "668ec630a9d189d1c44041a44fc1bfff063b0b61ff69249551e9bb7d38cde519",
+      "model_code": {
+        "perception/model.py": "338483c216b8183a63865d77a6ec69878de70311aba285467fb2e40a4fe41b4e",
+        "rtdetr.py": "f99be1c0f48d74f71fe64a83b27254fadf8cebc8067517666c6bdd3bc203bb4c",
+        "deterministic_sampling.py": "f08b5921b45814a1a252f58ebc00ca50b9ef37e90db3a4cf6a81c87cd687347a",
+        "recovery/perception.py": "ff2699b897996fef52ed4c0e1167a0f29168237302f32f8894749aac92d6650f",
+        "SourceHeads": "a783913e8009bb7b94420c8eec80bb23f6d2d14573c41aa43abf89c4a649e417",
+        "PhysicalSourceHeads": "76026cea14a3310f1a6317af428fdb6c41dd7ffee8b540201b4e782e623296a8",
+        "mlp": "34f17547e4a32b9ed0ad976f22c00f9f0c645f2a68266b818b92d8755b3ad2cf",
+        "angle_delta": "c65cc156fd50928e0eb63f7b365014f6ad19e3007684bc5655302405ba0f3698",
+        "wrap_pi": "51c3e0fe9165af88209c74d68fd43cfd1b40f6f6d979e6c20fc07abc37232123"
+      },
+      "binary_pushed_to_git": false
+    },
+    {
+      "path": "/root/.codex/worktrees/perception/knolling_bot_project/artifacts/perception/cpu-final/cpu-preflight.pt",
+      "sha256": "07f2418b77279a35e1baa2a70d9c6a91be5c9e755d0c6e42d0d224b988a7e15e",
+      "bytes": 244681224,
+      "purpose": "disposable_cpu_gradient_checkpoint_verification_not_trained_model",
+      "optimizer_updates": 1,
+      "architecture": "standalone_rtdetr_r18_physical_v1",
+      "dataset_fingerprint": "668ec630a9d189d1c44041a44fc1bfff063b0b61ff69249551e9bb7d38cde519",
+      "model_code": {
+        "perception/model.py": "338483c216b8183a63865d77a6ec69878de70311aba285467fb2e40a4fe41b4e",
+        "rtdetr.py": "f99be1c0f48d74f71fe64a83b27254fadf8cebc8067517666c6bdd3bc203bb4c",
+        "deterministic_sampling.py": "f08b5921b45814a1a252f58ebc00ca50b9ef37e90db3a4cf6a81c87cd687347a",
+        "recovery/perception.py": "ff2699b897996fef52ed4c0e1167a0f29168237302f32f8894749aac92d6650f",
+        "SourceHeads": "a783913e8009bb7b94420c8eec80bb23f6d2d14573c41aa43abf89c4a649e417",
+        "PhysicalSourceHeads": "76026cea14a3310f1a6317af428fdb6c41dd7ffee8b540201b4e782e623296a8",
+        "mlp": "34f17547e4a32b9ed0ad976f22c00f9f0c645f2a68266b818b92d8755b3ad2cf",
+        "angle_delta": "c65cc156fd50928e0eb63f7b365014f6ad19e3007684bc5655302405ba0f3698",
+        "wrap_pi": "51c3e0fe9165af88209c74d68fd43cfd1b40f6f6d979e6c20fc07abc37232123"
+      },
+      "binary_pushed_to_git": false
+    }
+  ]
+}

@@ -1,0 +1,185 @@
+{
+  "schema": "perception_metrics_v1",
+  "source_mode": "predicted_rgb",
+  "sources": 10,
+  "gt_objects": 56,
+  "confidence_threshold": 0.5,
+  "count_accuracy": 0.0,
+  "count_mae": 5.6,
+  "true_positives": 0,
+  "false_positives": 0,
+  "false_negatives": 56,
+  "precision": 0.0,
+  "recall": 0.0,
+  "ap50": 0.002132013201320132,
+  "ap75": 0.0005948525426641462,
+  "map_50_95": 0.000880430865558739,
+  "ap_by_iou": {
+    "0.50": 0.002132013201320132,
+    "0.55": 0.0019603960396039604,
+    "0.60": 0.0017392739273927396,
+    "0.65": 0.0012013201320132014,
+    "0.70": 0.000726314712164781,
+    "0.75": 0.0005948525426641462,
+    "0.80": 0.00021994794565286216,
+    "0.85": 0.00014996450839967874,
+    "0.90": 7.35829156821545e-05,
+    "0.95": 6.64273069373358e-06
+  },
+  "detection_box": "annotated physical envelope; not mask silhouette",
+  "max_detections_per_image": 300,
+  "ap_protocol": "101 recall points; single object class; no area/crowd stratification",
+  "pose_matched_objects": 0,
+  "pose_coverage": 0.0,
+  "pose_error_scope": "only predicted confidence>=threshold with envelope IoU>=0.5; missing detections excluded",
+  "errors": {
+    "position_mm": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "maximum": null
+    },
+    "major_mm": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "maximum": null
+    },
+    "minor_mm": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "maximum": null
+    },
+    "angle_deg": {
+      "n": 0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "maximum": null
+    }
+  },
+  "color_accuracy_on_matches": null,
+  "shape_accuracy_on_matches": null,
+  "unthresholded_gt_assignment_diagnostic": {
+    "warning": "GT-assisted query assignment, NOT detection or deployed pose accuracy",
+    "errors": {
+      "position_mm": {
+        "n": 56,
+        "mean": 41.203062870140585,
+        "p50": 21.957683563232422,
+        "p95": 188.60319900512695,
+        "maximum": 324.5532531738281
+      },
+      "major_mm": {
+        "n": 56,
+        "mean": 9.749999165002789,
+        "p50": 9.500000953674316,
+        "p95": 16.999998092651367,
+        "maximum": 18.000003814697266
+      },
+      "minor_mm": {
+        "n": 56,
+        "mean": 7.5892849543264935,
+        "p50": 7.000002861022949,
+        "p95": 12.999996185302734,
+        "maximum": 13.999995231628418
+      },
+      "angle_deg": {
+        "n": 56,
+        "mean": 52.44063296754445,
+        "p50": 53.40611457824707,
+        "p95": 89.99999237060547,
+        "maximum": 89.99999237060547
+      }
+    }
+  },
+  "rows": [
+    {
+      "family_id": "sf_09d470f00eabe5752c8b",
+      "predicted_count": 0,
+      "gt_count": 7,
+      "tp": 0,
+      "fp": 0,
+      "fn": 7
+    },
+    {
+      "family_id": "sf_19a9f5fc87241bf4d08c",
+      "predicted_count": 0,
+      "gt_count": 8,
+      "tp": 0,
+      "fp": 0,
+      "fn": 8
+    },
+    {
+      "family_id": "sf_3a90259a3232d9ebc981",
+      "predicted_count": 0,
+      "gt_count": 2,
+      "tp": 0,
+      "fp": 0,
+      "fn": 2
+    },
+    {
+      "family_id": "sf_41b47fc9960a525ec1e9",
+      "predicted_count": 0,
+      "gt_count": 4,
+      "tp": 0,
+      "fp": 0,
+      "fn": 4
+    },
+    {
+      "family_id": "sf_78ccc0ca55909e4b5664",
+      "predicted_count": 0,
+      "gt_count": 8,
+      "tp": 0,
+      "fp": 0,
+      "fn": 8
+    },
+    {
+      "family_id": "sf_9173db6f60f8c123e3e6",
+      "predicted_count": 0,
+      "gt_count": 7,
+      "tp": 0,
+      "fp": 0,
+      "fn": 7
+    },
+    {
+      "family_id": "sf_a780d6047f7228cb5660",
+      "predicted_count": 0,
+      "gt_count": 3,
+      "tp": 0,
+      "fp": 0,
+      "fn": 3
+    },
+    {
+      "family_id": "sf_b40540fa28fb182078a6",
+      "predicted_count": 0,
+      "gt_count": 6,
+      "tp": 0,
+      "fp": 0,
+      "fn": 6
+    },
+    {
+      "family_id": "sf_bbbb5ac7e0d20035536a",
+      "predicted_count": 0,
+      "gt_count": 7,
+      "tp": 0,
+      "fp": 0,
+      "fn": 7
+    },
+    {
+      "family_id": "sf_cacdc17e81d5f57dbb1f",
+      "predicted_count": 0,
+      "gt_count": 4,
+      "tp": 0,
+      "fp": 0,
+      "fn": 4
+    }
+  ],
+  "split": "validation",
+  "dataset_fingerprint": "9c764a1f028df114e607218e126d492d47641a88d49bfeded84f54e3e0797028",
+  "initialization": "pinned pretrained detector geometry; new random foreground and physical heads"
+}

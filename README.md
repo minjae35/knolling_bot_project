@@ -1,149 +1,81 @@
-# Knolling dataset and neural pipeline
+# Knolling Bot
 
-New implementation for `minjae35/knolling_bot_project`, based on the finalized
-v1.3 dataset specification, preserving the validated v1.2 pipeline. Dataset
-modules M0–M8 and the original S0 neural implementation are available. Historical
-S0 runs did not pass the full acceptance gate. A separate neural recovery path
-is now implemented for review; **its GPU training has not started**. See the
-[recovery implementation, CPU test results and independent review checklist](docs/recovery-implementation-review.md).
-The original implementation remains documented in the
-[S0 implementation, verification and exact launch commands](docs/s0-implementation.md).
-See the [vast.ai S0 setup and readiness runbook](docs/vast-ai-s0.md) and
-[dataset storage audit and verified backups](docs/dataset-storage-audit.md).
-Dataset transfer/storage changes remain pending approval; this repository does
-not provision GPU instances.
+Develop on **`main`**. The current system combines the independently trained
+RT-DETR Perception model with v4 Goal Encoder → split XY/Orientation → Neural
+Keep Arrangement. Inference uses BEV RGB and natural language only. Keep routing
+uses a learned prediction; there is no GT mask or rule-based planner in forward.
 
-**Initial system language: English only.** The active pilot is
-`artifacts/pilot_v1_3_en/`. Both `pilot_v1_2` and the original bilingual
-`pilot_v1_3` remain archived regression artifacts. Multilingual support is
-optional future work; the English dataset conversion preserved the original
-Neural Architecture/text-encoder choice.
-See the [English conversion and validation report](docs/english-only-report.md).
-The [final quality review](docs/final-dataset-quality-review.md) recommends retaining
-the dataset for S0. The user has since confirmed the review is complete and
-authorized S0 preparation; historical dataset review sidecars remain unchanged.
-All-sample visual comparisons and
-per-sample findings are in `artifacts/final_quality_review/index.html`; no labels
-or Teacher behavior were changed by that review.
+## Current models and limitations
 
-Use the existing Conda environment `knolling` (Python 3.12):
+`configs/current_models.json` pins both Best checkpoint paths and SHA-256 hashes.
+Binaries and datasets are local, ignored assets, not Git downloads.
 
-```sh
-conda run -n knolling python -m pip install -r requirements-lock.txt
-conda run -n knolling python -m pip install --no-deps --no-build-isolation -e .
-conda run -n knolling python -m pytest -q
-```
+| Component | Preserved Best | Verified scope |
+|---|---|---|
+| Arrangement Neural Keep | Validity **40/76**, Counterfactual **7/35** | 76 training scenes, GT source objects |
+| Independent RT-DETR Perception | Count **4/10**, mAP50:95 **0.945066** | 10 held-out source families |
 
-All geometry is in meters and radians. Pixel and normalized coordinates are
-explicit derived values. Generated datasets and QC reports belong under the
-Git-ignored `artifacts/` directory.
+The accepted Arrangement checkpoint is update 400 from the single Neural Keep
+run. The failed Pairwise model is excluded. Perception still has extra
+predictions and size/orientation/semantic errors. These individual results do
+**not** establish End-to-End task success or Arrangement generalization.
+The adapter rejects more than 8 detections explicitly; it never truncates to
+GT count or silently changes the confidence threshold.
 
-## Run and verify
+## Read-only verification
 
-Blender 5.1.0 must be on PATH, or set `BLENDER_EXECUTABLE` to its executable.
-The host uses Python 3.12; Blender uses its own bundled Python. No BlenderProc,
-GPU training framework, external asset download, or previous project code is required.
+Run from this repository with the existing `knolling` environment and cached
+pretrained weights:
 
 ```sh
-# Full tests: real repeated Blender renders AND a 10-scene builder integration.
-RUN_BLENDER_TESTS=1 RUN_BUILDER_TESTS=1 conda run -n knolling python -m pytest -q
-
-# One-time instruction-only conversion; refuses an existing output directory.
-# Does not invoke Blender, regenerate scenes or recompute target arrangements.
-conda run -n knolling python -m knolling_dataset english --parent artifacts/pilot_v1_3 --output artifacts/pilot_v1_3_en
-
-# Recheck hashes, identities, constraints, split leakage and all RGB/mask projections.
-conda run -n knolling python -m knolling_dataset audit --read-only
-# Archival audits must opt out explicitly; this does not disable the gate on active English data.
-conda run -n knolling python -m knolling_dataset audit artifacts/pilot_v1_2 --legacy --read-only
-conda run -n knolling python -m knolling_dataset audit artifacts/pilot_v1_3 --legacy --read-only
-
-# All regression/integration tests and all three on-disk pilots.
-RUN_BLENDER_TESTS=1 RUN_BUILDER_TESTS=1 RUN_MIGRATION_TESTS=1 RUN_LANGUAGE_MIGRATION_TESTS=1 \
-PILOT_DATASET=artifacts/pilot_v1_2 PILOT_V13_DATASET=artifacts/pilot_v1_3 \
-PILOT_EN_DATASET=artifacts/pilot_v1_3_en \
-conda run -n knolling python -m pytest -q
+export HF_HOME=/workspace/cache/huggingface
+export TORCH_HOME=/workspace/cache/torch
+export HF_HUB_OFFLINE=1
+CUDA_VISIBLE_DEVICES='' conda run --no-capture-output -n knolling python -m pytest -q
+conda run --no-capture-output -n knolling python scripts/verify_current_models.py \
+  --device cuda --output artifacts/verification/new-unique-run
 ```
 
-The CLI is capped at 100 scene families. A 100-scene pilot has 50 full, 30 partial,
-20 no-op primary samples, plus 30 same-image counterfactual instructions: **130
-samples, not 130 different scenes**. The 20 no-ops comprise 14 repeated requests
-and 6 explicit keep-all requests. Keep-all preserves a safe scene even if its
-objects are not axis aligned; repeated requests must satisfy their full semantics.
+The second command performs **zero optimizer steps**. It verifies both pinned
+checkpoint hashes, both loaders/fingerprints, Arrangement's 76-scene replay,
+Perception's 10-source Validation replay, and actual RGB→predicted objects→Goal
+Encoder→Neural Keep forward. Use a fresh output directory each time.
 
-## Output contract
+For application code, `knolling_model.current.load_current()` returns the
+composed read-only system. Call `predict(images, commands, frame_ids)` with RGB
+float tensors `[B,3,384,576]` in `[0,1]`. Outputs preserve detector query IDs,
+physical metres, pi-periodic angles, predicted object provenance and final
+Target Poses. No targets or annotations are accepted by that method.
 
-```text
-asset_registry.json, generation.json, provenance.json
-manifest.jsonl                       # one sample per line, annotation hash
-train.jsonl, validation.jsonl, development.jsonl, test.jsonl
-audit.json, AUTOMATED_VALIDATION.json # v1.3 automation only; human review pending
-scenes/<scene_family>/source/{rgb.png,instance_mask.png,render.json}
-samples/<sample_id>/{annotation.json,target/...}
-qc/{index.html,contact_sheet.png,summary.json,*_source.png,*_target.png}
-work/{render_jobs.json,blender.log}
-```
+## Maintained code
 
-Migration adds `parent_manifest.jsonl`, `parent_provenance.json`,
-`parent_annotations/`, `parent_snapshot.json`, `source_file_hashes.json`,
-`migration.jsonl`, `migration_summary.json`, `teacher_audit.jsonl`,
-`counterfactual_audit.jsonl`, `partial_quality.jsonl`, `partial_quality_summary.json`,
-`human_review.jsonl` and an empty `training_approved.jsonl`.
-The legacy `COMPLETE.json` stays untouched in v1.2. v1.3 does not create that
-marker or automatically authorize training. `generation.json` remains the
-original generation history; migration counts are recorded separately.
+- `src/knolling_model/perception/`: source-only dataset, RT-DETR, physical
+  representation, checkpoint/provenance, metrics and Arrangement adapter.
+- `src/knolling_model/current.py`: pinned Best loaders and composition.
+- `src/knolling_model/recovery/`: Goal Encoder, split pose/Keep, validated
+  dataset/teacher contracts, evaluation, lightweight checkpoint/resume support.
+- `src/knolling_dataset/`: common source/target records, renderer, teacher and
+  data-integrity tooling shared by training/evaluation.
+- `scripts/run_relative_task.py`, `scripts/run_perception.py`: existing bounded
+  training entry points; training still requires a separate explicit request.
 
-For an explicitly intended fresh build in a **new** directory, `build` defaults
-to `--teacher-policy balanced_rows_v1.3`. Use `--teacher-policy legacy_v1_2`
-only for legacy reproduction. The Python builder/annotation APIs also default
-to the balanced Teacher and English instructions. Unknown or
-mixed policies are rejected. The structured Scene/Instruction schema stays 1.2;
-policy and migration metadata are separate sidecars.
+Keep architecture constructors/readers and their regression tests needed to
+restore historical checkpoints. Historical one-off scripts are isolated under
+`archive/experiments/`; AR/v3 are compatibility implementations, not alternative
+current models. Historical configuration files referenced by saved checkpoints
+and safety tests remain available. The previous S0 guide is preserved in
+[docs/legacy-s0-readme.md](docs/legacy-s0-readme.md).
 
-No-op targets reuse the exact source render; their target coordinates are still
-fully serialized. Source and target use the same instance-ID mapping (1..N, zero
-background), camera, lighting seed and physical assets. Masks are uint16 PNG;
-ordinary image viewers may show them nearly black. RGB is sRGB uint8 PNG.
-All descendants share source RGB and scene-family split. Scene-family split
-counts are 70/10/10/10; asset-family pools are strictly disjoint. This is a small,
-strict geometry-OOD pilot, not evidence of future neural generalization.
+## Records and local assets
 
-Open `qc/index.html` locally to filter by mode/split and inspect input/target
-pairs, IDs, locks and English instructions. The JSON report is automatic
-verification; **human visual/language review remains a separate sign-off**.
+- [Repository consolidation and preservation](docs/repository-consolidation.md)
+- [Neural Keep evidence and results](docs/recovery-v4-neural-keep.md)
+- [Perception GPU result and limitations](docs/perception-gpu-results.md)
+- [Checkpoint storage contract](docs/recovery-checkpoint-storage.md)
+- [Git identity policy](docs/git-identity.md)
 
-The active report covers **all 130 samples**, with raw/annotated RGB switching,
-source/target views, movement arrows and per-object translation/rotation.
-Use `qc/english_instructions.csv` and `qc/object_movements.csv` for review.
-Historical geometry comparisons remain in the archived v1.3 QC report.
-The contact sheet is only a navigation aid. Human ratings remain null until a
-reviewer records them; this phase does not implement a training export workflow.
-
-The English conversion changes only `instruction.text` and `instruction.language`.
-All source/target geometry, identity, family and split fields remain identical;
-RGB/mask/render-metadata files retain their hashes. Current language statistics
-are in `language_migration_summary.json`; inherited `generation.json` and geometry
-migration reports describe historical runs, not the active language distribution.
-`language_parent_*` and `parent_annotations/` are archival evidence only. Future
-loaders must read the active manifest/split indexes, never glob every annotation.
-
-The audit requires `language="en"` plus exact agreement with the approved English
-grammar and structured fields. A non-English string relabeled `en`, foreign text
-using ASCII, or a contradictory gap/direction is rejected. English v1 is a bounded
-instruction interface, not a claim of unrestricted English understanding. For example:
-
-> Keep every object at its current position and orientation.
-
-For arrangements, the template names the selected objects and region, long-axis
-direction, bounding-rectangle area order, row/color grouping and exact horizontal
-and vertical row-band gaps. Partial instructions explicitly keep other objects fixed.
-
-See [module and validation contracts](docs/dataset-contract.md) and
-[implementation decisions](docs/implementation-decisions.md).
-The v1.3 policy and migration choices are in
-[v1.3 implementation decisions](docs/v1.3-implementation.md).
-The completed migration counts, verification and remaining quality gaps are in
-[the v1.3 pilot report](docs/v1.3-pilot-report.md).
-
-The completed 100-scene pilot's results, milestone commits and limitations are
-documented in [the pilot report](docs/pilot-report.md).
+Perception artifacts now reside at `artifacts/perception/`; Arrangement runs,
+datasets and shared checkpoint blobs retain their original paths. Do not delete
+shared blobs, anchors, journals or experiment folders without dependency checks.
+Git history/branch inventory is backed up locally under
+`artifacts/repository_consolidation/20261108/`. No large checkpoint is added to Git.
