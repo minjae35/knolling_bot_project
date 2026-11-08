@@ -17,6 +17,7 @@ from .driver import (CHECKPOINT_SCHEMA, Cursor, cpu_copy, load_checkpoint,
                      load_grounding_transfer, restore_rng, rng_state, save_exclusive,
                      validate_micro_checkpoints, validate_checkpoint)
 from .storage import load_artifact
+from .svd_readout import SVDNumericalStall
 from .readout import HeadFitter, PoseAdam, ReadoutData, collect_readout, make_head_fitter
 
 PHASES = ('coarse', 'head_xy', 'head_angle', 'fine', 'final_xy', 'final_angle')
@@ -480,6 +481,15 @@ class IntegratedEngine:
                             self.observe('update', loss=loss, gradient_norm=None, losses={HEADS[phase]: loss},
                                          remaining_seconds=max(0., self.spec['max_seconds']-self.elapsed()),
                                          journal=str(path), closure_evaluations=self.state['closure_evaluations'])
+                    except SVDNumericalStall as exc:
+                        # Solver has restored the accepted head/coordinates/Adam-free state.
+                        # Publish the terminal head decision BEFORE evaluation, without an update.
+                        self.state['head_diagnostic'] = dict(self.solver.measurements(),
+                            reason='fp32_numerical_stall', rounding=exc.diagnostic)
+                        phase_done = True
+                        self.state['pending_head'] = dict(phase_done=True)
+                        path = self.journal()
+                        self.observe('head_stalled', journal=str(path), diagnostic=self.state['head_diagnostic'])
                     except InterruptedTrial as exc:
                         if exc.reason != 'head_time_budget': raise
                         self.state['head_diagnostic'] = dict(reason='head_time_budget',

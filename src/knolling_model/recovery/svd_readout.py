@@ -14,6 +14,13 @@ from .readout import HeadFitter, tensor_hash
 SCHEMA = 'xy_svd_huber_v1'
 
 
+class SVDNumericalStall(Exception):
+    """Finite FP64 improvement that cannot be published monotonically in FP32."""
+    def __init__(self, diagnostic):
+        super().__init__('FP32 rounding prevents a monotone XY candidate')
+        self.diagnostic = diagnostic
+
+
 class SVDXYFitter(HeadFitter):
     def __init__(self, model, data, state=None):
         self.model, self.kind, self.cache_key = model, 'xy', data.key
@@ -106,6 +113,11 @@ class SVDXYFitter(HeadFitter):
         return (F.smooth_l1_loss(xy/.010, self.xy/.010, reduction='none').sum(-1)*self.weights.to(xy)).sum()
 
     @torch.no_grad()
+    def coefficient_loss64(self, w, b):
+        xy = (self.x[:, :-1] @ w.detach().cpu().double().T + b.detach().cpu().double()) * self.scale + self.scale
+        return float((F.smooth_l1_loss(xy/.010, self.target/.010, reduction='none').sum(-1)*self.weights).sum())
+
+    @torch.no_grad()
     def measurements(self):
         error = (self.deployed_xy(self.weight, self.bias)-self.xy).norm(dim=-1).max()*1000
         return dict(value=float(error), passed=bool(error <= 1), svd=deepcopy(self.diagnostics))
@@ -127,6 +139,8 @@ class SVDXYFitter(HeadFitter):
         opt = deepcopy(self.optimizer.state_dict())
         before = float(self.loss().detach())
         deployed_before = float(self.deployed_loss(self.weight, self.bias))
+        if not torch.isfinite(torch.tensor([before, deployed_before])).all():
+            raise FloatingPointError('nonfinite SVD baseline')
         def closure():
             check(); count_closure(); self.optimizer.zero_grad(set_to_none=True)
             loss = self.loss()
@@ -155,7 +169,17 @@ class SVDXYFitter(HeadFitter):
             if not all(torch.isfinite(t).all() for t in (loss, gradient, w, b)):
                 raise FloatingPointError('nonfinite SVD candidate')
             # Reject cast/rounding regressions instead of silently publishing them.
-            if float(self.deployed_loss(w, b)) > deployed_before+1e-7:
+            deployed_after = float(self.deployed_loss(w, b))
+            if not torch.isfinite(torch.tensor(deployed_after)):
+                raise FloatingPointError('nonfinite deployed SVD candidate')
+            if deployed_after > deployed_before+1e-7:
+                before64 = self.coefficient_loss64(self.weight, self.bias)
+                after64 = self.coefficient_loss64(w, b)
+                if (torch.isfinite(torch.tensor([before64, after64])).all()
+                        and float(loss.detach()) <= before and after64 <= before64):
+                    raise SVDNumericalStall(dict(fp64_before=before, fp64_after=float(loss.detach()),
+                        fp32_before=deployed_before, fp32_after=deployed_after,
+                        coefficient_fp64_before=before64, coefficient_fp64_after=after64))
                 raise FloatingPointError('FP32 SVD candidate increases Huber loss')
             check()
         except BaseException:

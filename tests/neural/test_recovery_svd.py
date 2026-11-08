@@ -159,3 +159,74 @@ def test_svd_journal_resume_and_rollback(tmp_path,monkeypatch,device,outcome,bou
     if outcome=='continue':
         caches=[torch.load(p,weights_only=True) for p in (tmp_path/'whole').glob('features-*.pt')]
         assert len(caches)==2 and caches[0]['producer']!=caches[1]['producer']
+
+
+def test_fp32_stall_restores_head_and_solver(monkeypatch):
+    from knolling_model.recovery.svd_readout import SVDNumericalStall
+    m,d=fixture('cpu',True);f=SVDXYFitter(m,d);f.step(lambda:None)
+    before=deepcopy(m.state_dict());state=deepcopy(f.state_dict())
+    baseline=float(f.deployed_loss(f.weight,f.bias));calls=[]
+    def rounding(w,b):
+        calls.append(1)
+        return torch.tensor(baseline+(0 if len(calls)==1 else 1e-6))
+    monkeypatch.setattr(f,'deployed_loss',rounding)
+    with pytest.raises(SVDNumericalStall) as caught:f.step(lambda:None)
+    assert caught.value.diagnostic['fp64_after']<=caught.value.diagnostic['fp64_before']
+    equal(before,m.state_dict());equal(state,f.state_dict())
+
+
+@pytest.mark.parametrize('bad',[float('nan'),float('inf')])
+def test_nonfinite_deployment_still_fails(monkeypatch,bad):
+    m,d=fixture('cpu',True);f=SVDXYFitter(m,d);f.step(lambda:None)
+    before=deepcopy(m.state_dict());state=deepcopy(f.state_dict());original=f.deployed_loss;calls=[]
+    def nonfinite(w,b):
+        calls.append(1);return original(w,b) if len(calls)==1 else torch.tensor(bad)
+    monkeypatch.setattr(f,'deployed_loss',nonfinite)
+    with pytest.raises(FloatingPointError):f.step(lambda:None)
+    equal(before,m.state_dict());equal(state,f.state_dict())
+
+
+@pytest.mark.parametrize('outcome',['pass','regression','continue'])
+def test_stall_journal_resumes_decision_without_solver_retry(tmp_path,monkeypatch,outcome):
+    from knolling_model.recovery.integrated import IntegratedEngine
+    from knolling_model.recovery.svd_readout import SVDNumericalStall
+    c,m,parent=svd_setup(tmp_path,'cpu');active={};original=IntegratedEngine.journal
+    def step(self,*args):raise SVDNumericalStall({'fixture':True})
+    monkeypatch.setattr(SVDXYFitter,'step',step)
+    def runner(name,model,crash=False):
+        active.update(phase='coarse',update=0);paths=[]
+        def journal(engine):
+            path=original(engine)
+            if crash and (engine.state.get('head_diagnostic') or {}).get('reason')=='fp32_numerical_stall':
+                paths.append(path);raise Crash()
+            return path
+        monkeypatch.setattr(IntegratedEngine,'journal',journal)
+        def observe(event,**r):active.update(phase=r['phase'],update=r['update'])
+        def evaluate(*_):
+            stalled=active['phase']=='head_xy'
+            return metrics(position=20 if active['update']==0 else 5,
+                success=[] if stalled and outcome=='regression' else ['stable'],passed=stalled and outcome=='pass')
+        e,events=make(tmp_path,name,c,model,observer=observe,evaluate=evaluate)
+        return e,events,paths
+    whole,_,_=runner('whole',m);a=whole.run('micro_pose',parent=parent,micro_case='axis')
+    part,_,paths=runner('part',Fixture(),True)
+    with pytest.raises(Crash):part.run('micro_pose',parent=parent,micro_case='axis')
+    again,events,_=runner('again',Fixture());b=again.run('micro_pose',resume=paths[0],micro_case='axis')
+    assert a['status']==b['status']=={'pass':'passed','regression':'rolled_back','continue':'budget_exhausted'}[outcome]
+    assert a['updates']==b['updates']
+    aa=load_integrated(a['checkpoint'],c,'fixture','test');bb=load_integrated(b['checkpoint'],c,'fixture','test')
+    for k in ('model','optimizer','rng','cursor','metrics'):equal(aa[k],bb[k])
+    assert not any(e=='update' and r['phase']=='head_xy' for e,r in events)
+
+
+def test_real_coefficient_loss_regression_remains_fatal(monkeypatch):
+    m,d=fixture('cpu',True);f=SVDXYFitter(m,d);f.step(lambda:None)
+    before=deepcopy(m.state_dict());state=deepcopy(f.state_dict());calls=[];doubles=[]
+    baseline=float(f.deployed_loss(f.weight,f.bias))
+    def worse(w,b):
+        calls.append(1);return torch.tensor(baseline+(0 if len(calls)==1 else 1e-6))
+    def coefficient(w,b):
+        doubles.append(1);return float(len(doubles))
+    monkeypatch.setattr(f,'deployed_loss',worse);monkeypatch.setattr(f,'coefficient_loss64',coefficient)
+    with pytest.raises(FloatingPointError,match='increases Huber'):f.step(lambda:None)
+    equal(before,m.state_dict());equal(state,f.state_dict())
