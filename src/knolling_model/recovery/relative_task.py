@@ -91,7 +91,7 @@ def best_key(metrics):
 def restore(model, saved, optimizers=None):
     if saved.get('schema') != SCHEMA: raise ValueError('not a relative-task checkpoint')
     attach(model); model.load_state_dict(saved['model'], strict=True)
-    groups = configure(model)
+    groups = configure(model, orientation=not saved.get('config', {}).get('freeze_orientation', False))
     if optimizers is not None:
         if set(optimizers) != set(saved['optimizers']): raise ValueError('optimizer branch mismatch')
         for k, opt in optimizers.items(): opt.load_state_dict(saved['optimizers'][k])
