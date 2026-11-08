@@ -1,0 +1,10 @@
+{
+  "schema": "perception_single_run_receipt_v1",
+  "config_sha256": "3d351367136d6430594aee1b403000e9d8ad4d34c76243787cd34b059e1dc592",
+  "cuda_preflight_sha256": "0b0eda3651a39075ac7ba945c8b5efe0a7e5d469ffbfc1b26e6732224939249f",
+  "commit": "a957a49742f4482e7556e2843d759b93ba7fe511",
+  "authorization": "User explicitly requested exactly one GPU Perception run after CUDA preflight",
+  "max_updates": 500,
+  "max_seconds": 1800,
+  "automatic_retry": false
+}

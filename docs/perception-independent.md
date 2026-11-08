@@ -160,37 +160,42 @@ See `perception-cpu-results.md` and committed JSON evidence. Test and Developmen
 were inspected for annotation integrity only; no prediction evaluation, tuning,
 or optimization used them.
 
-## Future single-run training boundary
+## Single-run training boundary
 
-The user explicitly chose **CPU verification only, no exclusive GPU time** for
-this task. `configs/perception_cpu.json` has `allow_training=false`, CPU device,
-no GPU allocation and no preflight authorization reference. No GPU training,
-joint training, search, restart, or Telegram progress worker was run.
+The initial implementation task was **CPU verification only, no exclusive GPU time**.
+The user subsequently authorized exactly one GPU run; its completed results and
+remaining Demo blockers are in [GPU results](perception-gpu-results.md).
+`configs/perception_cpu.json` retains `allow_training=false`, CPU device,
+no GPU allocation and no preflight authorization reference. The separate
+`perception_gpu_once.json` records the one completed authorized GPU run. Joint
+training, search, automatic retraining and Telegram progress workers remain absent.
 
-The implemented training path is disabled until a separate allocation is
-confirmed. Its fixed proposal is FP32, seed 1203, micro/effective batch 2,
+The training path requires an explicitly confirmed allocation. The executed
+fixed budget was FP32, seed 1203, micro/effective batch 2,
 AdamW backbone LR 1e-5, other LR 1e-4, weight decay 1e-4, norm clip 1, at most
 500 updates and 1,800 seconds including setup and validation. A 120-second final
 reserve stops new updates early to save/reload/evaluate. Deadlines are checked
 between operations; no in-flight optimizer/kernel is forcibly interrupted.
-GPU throughput/memory and the full training path have not been CUDA-validated.
+Actual CUDA loading, forward, gradients, training and checkpoint replay passed;
+see the GPU report for measured accuracy and remaining limitations.
 
 A future authorized config must explicitly enable training, select CUDA, refer
 to a passing CPU preflight checkpoint with the same data/training code, and
 provide `gpu_exclusive_window` with `device_uuid`, `start_unix`, `end_unix`, and
 the allocation's `authorization`. `CUDA_VISIBLE_DEVICES` must equal that UUID.
 The guard rejects occupied GPUs and windows that cannot cover the budget.
-Launching `train` under the shipped config fails before creating a run or
+Launching `train` under the default CPU config fails before creating a run or
 allocating CUDA. Do not infer allocation from momentary zero GPU utilization.
 
 Training visits each Train source once per shuffled epoch, selects best only
 by Validation mAP/count/recall/position, retains the initial candidate, saves
 independent best/last checkpoints, and verifies best's Validation replay.
 CPU tests exercise the bounded orchestration and best preservation with an
-explicit test double. They do not establish GPU training success.
+explicit test double. The separate completed GPU run provides direct execution
+evidence; it does not meet the existing source-accuracy gate for an End-to-End Demo.
 
-Remaining work: an allocated GPU slot and one authorized fixed-budget run,
-held-out accuracy assessment, broader visual/asset coverage (only 70 Train
-sources), real-camera calibration/domain validation, and a future adapter to
+Remaining work: sufficient object-count, physical and semantic accuracy,
+broader visual/asset coverage (only 70 Train sources), real-camera calibration/
+domain validation, and a future adapter to
 the stabilized Arrangement architecture. End-to-end and joint accuracy remain
 unmeasured.
