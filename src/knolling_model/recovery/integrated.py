@@ -349,6 +349,18 @@ class IntegratedEngine:
             raise FloatingPointError('nonfinite parameter')
         return float(loss.detach()), float(norm), {k: float(v.detach()) for k, v in terms.items()}
 
+    def resolve_coarse(self):
+        """Complete a durable diagnostic's evaluation before any further update."""
+        metrics = self.measured()
+        self.state['pending_coarse'] = None
+        done = self.assess(metrics)
+        if done: return done
+        if self.state['coarse_progress'][-1]['weak_intervals'] >= 2:
+            return self.checkpoint('coarse_stalled', metrics, 'two XY lower-bound improvements below 5%')
+        if near(metrics) or self.state['phase_update'] >= self.caps['coarse']:
+            return self.advance(metrics)
+        return None
+
     def coarse_monitor(self):
         if not self.config.get('coarse_extension') or self.state['phase'] != 'coarse':
             return None
@@ -384,12 +396,10 @@ class IntegratedEngine:
         finally:
             restore_rng(rng)
         row = record_progress(history, update, row)
-        # Persist the stop decision before reporting; Resume must not take another step.
+        # The diagnostic is complete, but Gate/phase evaluation is still pending.
+        self.state['pending_coarse'] = self.cursor.update
         self.checkpoint('running')
         self.observe('coarse_progress', diagnostic=row)
-        if row['weak_intervals'] >= 2:
-            metrics = self.measured()
-            return self.assess(metrics) or self.checkpoint('coarse_stalled', metrics, 'two XY lower-bound improvements below 5%')
         return None
 
     def advance(self, metrics):
@@ -456,11 +466,20 @@ class IntegratedEngine:
             cache_path=None, cache_sha256=None, cache_key=None, solver=None, anchor_path=None,
             phase_results=[], head_diagnostic=None, pending_head=None)
         self.state.setdefault('pending_head', None)
+        self.state.setdefault('pending_coarse', None)
         self.state.setdefault('timing', dict(total={}, phase={}))
         pending = self.state['pending_head']
         if pending is not None and (self.state['phase'] not in HEADS or not isinstance(pending, dict)
                 or set(pending) != {'phase_done'} or type(pending['phase_done']) is not bool):
             raise ValueError('invalid pending head decision')
+        pending_coarse = self.state['pending_coarse']
+        if pending_coarse is not None and (
+                not self.config.get('coarse_extension') or self.state['phase'] != 'coarse'
+                or type(pending_coarse) is not int or pending_coarse != self.cursor.update
+                or pending_coarse != self.state['phase_update']
+                or not self.state.get('coarse_progress')
+                or self.state['coarse_progress'][-1]['update'] != pending_coarse):
+            raise ValueError('invalid pending Coarse evaluation')
         if (self.state['phase'] not in PHASES or not 0 <= self.state['phase_update'] <= self.caps[self.state['phase']]
                 or self.state['fine_resets'] != int(self.state['phase'] in ('fine', 'final_xy', 'final_angle'))
                 or not 0 <= self.cursor.update <= self.spec['max_updates']):
@@ -502,6 +521,10 @@ class IntegratedEngine:
                 # Journals (and a checkpoint made while resuming one) may hold
                 # an accepted but unassessed candidate. Resolve it even if the
                 # stop/deadline is now set; never issue another solver update.
+                if self.state['pending_coarse'] is not None:
+                    done = self.resolve_coarse()
+                    if done: return done
+                    continue
                 if self.state['pending_head'] is not None:
                     if self.solver is None and self.state['cache_path']:
                         self.restore_cache()
@@ -510,6 +533,7 @@ class IntegratedEngine:
                     continue
                 done = self.coarse_monitor()
                 if done: return done
+                if self.state['pending_coarse'] is not None: continue
                 self.check()
                 phase = self.state['phase']
                 if self.cursor.update >= self.spec['max_updates']:
@@ -567,6 +591,7 @@ class IntegratedEngine:
                                      remaining_seconds=max(0., self.spec['max_seconds']-self.elapsed()))
                         done = self.coarse_monitor()
                         if done: return done
+                        if self.state['pending_coarse'] is not None: break
                         evaluate_now = (stage == 'micro_pose' or self.cursor.update % self.config['evaluate_every'] == 0
                                         or self.state['phase_update'] >= self.caps[phase])
                         if evaluate_now:

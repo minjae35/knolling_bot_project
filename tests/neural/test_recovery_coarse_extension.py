@@ -12,7 +12,7 @@ from knolling_model.recovery.storage import load_artifact
 from knolling_model.recovery.integrated import load_integrated
 from knolling_model.recovery.coarse_extension import load_extension, validate_policy, record_progress
 from test_recovery_integrated import setup, make, metrics, equal
-from test_recovery_readout import Fixture
+from test_recovery_readout import Fixture, DEVICES
 
 
 class Crash(BaseException): pass
@@ -142,3 +142,66 @@ def test_cumulative_time_budget_is_not_reset(tmp_path,source):
     result=e.run('oracle_layout',extend_from=path)
     assert result['status']=='budget_exhausted' and result['updates']==200
     assert result['elapsed_seconds']==600 and not any(e=='update' for e,r in events)
+
+
+@pytest.mark.parametrize('device', DEVICES)
+@pytest.mark.parametrize('outcome', ['pass', 'transition', 'continue'])
+def test_diagnostic_checkpoint_resolves_gate_before_next_update(tmp_path, source, device, outcome):
+    c,path,receipt,_=source
+    checkpoints=[]
+    def runner(name, crash=False, double_crash=False):
+        active={'update':200,'phase':'coarse'};stop=threading.Event()
+        def observe(event,**r):
+            active.update(update=r['update'],phase=r['phase'])
+            if event=='checkpoint' and r['update']==400 and (crash or double_crash):
+                checkpoints.append(r['checkpoint']);raise Crash()
+            if outcome=='transition' and event=='phase_transition' and r['next_phase']=='head_xy':stop.set()
+            if outcome=='continue' and event=='update' and r['update']==401:stop.set()
+        def evaluate(*_):
+            at_boundary=active['update']==400
+            return metrics(position=5 if at_boundary and outcome=='transition' else 20,
+                           passed=at_boundary and outcome=='pass')
+        e,events=make(tmp_path,name,c,Fixture().to(device),review_receipt=receipt,
+                      observer=observe,evaluate=evaluate,stop_event=stop)
+        return e,events
+    whole,_=runner('gate-whole');a=whole.run('oracle_layout',extend_from=path)
+    part,_=runner('gate-part',crash=True)
+    with pytest.raises(Crash):part.run('oracle_layout',extend_from=path)
+    pending=load_integrated(checkpoints[-1],c,'fixture','test')
+    assert pending['integrated']['pending_coarse']==400
+    # A second interruption at the Resume checkpoint must retain the decision.
+    again,_=runner('gate-again',double_crash=True)
+    with pytest.raises(Crash):again.run('oracle_layout',resume=checkpoints[-1])
+    resumed,events=runner('gate-resumed');b=resumed.run('oracle_layout',resume=checkpoints[-1])
+    assert a['status']==b['status']==('passed' if outcome=='pass' else 'paused')
+    assert a['updates']==b['updates']==(401 if outcome=='continue' else 400)
+    order=[e for e,_ in events]
+    assert order.index('evaluation') < (order.index('update') if 'update' in order else len(order))
+    if outcome=='transition':
+        assert not any(e=='update' for e,_ in events)
+        assert any(e=='phase_transition' and r['next_phase']=='head_xy' for e,r in events)
+    aa=load_integrated(a['checkpoint'],c,'fixture','test');bb=load_integrated(b['checkpoint'],c,'fixture','test')
+    for k in ('model','optimizer','rng','cursor','metrics'):equal(aa[k],bb[k])
+    for k in ('phase','phase_update','pending_coarse','coarse_progress','fine_resets'):
+        equal(aa['integrated'][k],bb['integrated'][k])
+    assert bb['integrated']['pending_coarse'] is None
+
+
+def test_pending_coarse_gate_precedes_expired_budget(tmp_path,source):
+    c,path,receipt,_=source;active={'update':200};checkpoints=[]
+    def observe(event,**r):
+        active['update']=r['update']
+        if event=='checkpoint' and r['update']==400:
+            checkpoints.append(r['checkpoint']);raise Crash()
+    def evaluate(*_):return metrics(position=20,passed=active['update']==400)
+    part,_=make(tmp_path,'expired-part',c,Fixture(),review_receipt=receipt,observer=observe,evaluate=evaluate)
+    with pytest.raises(Crash):part.run('oracle_layout',extend_from=path)
+    now=[0.]
+    def expire(event,**r):
+        active['update']=r['update']
+        if event=='start':now[0]=601.
+    resumed,events=make(tmp_path,'expired-resume',c,Fixture(),review_receipt=receipt,observer=expire,
+                        evaluate=evaluate,clock=lambda:now[0])
+    result=resumed.run('oracle_layout',resume=checkpoints[-1])
+    assert result['status']=='passed' and result['updates']==400
+    assert not any(e=='update' for e,r in events)
