@@ -30,6 +30,7 @@ from .evaluation import evaluate_recovery
 from .model import RecoveryModel
 from .stages import STAGES, ALL_STAGES, stage_order, configure_stage, parameter_groups, stage_loss, stage_gate
 from .runtime import precision_context
+from .pose_precision import PosePrecision, validate_policy
 
 CHECKPOINT_SCHEMA = 'recovery_checkpoint_v2'
 CONFIG_SCHEMA = 'recovery_driver_v2'
@@ -79,6 +80,7 @@ def read_config(path):
             raise ValueError('invalid stage batch size')
     if type(config.get('num_workers', 0)) is not int or config.get('num_workers', 0) < 0:
         raise ValueError('invalid DataLoader workers')
+    validate_policy(config)
     return config
 
 
@@ -173,6 +175,33 @@ def validate_micro_checkpoints(paths, parent_sha, config, fingerprint, commit):
     return evidence
 
 
+def load_grounding_transfer(path, config, fingerprint, receipt):
+    """Explicit pinned, passed Grounding weights only; never a Micro resume.
+
+    The current receipt authorizes this source hash/commit/config. Only the new
+    precision policy may differ in configuration; budgets/data/model stay exact.
+    The original checkpoint remains immutable and retains its original contract.
+    """
+    grant = (receipt or {}).get('grounding_transfer', {})
+    if not config.get('micro_precision') or file_hash(path) != grant.get('sha256'):
+        raise ValueError('unapproved grounding transfer')
+    raw = torch.load(path, map_location='cpu', weights_only=True)
+    source_config = raw.get('config', {})
+    if (raw.get('commit') != grant.get('commit')
+            or digest(source_config) != grant.get('config_sha256')):
+        raise ValueError('grounding transfer source contract mismatch')
+    target_config = deepcopy(config)
+    target_config.pop('micro_precision', None)
+    if target_config != source_config:
+        raise ValueError('grounding transfer may change only micro precision policy')
+    saved = load_checkpoint(path, source_config, fingerprint, grant['commit'])
+    if (saved['stage'] != 'grounding' or saved['status'] != 'passed'
+            or not stage_gate('grounding', saved.get('metrics', {}))
+            or not stage_gate('grounding', saved.get('completed', {}).get('grounding', {}))):
+        raise ValueError('grounding transfer requires a passed production parent')
+    return saved
+
+
 @dataclass
 class Cursor:
     update: int = 0
@@ -220,11 +249,18 @@ class StageEngine:
         elif micro_case is not None:
             raise ValueError('micro case is diagnostic-only')
         extension = None
+        if stage == 'micro_pose' and self.review_receipt is not None:
+            cases = self.review_receipt.get('cases')
+            if cases is not None and micro_case not in cases:
+                raise PermissionError('micro case is not authorized')
         if extend_from:
             prior, extension = load_approved_extension(extend_from, self.config, self.fingerprint,
                                                        self.commit, self.review_receipt, stage)
         else:
-            prior = load_checkpoint(resume or parent, self.config, self.fingerprint, self.commit) if (resume or parent) else None
+            if parent and stage == 'micro_pose' and (self.review_receipt or {}).get('grounding_transfer'):
+                prior = load_grounding_transfer(parent, self.config, self.fingerprint, self.review_receipt)
+            else:
+                prior = load_checkpoint(resume or parent, self.config, self.fingerprint, self.commit) if (resume or parent) else None
         continuing = bool(resume or extend_from)
         completed = {} if prior is None else prior['completed']
         position = 1 if stage == 'micro_pose' else order.index(stage)
@@ -267,6 +303,10 @@ class StageEngine:
         else:
             anchor = cpu_copy(self.model.state_dict())
             baseline = None
+        precision = None
+        if stage == 'micro_pose' and self.config.get('micro_precision'):
+            precision = PosePrecision(self.model, optimizer, continuing=continuing,
+                                      saved=prior.get('pose_precision') if continuing else None)
         # Every execution/resume gets a new directory; no existing run is mutated.
         self.output.mkdir(parents=True, exist_ok=False)
         save_exclusive(self.output/'anchor.pt', anchor)
@@ -294,7 +334,8 @@ class StageEngine:
                 goal_contract=deepcopy(self.config.get('goal_contract')), goal_parent_sha256=goal_parent,
                 purpose='diagnostic' if stage == 'micro_pose' else 'production',
                 micro_case=micro_case, micro_evidence=micro_evidence,
-                metrics=metrics, error=error, anchor_sha256=anchor_sha, extension=extension))
+                metrics=metrics, error=error, anchor_sha256=anchor_sha, extension=extension,
+                pose_precision=deepcopy(precision.state) if precision else None))
             observe('checkpoint', status=status, checkpoint=str(path), error=error)
             return dict(status=status, checkpoint=str(path), updates=cursor.update,
                         elapsed_seconds=cursor.elapsed_seconds, metrics=metrics, error=error)
@@ -302,6 +343,9 @@ class StageEngine:
             with precision_context(self.config, stage):
                 metrics = self.evaluate(stage, baseline)
             observe('evaluation', metrics=metrics)
+            if precision and precision.consider(metrics, cursor.update):
+                observe('precision_transition', **precision.state,
+                        learning_rates=[g['lr'] for g in optimizer.param_groups])
             return metrics
         def finish(metrics):
             if self.gate(stage, metrics):
@@ -377,9 +421,11 @@ class StageEngine:
                     if self.observer is not None:
                         values = torch.stack([loss.detach(), norm.detach(), *[v.detach() for v in terms.values()]]).float().cpu().tolist()
                         observe('update', loss=values[0], gradient_norm=values[1], losses=dict(zip(terms, values[2:])),
+                                learning_rates=[g['lr'] for g in optimizer.param_groups],
+                                pose_phase=precision.state['phase'] if precision else None,
                                 remaining_seconds=max(0., spec['max_seconds']-elapsed()))
                     progress_due = extension is not None and not extension['checked'] and cursor.update >= extension['progress_update']
-                    if cursor.update % self.config['evaluate_every'] == 0 or exhausted() or progress_due:
+                    if precision or cursor.update % self.config['evaluate_every'] == 0 or exhausted() or progress_due:
                         metrics = measured()
                         if stage == 'joint' and not metrics.get('full_set_no_regression', False):
                             return rollback(metrics, 'full-set regression')

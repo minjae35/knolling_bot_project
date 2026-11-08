@@ -88,6 +88,7 @@ class ProgressLog:
     """tqdm on the local terminal plus append-only per-stage JSONL evidence."""
     def __init__(self, output):
         self.output, self.bar = Path(output), None
+        self.last_loss = None
 
     def __call__(self, event, **record):
         with (self.output/'history.jsonl').open('a') as stream:
@@ -99,10 +100,21 @@ class ProgressLog:
             self.bar = tqdm(total=record['max_updates'], initial=record['update'],
                             desc=labels[record['stage']], unit='step', mininterval=1, dynamic_ncols=True)
         elif event == 'update' and self.bar is not None:
+            self.last_loss = record['loss']
             self.bar.update(record['update']-self.bar.n)
             self.bar.set_postfix(loss=f"{record['loss']:.4f}", budget_s=f"{record['remaining_seconds']:.0f}", refresh=False)
         elif event == 'evaluation':
             m = record['metrics']
+            if record['stage'] == 'micro_pose':
+                micro = m['micro']
+                if self.bar is not None:
+                    self.bar.set_postfix(loss=self.last_loss, pos_mm=micro['max_position_mm'],
+                                         angle_deg=micro['max_angle_deg'], refresh=False)
+                # Keep every evaluation in JSONL without flooding the terminal.
+                if record['update'] % 25 == 0 or micro['passed']:
+                    tqdm.write(f"micro step={record['update']} max_position_mm={micro['max_position_mm']} "
+                               f"max_angle_deg={micro['max_angle_deg']} gate={micro['passed']}")
+                return
             if record['stage'] == 'grounding':
                 g=m['grounding']
                 attributes={k:v['accuracy'] for k,v in g['attributes'].items()}
@@ -117,6 +129,8 @@ class ProgressLog:
             tqdm.write(f"Approved extension from step {grant['origin_update']}, cumulative elapsed "
                        f"{grant['origin_elapsed_seconds']:.2f}s; progress check at step {grant['progress_update']}; "
                        f"total caps {grant['total_max_updates']} updates / {grant['total_max_seconds']}s.")
+        elif event == 'precision_transition':
+            tqdm.write(f"Micro precision phase at step {record['update']}: LR={record['learning_rates']}; first moment reset once")
 
     def close(self):
         if self.bar is not None:

@@ -143,6 +143,11 @@ def evaluate_v4(model,batches,*,stage,expected_ids=None,baseline=None,pairs=(),m
     if stage=='micro_pose':
         records={m['sample_id']:m['record'] for b in batches for m in b.metadata}
         result['micro']=micro_metrics(rows,records,micro_case)
+        # Raw per-object predictions permit centroid movement/oscillation audits
+        # between consecutive evaluations, without adding a training objective.
+        result['micro_predictions'] = [dict(sample_id=r['sample_id'],
+            predicted_targets=r.get('predicted_targets', {}),
+            target_position_mm=r['target_position_mm'], target_angle_deg=r['target_angle_deg']) for r in rows]
     if stage=='joint':
         result['full_set_no_regression']=bool(no_regression(result,baseline) and baseline and
             goals['correct']>=baseline.get('grounding',{}).get('correct',float('inf')) and
