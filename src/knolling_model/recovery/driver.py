@@ -81,6 +81,8 @@ def read_config(path):
     if type(config.get('num_workers', 0)) is not int or config.get('num_workers', 0) < 0:
         raise ValueError('invalid DataLoader workers')
     validate_policy(config)
+    from .integrated import validate_config
+    validate_config(config)
     return config
 
 
@@ -137,6 +139,29 @@ def save_exclusive(path, payload):
             raise
     try:
         os.link(temporary, path)  # Atomic publication, EEXIST if path already exists.
+        directory = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try: os.fsync(directory)
+        finally: os.close(directory)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def save_json_exclusive(path, payload):
+    """Publish a complete JSON report without overwriting an existing result."""
+    path = Path(path)
+    encoded = json.dumps(payload, indent=2, allow_nan=False) + '\n'
+    with tempfile.NamedTemporaryFile(mode='w', dir=path.parent, prefix='.report-', delete=False) as stream:
+        temporary = Path(stream.name)
+        try:
+            stream.write(encoded); stream.flush(); os.fsync(stream.fileno())
+        except BaseException:
+            temporary.unlink(missing_ok=True)
+            raise
+    try:
+        os.link(temporary, path)
+        directory = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try: os.fsync(directory)
+        finally: os.close(directory)
     finally:
         temporary.unlink(missing_ok=True)
 
@@ -156,14 +181,22 @@ def load_checkpoint(path, config, fingerprint, commit):
     return saved
 
 
-def validate_micro_checkpoints(paths, parent_sha, config, fingerprint, commit):
+def validate_micro_checkpoints(paths, parent_sha, config, fingerprint, commit, receipt=None):
     """Three independent diagnostic passes, each rooted at the SAME grounding file."""
     from .evaluation_v4 import MICRO_CASES
     if not paths or len(paths) != len(MICRO_CASES):
         raise ValueError('oracle layout requires all three passed micro diagnostics')
     evidence = {}
     for path in paths:
-        saved = load_checkpoint(path, config, fingerprint, commit)
+        grants = [g for g in (receipt or {}).get('micro_evidence_transfer', []) if g.get('sha256') == file_hash(path)]
+        if grants:
+            from .provenance import load_evidence_transfer
+            if len(grants) != 1: raise ValueError('ambiguous Micro evidence grant')
+            saved = load_evidence_transfer(path, config, fingerprint, grants[0])
+        else:
+            saved = load_checkpoint(path, config, fingerprint, commit)
+        if config.get('integrated_pose') and saved.get('config', {}).get('integrated_pose') != config['integrated_pose']:
+            raise ValueError('integrated recipe requires its own three Micro regression passes')
         case = saved.get('micro_case')
         if (case not in MICRO_CASES or case in evidence or saved['stage'] != 'micro_pose'
                 or saved['status'] != 'passed' or saved.get('goal_parent_sha256') != parent_sha
@@ -179,10 +212,18 @@ def load_grounding_transfer(path, config, fingerprint, receipt):
     """Explicit pinned, passed Grounding weights only; never a Micro resume.
 
     The current receipt authorizes this source hash/commit/config. Only the new
-    precision policy may differ in configuration; budgets/data/model stay exact.
+    precision policy may differ in the legacy route. Integrated transfer also
+    verifies semantic hashes and an explicit list of allowed config changes.
     The original checkpoint remains immutable and retains its original contract.
     """
     grant = (receipt or {}).get('grounding_transfer', {})
+    if config.get('integrated_pose'):
+        from .provenance import load_evidence_transfer
+        saved = load_evidence_transfer(path, config, fingerprint, grant)
+        if (saved['stage'] != 'grounding' or not stage_gate('grounding', saved.get('metrics', {}))
+                or not stage_gate('grounding', saved.get('completed', {}).get('grounding', {}))):
+            raise ValueError('grounding transfer requires a passed production parent')
+        return saved
     if not config.get('micro_precision') or file_hash(path) != grant.get('sha256'):
         raise ValueError('unapproved grounding transfer')
     raw = torch.load(path, map_location='cpu', weights_only=True)
@@ -219,7 +260,7 @@ class StageEngine:
     def __init__(self, model, config, fingerprint, commit, output, batches, evaluate,
                  *, loss_fn=stage_loss, configure_fn=configure_stage, gate_fn=stage_gate,
                  clock=time.monotonic, stop_event=None, review_receipt=None, observer=None,
-                 prepare_continuation=None):
+                 prepare_continuation=None, readout_batches=None, expected_ids=None):
         self.model, self.config, self.fingerprint, self.commit = model, config, fingerprint, commit
         self.output = Path(output)
         self.batches, self.evaluate, self.loss_fn = batches, evaluate, loss_fn
@@ -228,9 +269,14 @@ class StageEngine:
         self.review_receipt = deepcopy(review_receipt)
         self.observer = observer
         self.prepare_continuation = prepare_continuation
+        self.readout_batches, self.expected_ids = readout_batches, expected_ids
         self.serial = 0
 
     def run(self, stage, *, parent=None, resume=None, extend_from=None, micro_case=None, micro_checkpoints=None):
+        if self.config.get('integrated_pose') and stage in ('micro_pose', 'oracle_layout'):
+            from .integrated import IntegratedEngine
+            return IntegratedEngine(self).run(stage, parent=parent, resume=resume, extend_from=extend_from,
+                                             micro_case=micro_case, micro_checkpoints=micro_checkpoints)
         from .extensions import load_approved_extension, assess_progress
         architecture = self.config.get('model', {}).get('architecture', 'recovery_v2_ar')
         v4 = architecture == 'recovery_v4_goal_joint'
@@ -519,10 +565,10 @@ def main():
         for item in stage_batches(suite, collator, stage, seed=config['seed'], epoch=epoch, batch_size=size,
                                   num_workers=config.get('num_workers', 0), pin_memory=config.get('pin_memory', False), uniform=v4):
             yield item.to(config['device'], non_blocking=config.get('pin_memory', False))
+    def stream():
+        for i in range(0,len(suite),config['batch_size']):
+            yield collator([suite[j] for j in range(i,min(len(suite),i+config['batch_size']))]).to(config['device'])
     def evaluation(stage, baseline):
-        def stream():
-            for i in range(0,len(suite),config['batch_size']):
-                yield collator([suite[j] for j in range(i,min(len(suite),i+config['batch_size']))]).to(config['device'])
         if v4:
             from .evaluation_v4 import evaluate_v4
             return evaluate_v4(model, stream(), stage=stage, pairs=pairs,
@@ -540,7 +586,8 @@ def main():
             warm_text_cache(model, suite, collator, config['batch_size'], config['device'])
     engine = StageEngine(model, config, fingerprint, commit, args.output, batches, evaluation,
                          stop_event=event, review_receipt=receipt, observer=observer,
-                         prepare_continuation=prepare_continuation)
+                         prepare_continuation=prepare_continuation, readout_batches=stream,
+                         expected_ids=[r['sample_id'] for r in suite.records])
     try:
         with stop_signals(event):
             result = engine.run(args.stage, parent=args.parent_checkpoint, resume=args.resume, extend_from=args.extend_from,
@@ -548,8 +595,7 @@ def main():
     finally:
         if observer is not None:
             observer.close()
-    with (Path(args.output)/'result.json').open('x') as stream:
-        json.dump(result, stream, indent=2, allow_nan=False)
+    save_json_exclusive(Path(args.output)/'result.json', result)
     print(json.dumps(result, indent=2, allow_nan=False))
     if result['status'] not in ('passed','paused'):
         raise SystemExit(2)

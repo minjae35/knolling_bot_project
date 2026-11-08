@@ -103,6 +103,8 @@ class ProgressLog:
             self.last_loss = record['loss']
             self.bar.update(record['update']-self.bar.n)
             self.bar.set_postfix(loss=f"{record['loss']:.4f}", budget_s=f"{record['remaining_seconds']:.0f}", refresh=False)
+        elif event == 'phase_transition' and self.bar is not None:
+            self.bar.set_description(f"{record['stage']} / {record['next_phase']}", refresh=False)
         elif event == 'evaluation':
             m = record['metrics']
             if record['stage'] == 'micro_pose':

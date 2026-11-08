@@ -91,7 +91,8 @@ def collect_readout(model, batches, *, expected_ids, fingerprint, check=lambda: 
                 raise ValueError('unexpected feature capture count')
             for i, meta in enumerate(batch.metadata):
                 sid = meta['sample_id']; ids = meta['object_ids']; valid = objects.valid[i]
-                if sid in seen or sid not in expected_ids or len(ids) != int(valid.sum()) or not len(ids):
+                if (sid in seen or sid not in expected_ids or len(ids) != int(valid.sum())
+                        or len(set(ids)) != len(ids) or not len(ids)):
                     raise ValueError('duplicate or incomplete calibration scene')
                 seen.add(sid)
                 n = len(ids); truth = batch.supervision[i]
@@ -116,6 +117,8 @@ class HeadFitter:
             raise ValueError('only XY and orientation logits have calibration solvers')
         self.model, self.kind = model, kind
         linear = model.layout.pose.output[1]; s = SLICES[kind]
+        if linear.weight.dtype != torch.float32 or data.features.dtype != torch.float32:
+            raise ValueError('readout calibration requires FP32')
         self.weight = nn.Parameter(linear.weight[s].detach().clone())
         self.bias = nn.Parameter(linear.bias[s].detach().clone())
         device = self.weight.device

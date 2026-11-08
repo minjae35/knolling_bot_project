@@ -117,3 +117,43 @@ def test_split_adam_matches_fused_then_preserves_only_appropriate_fine_state(dev
     with adam.forward_context():train=m.layout(__import__('knolling_model.recovery.contracts',fromlist=['oracle_objects']).oracle_objects(b.supervision),b.inputs['input_ids'],b.inputs['attention_mask'])
     actual=m.layout(__import__('knolling_model.recovery.contracts',fromlist=['oracle_objects']).oracle_objects(b.supervision),b.inputs['input_ids'],b.inputs['attention_mask'])
     for key in ('xy','angle_logits','angle_residual'):torch.testing.assert_close(train[key],actual[key],atol=0,rtol=0)
+
+
+@pytest.mark.skipif(os.environ.get('RUN_RECOVERY_CUDA_TESTS')!='1',reason='explicit real cached-model CUDA check')
+def test_real_cached_model_gradients_and_readout_inference_no_optimizer_steps():
+    from knolling_model.recovery.model import load_recovery
+    from knolling_model.recovery.driver import read_config
+    from knolling_model.recovery.dataset_v3 import RecoveryDatasetV3
+    from knolling_model.recovery.goal_labels import GoalDataset
+    from knolling_model.recovery.runtime import FrozenTextCache
+    from knolling_model.recovery.contracts import oracle_objects
+    from knolling_model.data import S0Dataset,Collator
+    c=read_config('configs/recovery_v4_integrated_review.json')
+    ds=GoalDataset(RecoveryDatasetV3(S0Dataset(c['dataset'],c['selection']),c['data_v3']['path'],c['data_v3']['sha256']))
+    m,tok=load_recovery('configs/recovery_v4_review.json');m.to('cuda');m.encode_text=FrozenTextCache(m.encode_text)
+    batch=Collator(tok)([ds[i] for i in range(4)]).to('cuda')
+    before={k:v.detach().cpu().clone() for k,v in m.state_dict().items()}
+    configure_stage(m,'micro_pose');adam=PoseAdam(m,1e-4,1e-4);torch.cuda.reset_peak_memory_stats()
+    with adam.forward_context():terms,_=stage_loss(m,batch.inputs,batch.supervision)
+    sum(terms.values()).backward()
+    assert all(p.grad is not None and torch.isfinite(p.grad).all() for p in adam.parameters)
+    assert all(p.grad is None for p in m.layout.goal_encoder.parameters())
+    assert all(p.grad is None for p in m.text_encoder.parameters())
+    assert all(p.grad is None for p in m.perception.parameters())
+    m.zero_grad(set_to_none=True);m.requires_grad_(False)
+    data=collect_readout(m,[batch],expected_ids=[x['sample_id'] for x in batch.metadata],fingerprint=ds.fingerprint)
+    for kind in ('xy','angle'):
+        fit=HeadFitter(m,data,kind);fit.loss().backward()
+        assert all(p.grad is not None and torch.isfinite(p.grad).all() for p in (fit.weight,fit.bias))
+        assert all(p.grad is None for p in m.parameters())
+        with torch.no_grad():
+            out=m.layout(oracle_objects(batch.supervision),m.encode_text(batch.inputs['input_ids'],batch.inputs['attention_mask']),batch.inputs['attention_mask'])
+            raw=torch.nn.functional.linear(fit.features,fit.weight,fit.bias)
+            expected=raw*raw.new_tensor([.3,.2])+raw.new_tensor([.3,.2]) if kind=='xy' else raw
+            torch.testing.assert_close(out['xy' if kind=='xy' else 'angle_logits'][out['valid']],expected,rtol=2e-6,atol=2e-6)
+    m.eval()
+    with torch.no_grad():
+        output=m(**batch.inputs)
+        assert torch.isfinite(output['layout']['xy']).all()
+    for k,v in m.state_dict().items():torch.testing.assert_close(v.cpu(),before[k],rtol=0,atol=0)
+    print('integrated real CUDA forward/backward peak_MiB',round(torch.cuda.max_memory_allocated()/2**20,2),'optimizer_steps=0')
