@@ -43,6 +43,12 @@ def read_config(path):
         raise ValueError('device must be cpu or cuda')
     if type(config.get('seed')) is not int:
         raise ValueError('an integer seed is required')
+    architecture = config.get('model', {}).get('architecture', 'recovery_v2_ar')
+    if architecture not in ('recovery_v2_ar', 'recovery_v3_joint'):
+        raise ValueError('unknown model architecture')
+    if architecture == 'recovery_v3_joint' and (not config.get('data_v3') or
+            config.get('evaluation_schema') != 'recovery_metrics_v3'):
+        raise ValueError('v3 requires pinned v3 data and evaluation')
     for key in ('batch_size', 'evaluate_every', 'checkpoint_every', 'cpu_threads'):
         if type(config.get(key)) is not int or config[key] <= 0:
             raise ValueError(f'invalid {key}')
@@ -125,7 +131,9 @@ def save_exclusive(path, payload):
 def load_checkpoint(path, config, fingerprint, commit):
     saved = torch.load(path, map_location='cpu', weights_only=True)
     if (saved.get('schema') != CHECKPOINT_SCHEMA or saved.get('config_sha256') != digest(config)
-            or saved.get('dataset_fingerprint') != fingerprint or saved.get('commit') != commit):
+            or saved.get('dataset_fingerprint') != fingerprint or saved.get('commit') != commit
+            or saved.get('architecture','recovery_v2_ar') != config.get('model',{}).get('architecture','recovery_v2_ar')
+            or saved.get('evaluation_schema','recovery_metrics_v2') != config.get('evaluation_schema','recovery_metrics_v2')):
         raise ValueError('checkpoint code/config/data contract mismatch')
     return saved
 
@@ -162,6 +170,11 @@ class StageEngine:
         from .extensions import load_approved_extension, assess_progress
         if stage not in STAGES or sum(bool(p) for p in (parent, resume, extend_from)) > 1:
             raise ValueError('invalid stage/checkpoint request')
+        architecture = self.config.get('model', {}).get('architecture', 'recovery_v2_ar')
+        if getattr(self.model, 'architecture', 'recovery_v2_ar') != architecture:
+            raise ValueError('model/config architecture mismatch')
+        if architecture == 'recovery_v3_joint' and extend_from:
+            raise ValueError('v3 does not reuse the legacy budget extension contract')
         extension = None
         if extend_from:
             prior, extension = load_approved_extension(extend_from, self.config, self.fingerprint,
@@ -221,6 +234,7 @@ class StageEngine:
             self.serial += 1
             path = self.output/f'checkpoint-{cursor.update:06d}-{self.serial:04d}.pt'
             save_exclusive(path, dict(schema=CHECKPOINT_SCHEMA, stage=stage, status=status,
+                architecture=architecture, evaluation_schema=self.config.get('evaluation_schema','recovery_metrics_v2'),
                 config_sha256=digest(self.config), dataset_fingerprint=self.fingerprint, commit=self.commit,
                 config=deepcopy(self.config), review_receipt=self.review_receipt,
                 model=cpu_copy(self.model.state_dict()), optimizer=cpu_copy(optimizer.state_dict()),
@@ -368,7 +382,13 @@ def main():
     if subprocess.check_output(['git','status','--porcelain'], text=True).strip():
         raise PermissionError('training requires a clean reviewed checkout')
     parent = S0Dataset(config['dataset'], config['selection'])
-    suite = RecoverySuite(parent, config['counterfactuals']['path'], config['counterfactuals']['sha256'])
+    v3 = config.get('model',{}).get('architecture') == 'recovery_v3_joint'
+    if v3:
+        from .dataset_v3 import RecoveryDatasetV3
+        suite = RecoveryDatasetV3(parent, config['data_v3']['path'], config['data_v3']['sha256'])
+    else:
+        suite = RecoverySuite(parent, config['counterfactuals']['path'], config['counterfactuals']['sha256'])
+    pairs = getattr(suite, 'pairs', ())
     authorize(config, receipt, args.stage, suite.fingerprint, commit)
     if Path(args.output).resolve().is_relative_to(parent.root):
         raise ValueError('run output cannot be inside the parent dataset')
@@ -392,6 +412,10 @@ def main():
         def stream():
             for i in range(0,len(suite),config['batch_size']):
                 yield collator([suite[j] for j in range(i,min(len(suite),i+config['batch_size']))]).to(config['device'])
+        if v3:
+            from .evaluation_v3 import evaluate_v3
+            return evaluate_v3(model, stream(), stage=stage, pairs=pairs,
+                expected_ids=[r['sample_id'] for r in suite.records], baseline=baseline)[0]
         return evaluate_recovery(model, stream(), stage=stage,
             expected_ids=[r['sample_id'] for r in suite.records], baseline=baseline)[0]
     event = threading.Event()

@@ -144,6 +144,9 @@ def stage_gate(stage, metrics):
     Thresholds are proposed acceptance criteria, not evidence of achieved skill.
     Joint promotion additionally requires an external full-set regression check.
     """
+    if metrics.get('schema') == 'recovery_metrics_v3':
+        from .evaluation_v3 import gate
+        return gate(stage, metrics)
     if stage not in STAGES:
         raise ValueError('unknown recovery stage')
     from .evaluation import METRICS_SCHEMA

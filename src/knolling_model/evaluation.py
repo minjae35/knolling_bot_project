@@ -12,7 +12,7 @@ from .losses import match_source
 from .diagnostics import condition_labels, success_summary, summarize_diagnostics
 
 
-def semantic_errors(objects, record):
+def semantic_errors(objects, record, *, keep_m=.003, keep_deg=3, axis_deg=5, gap_m=.0051, row_m=.0051):
     """Prediction tolerances, intentionally separate from exact dataset checks."""
     ins = record['instruction']
     by_id = {o.object_id: o for o in objects}
@@ -20,8 +20,8 @@ def semantic_errors(objects, record):
     locks = list(by_id) if record['mode'] == 'no_op' else ins['locked_ids']
     for oid in locks:
         obj = by_id[oid]
-        if (math.hypot(obj.target_pose.x_m-obj.source_pose.x_m, obj.target_pose.y_m-obj.source_pose.y_m) > .003
-                or angle_error(obj.target_pose.theta_rad, obj.source_pose.theta_rad) > math.radians(3)):
+        if (math.hypot(obj.target_pose.x_m-obj.source_pose.x_m, obj.target_pose.y_m-obj.source_pose.y_m) > keep_m
+                or angle_error(obj.target_pose.theta_rad, obj.source_pose.theta_rad) > math.radians(keep_deg)):
             errors.append('keep')
     if ins['keep_all']:
         return sorted(set(errors))
@@ -29,7 +29,7 @@ def semantic_errors(objects, record):
     expected = 0. if ins['axis_alignment'] == 'horizontal' else math.pi/2
     l, b, r, t = REGIONS[ins['region']]
     for obj in selected:
-        if angle_error(obj.target_pose.theta_rad, expected) > math.radians(5):
+        if angle_error(obj.target_pose.theta_rad, expected) > math.radians(axis_deg):
             errors.append('axis_alignment')
         xmin, ymin, xmax, ymax = polygon(obj, obj.target_pose).bounds
         if xmin < l-.0001 or ymin < b-.0001 or xmax > r+.0001 or ymax > t+.0001:
@@ -38,7 +38,7 @@ def semantic_errors(objects, record):
     colors = []
     for row in rows:
         representative = (max(o.target_pose.y_m for o in row)+min(o.target_pose.y_m for o in row))/2
-        if any(abs(o.target_pose.y_m-representative) > .0051 for o in row):
+        if any(abs(o.target_pose.y_m-representative) > row_m for o in row):
             errors.append('row_alignment')
         if ins['group_by'] == 'color':
             if len({o.color for o in row}) != 1:
@@ -46,7 +46,7 @@ def semantic_errors(objects, record):
             colors.append(row[0].color)
         for left, right in zip(row, row[1:]):
             gap = polygon(right, right.target_pose).bounds[0]-polygon(left, left.target_pose).bounds[2]
-            if abs(gap-ins['gap_m']) > .0051:
+            if abs(gap-ins['gap_m']) > gap_m:
                 errors.append('horizontal_gap')
     runs = [c for i, c in enumerate(colors) if i == 0 or c != colors[i-1]]
     if len(runs) != len(set(runs)):
@@ -54,7 +54,7 @@ def semantic_errors(objects, record):
     for up, down in zip(rows, rows[1:]):
         gap = min(polygon(o, o.target_pose).bounds[1] for o in up)-max(polygon(o, o.target_pose).bounds[3] for o in down)
         multiplier = 2 if ins['group_by'] == 'color' and up[0].color != down[0].color else 1
-        if abs(gap-multiplier*ins['gap_m']) > .0051:
+        if abs(gap-multiplier*ins['gap_m']) > gap_m:
             errors.append('vertical_gap')
     flat = [o for row in rows for o in row]
     groups = [[o for o in flat if o.color == c] for c in ('red', 'green', 'blue')] if ins['group_by']=='color' else [flat]
@@ -67,7 +67,7 @@ def semantic_errors(objects, record):
 
 
 @torch.no_grad()
-def evaluate_batch(output, batch):
+def evaluate_batch(output, batch, *, semantic_check=semantic_errors):
     rows = []
     for b, (truth, meta) in enumerate(zip(batch.supervision, batch.metadata)):
         source = {k: v[b:b+1] for k, v in output['source'].items()}
@@ -122,7 +122,7 @@ def evaluate_batch(output, batch):
                     positions.append(float(torch.linalg.vector_norm(xy-truth['target_xy'][i]))*1000)
                     angles.append(math.degrees(float(angle_delta(angle, truth['target_angle'][i]).abs())))
             safety = geometry(positioned, 'target_pose', .010, .010)
-            semantics = semantic_errors(positioned, meta['record'])
+            semantics = semantic_check(positioned, meta['record'])
             row['stages'].append({'position_mm': positions, 'angle_deg': angles,
                                   'geometry_success': all(good) and safety.valid,
                                   'geometry_errors': safety.errors,
