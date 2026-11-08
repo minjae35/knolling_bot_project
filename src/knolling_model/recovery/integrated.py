@@ -205,7 +205,7 @@ class IntegratedEngine:
             cursor=vars(self.cursor).copy(), rng=rng_state(), baseline=self.baseline,
             completed=deepcopy(self.completed), goal_contract=deepcopy(self.config['goal_contract']),
             goal_parent_sha256=self.goal_parent, purpose='diagnostic' if (
-                self.stage == 'micro_pose' or self.config.get('alternating_pose', {}).get('diagnostic') == 'xy_feature_only_v1'
+                self.stage == 'micro_pose' or self.config.get('alternating_pose', {}).get('diagnostic') in ('xy_feature_only_v1', 'xy_feature_window_v1')
             ) else 'production',
             micro_case=self.case, micro_evidence=self.micro_evidence, metrics=metrics,
             error=error, anchor_sha256=self.anchor_sha, integrated=self.capture_state(),

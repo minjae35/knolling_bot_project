@@ -29,12 +29,13 @@ POLICY = dict(schema=SCHEMA, source_sha256=SOURCE_SHA, records=76, pairs=35,
               head_seconds=10, head_time_mode='solver', finalize_reserve_seconds=10,
               xy_solver='svd_huber_v1')
 XY_POLICY = dict(POLICY, diagnostic='xy_feature_only_v1')
+XY_WINDOW_POLICY = dict(POLICY, diagnostic='xy_feature_window_v1')
 
 
 def validate_config(config):
     p = config.get('alternating_pose')
     if p is None: return
-    if (p not in (POLICY, XY_POLICY) or any(k in config for k in ('integrated_pose', 'coarse_extension', 'micro_precision'))
+    if (p not in (POLICY, XY_POLICY, XY_WINDOW_POLICY) or any(k in config for k in ('integrated_pose', 'coarse_extension', 'micro_precision'))
             or config['model']['architecture'] != 'recovery_v4_goal_joint'
             or config['stages']['oracle_layout'] != dict(max_updates=10, max_seconds=120)
             or config['layout_lr'] != 1e-4 or config['precision']['oracle_layout'] != 'fp32'):
@@ -193,7 +194,11 @@ class AlternatingEngine(IntegratedEngine):
     """Reuse atomic storage, readout journals, caches, timing and exact RNG restore."""
     @property
     def xy_only(self):
-        return self.config['alternating_pose'].get('diagnostic') == 'xy_feature_only_v1'
+        return self.config['alternating_pose'].get('diagnostic') in ('xy_feature_only_v1', 'xy_feature_window_v1')
+
+    @property
+    def provisional_xy(self):
+        return self.config['alternating_pose'].get('diagnostic') == 'xy_feature_window_v1'
 
     def measured(self):
         with alternating_evaluation(self.model):
@@ -243,6 +248,29 @@ class AlternatingEngine(IntegratedEngine):
     def assess_complete(self):
         metrics = self.measured(); diagnostic = self.diagnostics()
         self.state['last_trial'] = diagnostic
+        if self.provisional_xy:
+            # Finite, fully recalibrated candidates may explore through temporary
+            # regressions. Never replace the original rollback anchor with them.
+            if not retained_trial(diagnostic, diagnostic):
+                raise FloatingPointError('nonfinite XY candidate diagnostic')
+            task_ok = retained(metrics, self.baseline, angles=True)
+            pose_ok = retained_trial(diagnostic, self.state['reference_trial'])
+            passed = (self.cursor.update > 0 and task_ok and pose_ok
+                      and trial_gate(diagnostic, self.state['reference_trial']))
+            old, now = evidence(self.baseline), evidence(metrics)
+            candidate = dict(feature_update=self.cursor.update, diagnostic=deepcopy(diagnostic),
+                task_retained=task_ok, pose_retained=pose_ok, passed=passed,
+                lost_scenes=sorted(set(old['successful_scenes'])-set(now['successful_scenes'])),
+                lost_pairs=sorted(set(old['successful_pairs'])-set(now['successful_pairs'])),
+                keep_violations=now['keep_violations'])
+            self.state.setdefault('candidate_history', []).append(candidate)
+            self.observe('candidate_evaluation', candidate=candidate)
+            if passed:
+                return self.checkpoint('passed', metrics)
+            if self.cursor.update >= self.policy['max_feature_updates']:
+                return self.rollback(metrics, 'final XY diagnostic gate failed at feature cap')
+            self.phase('feature')
+            return None
         if (not retained(metrics, self.baseline, angles=True)
                 or not retained_trial(diagnostic, self.state['accepted_trial'])):
             return self.rollback(metrics, 'angle/Keep/task regression after recalibration')
