@@ -73,7 +73,7 @@ def test_all_phase_resume_and_fresh_final_cache(tmp_path,device,pause_phase):
     state=load_integrated(result['checkpoint'],c,'fixture','test')
     assert state['integrated']['fine_resets']==1 and result['updates']<=12
     caches=[torch.load(p,weights_only=True) for p in (tmp_path/'whole').glob('features-*.pt')]
-    assert len(caches)==4 and caches[0]['producer']!=caches[2]['producer']
+    assert len(caches)==2 and caches[0]['producer']!=caches[1]['producer']
     stop=threading.Event()
     def pause(event,**r):
         if event=='update' and r['phase']==pause_phase:stop.set()

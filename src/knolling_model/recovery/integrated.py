@@ -4,6 +4,8 @@ Only micro_pose and oracle_layout use this engine. Other stages retain the
 existing driver. Atomic accepted-head journals precede observer/report calls.
 """
 from copy import deepcopy
+from contextlib import contextmanager
+from functools import wraps
 import math
 from pathlib import Path
 
@@ -22,12 +24,27 @@ SCHEMA = 'integrated_pose_v1'
 JOURNAL = 'integrated_readout_journal_v1'
 
 
+def timed(category):
+    def decorate(method):
+        @wraps(method)
+        def wrapped(self, *args, **kwargs):
+            with self.measure(category):
+                return method(self, *args, **kwargs)
+        return wrapped
+    return decorate
+
+
 def validate_config(config):
     policy = config.get('integrated_pose')
     if policy is None: return
     if (policy.get('schema') != SCHEMA or config['model']['architecture'] != 'recovery_v4_goal_joint'
             or config.get('micro_precision') is not None or config['layout_lr'] != 1e-4
-            or set(policy) != {'schema', 'stages', 'head_seconds'}
+            or set(policy) - {'schema', 'stages', 'head_seconds', 'head_time_mode', 'finalize_reserve_seconds'}
+            or not {'schema', 'stages', 'head_seconds'} <= set(policy)
+            or policy.get('head_time_mode', 'wall') not in ('wall', 'solver')
+            or type(policy.get('finalize_reserve_seconds', 0)) not in (int, float)
+            or not math.isfinite(policy.get('finalize_reserve_seconds', 0))
+            or policy.get('finalize_reserve_seconds', 0) < 0
             or type(policy['head_seconds']) not in (float, int) or not 0 < policy['head_seconds'] <= 10
             or set(policy['stages']) != {'micro_pose', 'oracle_layout'}):
         raise ValueError('invalid integrated pose policy')
@@ -35,6 +52,7 @@ def validate_config(config):
         limit = config['micro_pose'] if stage == 'micro_pose' else config['stages'][stage]
         if (tuple(caps) != PHASES or any(type(v) is not int or v <= 0 for v in caps.values())
                 or sum(caps.values()) != limit['max_updates']
+                or policy.get('finalize_reserve_seconds', 0) >= limit['max_seconds']
                 or config.get('precision', {}).get(stage, 'fp32') != 'fp32'):
             raise ValueError('integrated phase budgets/precision mismatch')
 
@@ -107,6 +125,47 @@ class IntegratedEngine:
         self.model, self.config = engine.model, engine.config
         self.cache = self.solver = None
         self.serial = 0; self.base = None; self.observer_errors = []
+        self._hashes = {}
+        self._timing_stack = []
+
+    def charge_time(self):
+        now = self.e.clock()
+        category = self._timing_stack[-1] if self._timing_stack else 'other'
+        for scope in ('total', 'phase'):
+            times = self.state['timing'][scope]
+            times[category] = times.get(category, 0.) + max(0., now - self._timing_mark)
+        self._timing_mark = now
+
+    @contextmanager
+    def measure(self, category):
+        self.charge_time(); self._timing_stack.append(category)
+        device = next(self.model.parameters()).device
+        try:
+            if category in ('solver', 'adam') and device.type == 'cuda': torch.cuda.synchronize(device)
+            yield
+        finally:
+            if category in ('solver', 'adam') and device.type == 'cuda': torch.cuda.synchronize(device)
+            self.charge_time(); self._timing_stack.pop()
+
+    @timed('hashing')
+    def immutable_hash(self, path):
+        """Trust only files hashed in this process with unchanged identity/metadata.
+
+        Resume still verifies full contents through load_integrated/restore_cache.
+        Never cache a digest supplied by an unverified checkpoint or journal.
+        """
+        path = Path(path).resolve(); s = path.stat()
+        stamp = (s.st_dev, s.st_ino, s.st_size, s.st_mtime_ns, s.st_ctime_ns)
+        prior = self._hashes.get(path)
+        if prior is not None:
+            if prior[0] != stamp: raise ValueError('immutable artifact changed')
+            return prior[1]
+        value = file_hash(path)
+        after = path.stat()
+        if stamp != (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, after.st_ctime_ns):
+            raise ValueError('immutable artifact changed during hashing')
+        self._hashes[path] = (stamp, value)
+        return value
 
     def elapsed(self): return self.elapsed_origin + self.e.clock() - self.started
 
@@ -114,6 +173,7 @@ class IntegratedEngine:
         return self.state['phase_seconds'] + self.elapsed() - self.phase_clock
 
     def capture_state(self):
+        self.charge_time()
         state = deepcopy(self.state)
         state['phase_seconds'] = self.phase_elapsed()
         if self.solver: state['solver'] = cpu_copy(self.solver.state_dict())
@@ -128,6 +188,7 @@ class IntegratedEngine:
             # Diagnostics must never discard accepted learned weights.
             self.observer_errors.append(f'{type(exc).__name__}: {exc}')
 
+    @timed('checkpoint_io')
     def checkpoint(self, status='running', metrics=None, error=None):
         self.cursor.elapsed_seconds = self.elapsed(); self.serial += 1
         path = self.e.output / f'checkpoint-{self.cursor.update:06d}-{self.serial:04d}.pt'
@@ -151,20 +212,26 @@ class IntegratedEngine:
         self.observe('checkpoint', status=status, checkpoint=str(path), error=error)
         return result
 
+    @timed('journal_io')
     def journal(self):
         """Small, resumable head snapshot saved BEFORE observers/evaluation/audits."""
         self.cursor.elapsed_seconds = self.elapsed(); self.serial += 1
         path = self.e.output / f'readout-{self.cursor.update:06d}-{self.serial:04d}.pt'
-        save_exclusive(path, dict(schema=JOURNAL, base=str(self.base.resolve()), base_sha256=file_hash(self.base),
+        save_exclusive(path, dict(schema=JOURNAL, base=str(self.base.resolve()), base_sha256=self.immutable_hash(self.base),
             weight=self.solver.weight.detach().cpu().clone(), bias=self.solver.bias.detach().cpu().clone(),
             integrated=self.capture_state(), cursor=vars(self.cursor).copy(), rng=rng_state()))
         return path
 
     def check(self, *, head=False):
         if self.e.stop.is_set(): raise InterruptedTrial('paused')
-        if self.elapsed() >= self.spec['max_seconds']: raise InterruptedTrial('time_budget')
-        if head and self.phase_elapsed() >= self.policy['head_seconds']: raise InterruptedTrial('head_time_budget')
+        if self.elapsed() >= self.spec['max_seconds'] - self.policy.get('finalize_reserve_seconds', 0):
+            raise InterruptedTrial('time_budget')
+        self.charge_time()
+        head_seconds = (self.state['timing']['phase'].get('solver', 0.)
+                        if self.policy.get('head_time_mode', 'wall') == 'solver' else self.phase_elapsed())
+        if head and head_seconds >= self.policy['head_seconds']: raise InterruptedTrial('head_time_budget')
 
+    @timed('evaluation')
     def measured(self):
         metrics = self.e.evaluate(self.stage, self.baseline)
         if set(evidence(metrics)['sample_ids']) != set(self.e.expected_ids):
@@ -197,16 +264,23 @@ class IntegratedEngine:
         return None
 
     def set_phase(self, phase, metrics):
+        self.charge_time()
+        # Adjacent XY -> angle phases have identical feature-producing weights.
+        reuse = (self.state['phase'], phase) in (('head_xy', 'head_angle'), ('final_xy', 'final_angle'))
+        cached = {k: self.state[k] for k in ('cache_path', 'cache_sha256', 'cache_key')} if reuse else {}
+        cache = self.cache if reuse else None
         self.state.update(phase=phase, phase_update=0, phase_seconds=0., solver=None,
                           cache_path=None, cache_sha256=None, cache_key=None, head_diagnostic=None,
                           pending_head=None)
+        self.state.update(cached); self.state['timing']['phase'] = {}
         self.phase_clock = self.elapsed()
-        self.cache = self.solver = None
-        self.anchor = cpu_copy(self.model.state_dict()); self.baseline = metrics
-        self.serial += 1
-        anchor_path = self.e.output / f'phase-anchor-{self.serial:04d}.pt'
-        save_exclusive(anchor_path, self.anchor)
-        self.anchor_sha = file_hash(anchor_path); self.state['anchor_path'] = str(anchor_path.resolve())
+        self.cache, self.solver = cache, None
+        with self.measure('checkpoint_io'):
+            self.anchor = cpu_copy(self.model.state_dict()); self.baseline = metrics
+            self.serial += 1
+            anchor_path = self.e.output / f'phase-anchor-{self.serial:04d}.pt'
+            save_exclusive(anchor_path, self.anchor)
+            self.anchor_sha = self.immutable_hash(anchor_path); self.state['anchor_path'] = str(anchor_path.resolve())
         if phase == 'fine':
             if self.state['fine_resets'] != 0: raise ValueError('duplicate fine reset')
             self.adam.enter_fine(); self.state['fine_resets'] = 1
@@ -215,6 +289,7 @@ class IntegratedEngine:
         self.checkpoint('running', metrics)
         self.observe('phase_transition', next_phase=phase)
 
+    @timed('feature_cache')
     def restore_cache(self):
         path = Path(self.state['cache_path'])
         if file_hash(path) != self.state['cache_sha256']: raise ValueError('cache artifact hash mismatch')
@@ -224,8 +299,13 @@ class IntegratedEngine:
         if self.cache.key != self.state['cache_key']: raise ValueError('cache key mismatch')
         self.solver = HeadFitter(self.model, self.cache, HEADS[self.state['phase']], self.state['solver'])
 
+    @timed('feature_cache')
     def prepare_head(self):
         if self.solver is not None: return
+        if self.cache is not None:
+            # In-memory reuse only after the controlled frozen-head transition.
+            self.solver = HeadFitter(self.model, self.cache, HEADS[self.state['phase']])
+            return
         if self.state['cache_path']:
             self.restore_cache(); return
         self.cache = collect_readout(self.model, self.e.readout_batches(), expected_ids=self.e.expected_ids,
@@ -235,8 +315,11 @@ class IntegratedEngine:
         self.state.update(cache_path=str(path.resolve()), cache_sha256=file_hash(path), cache_key=self.cache.key)
         self.solver = HeadFitter(self.model, self.cache, HEADS[self.state['phase']])
         self.state['solver'] = cpu_copy(self.solver.state_dict())
-        self.checkpoint('running', self.baseline)
+        # Base already captures phase/anchor/optimizer. Publish cache and solver
+        # metadata durably without duplicating the full frozen model a second time.
+        self.journal()
 
+    @timed('adam')
     def adam_step(self, item):
         self.check(); self.adam.activate(); self.adam.optimizer.zero_grad(set_to_none=True)
         rng = rng_state()
@@ -258,10 +341,11 @@ class IntegratedEngine:
         return float(loss.detach()), float(norm), {k: float(v.detach()) for k, v in terms.items()}
 
     def advance(self, metrics):
+        self.charge_time()
         phase = self.state['phase']
         self.state['phase_results'].append(dict(phase=phase, updates=self.state['phase_update'],
             elapsed_seconds=self.phase_elapsed(), metrics=metrics,
-            readout=deepcopy(self.state.get('head_diagnostic'))))
+            readout=deepcopy(self.state.get('head_diagnostic')), timing=deepcopy(self.state['timing']['phase'])))
         if phase == 'head_angle' and not near(metrics):
             return self.checkpoint('fine_ineligible', metrics, 'full-set maximum errors exceed 10mm/2deg')
         index = PHASES.index(phase)
@@ -314,6 +398,7 @@ class IntegratedEngine:
             cache_path=None, cache_sha256=None, cache_key=None, solver=None, anchor_path=None,
             phase_results=[], head_diagnostic=None, pending_head=None)
         self.state.setdefault('pending_head', None)
+        self.state.setdefault('timing', dict(total={}, phase={}))
         pending = self.state['pending_head']
         if pending is not None and (self.state['phase'] not in HEADS or not isinstance(pending, dict)
                 or set(pending) != {'phase_done'} or type(pending['phase_done']) is not bool):
@@ -336,9 +421,11 @@ class IntegratedEngine:
         else:
             self.anchor = cpu_copy(self.model.state_dict()); self.baseline = None
         e.output.mkdir(parents=True, exist_ok=False)
-        save_exclusive(e.output/'anchor.pt', self.anchor)
-        self.anchor_sha = file_hash(e.output/'anchor.pt'); self.state['anchor_path'] = str((e.output/'anchor.pt').resolve())
         self.elapsed_origin = self.cursor.elapsed_seconds; self.started = e.clock(); self.phase_clock = self.elapsed_origin
+        self._timing_mark = e.clock()
+        with self.measure('checkpoint_io'):
+            save_exclusive(e.output/'anchor.pt', self.anchor)
+            self.anchor_sha = self.immutable_hash(e.output/'anchor.pt'); self.state['anchor_path'] = str((e.output/'anchor.pt').resolve())
         if self.state['phase'] in HEADS:
             self.model.requires_grad_(False); self.model.eval()
         try:
@@ -376,7 +463,8 @@ class IntegratedEngine:
                             self.state['head_diagnostic'] = dict(self.solver.measurements(), reason='criterion_or_iteration_cap')
                         else:
                             def count(): self.state['closure_evaluations'] += 1
-                            loss, converged = self.solver.step(lambda: self.check(head=True), count)
+                            with self.measure('solver'):
+                                loss, converged = self.solver.step(lambda: self.check(head=True), count)
                             self.cursor.update += 1; self.state['phase_update'] += 1
                             self.state['head_diagnostic'] = dict(self.solver.measurements(), loss=loss,
                                 reason='converged' if converged else 'accepted', converged=converged)
@@ -427,3 +515,14 @@ class IntegratedEngine:
             return self.assess(metrics) or self.checkpoint('budget_exhausted', metrics, exc.reason)
         except Exception as exc:
             return self.rollback(None, f'{type(exc).__name__}: {exc}')
+        finally:
+            self.charge_time()
+            from .driver import save_json_exclusive
+            try:
+                save_json_exclusive(e.output/'timing.json', dict(
+                    elapsed_seconds=self.elapsed(), timing=deepcopy(self.state['timing']),
+                    head_time_mode=self.policy.get('head_time_mode', 'wall'),
+                    max_seconds=self.spec['max_seconds'],
+                    finalize_reserve_seconds=self.policy.get('finalize_reserve_seconds', 0)))
+            except Exception as exc:
+                self.observe('timing_report_error', error=f'{type(exc).__name__}: {exc}')
