@@ -1,129 +1,131 @@
-# Neural Knolling recovery — implementation review
+# Neural Knolling recovery — 수정 후 재검토 자료
 
-**상태: 구현·CPU 검증 단계. GPU 학습, optimizer update, 실험 실행, 성능 개선 입증은 하지 않았다.**
+**상태: 코드·CPU/CUDA 검증 완료, 실제 모델 학습 및 성능 실험 미실행. Work 재검토 대기.**
 
-브랜치: `codex/neural-recovery-review`  
-기준 커밋: `dbd68d08df936d6d470c62fab4e017c57c76ddeb`  
-검토 설정: [`configs/recovery_review.json`](../configs/recovery_review.json)
+- 브랜치: `feat/neural-recovery`; 수정 전 기준: `9b141c3`.
+- 이 문서는 이전 구현 보고서를 갱신한다. 이전 보고서는 Git의 `9b141c3`에서 확인할 수 있다.
+- 실행 설정: [`recovery_execution.json`](../configs/recovery_execution.json). 기본값은 `review_only`, `allow_training=false`다.
+- 모든 Python 검증은 Conda `knolling`(`/venv/knolling`)에서 수행했다. 추가 패키지를 설치하지 않았다.
 
-## 1. 변경 목적과 보존 범위
+## 1. 검토 지적과 실제 수정
 
-기존 S0에서는 검출 개수 오류, confidence와 geometry의 결합, 언어별 target orientation 구분 실패가 동시에 발생했다. 복구 구현은 검출과 layout을 각각 검증한 후 연결할 수 있게 만든다.
+| 지적 / 확인한 원인 | 수정 | 확인한 근거 |
+|---|---|---|
+| Arrangement 학습은 전체 query에서 Hungarian matching하고 추론은 foreground ≥0.5를 선택 | 공통 `select_queries()`로 먼저 같은 query를 선택하고, 그 안에서 source 정답만 대응. 개수·capacity·10mm 대응 조건 실패 시 `SourceSelectionError` | confidence 경계에서 학습 `[0,2]` / 추론 `[0,1]`로 갈리던 회귀 fixture; 선택 query 동일성 및 CUDA train/inference 출력 비교 |
+| 평가 출력과 gate 입력 schema가 달라 실제 측정으로 통과 불가; 단일 target을 3-stage처럼 보고 | `recovery_metrics_v2`와 실제 evaluator를 직접 연결. oracle/perception/predicted 경로 분리, 예상 sample ID 전부 존재해야 complete | 실제 evaluator 출력으로 4개 gate 검사, 누락 평가·무시된 axis 명령·중복 검출 실패 확인. fixture 통과는 모델 성능이 아님 |
+| 학습 단계 함수만 있고 실행·중단·checkpoint 운용 없음 | 1회 호출당 1단계 실행 driver, 이전 gate 통과 요구, update/time 제한, checkpoint/resume/rollback 구현 | scalar fixture에서 연속/재개 실행의 가중치·Adam 상태·cursor 일치, 단계 건너뛰기 거부, nonfinite/selection/회귀 rollback |
+| Counterfactual은 instruction 생성 함수만 존재; 새 Teacher/로더 연결 없음 | 검증된 64개 target record 생성, 원본 32개와 `RecoverySuite`로 연결. Teacher replay·hash·family/split·영어 의미 검사 | 32쌍 모두 양방향 명령 구분 및 geometry 검증, 64개 Teacher target 재현, 전체 bundle 재생성 SHA 일치 |
 
-- 유지한 목표: **BEV RGB + 자연어 → 물체별 target `(x, y, theta)`**.
-- 추론 입력은 RGB와 tokenized text뿐이다. Teacher, GT 개수, GT source 속성, 정답 prefix, 명령 parser, layout repair planner를 사용하지 않는다.
-- 기존 `knolling_model` 모델·runner·loss·evaluator 및 기존 Teacher는 변경하지 않았다. 새 구현은 `knolling_model/recovery/`와 별도 Teacher 모듈에 있다.
-- 기존 Dataset, Checkpoint, 실험 결과를 읽기 전용 입력으로만 사용했다. 새 데이터셋·학습 checkpoint를 생성하지 않았다.
-- 기존 학습 checkpoint와 새 모델은 구조가 다르다. `load_recovery()`는 기존에 pin한 R18/MiniLM 기반 가중치를 캐시에서 읽고 새 task head/layout을 초기화한다. legacy S0 checkpoint를 자동 변환하지 않는다.
+구현 위치: [`selection.py`](../src/knolling_model/recovery/selection.py), [`evaluation.py`](../src/knolling_model/recovery/evaluation.py), [`stages.py`](../src/knolling_model/recovery/stages.py), [`driver.py`](../src/knolling_model/recovery/driver.py), [`counterfactuals.py`](../src/knolling_model/recovery/counterfactuals.py).
 
-## 2. 구현된 아키텍처
+## 2. 유지한 아키텍처와 GT 경계
 
 ```text
-BEV RGB ── RT-DETR-R18 + task foreground + physical heads
-                    │
-                    └─ xy / size / periodic angle / color·shape probabilities
-                       + valid mask + source query identity
-English ── frozen MiniLM ── trainable projection
-                    │
-                    └─ object/text Transformer ── autoregressive pose decoder
-                                                 ├─ xy
-                                                 ├─ angle bin + residual
-                                                 ├─ move/keep
-                                                 └─ selection, axis, region auxiliaries
+BEV RGB → RT-DETR-R18 foreground / physical heads
+          → 추론 foreground query 선택
+          → xy, size, periodic angle, color/shape probabilities, query identity
+English → frozen MiniLM → trainable projection
+          → object/text Transformer → autoregressive target pose + move/keep
 ```
 
-| 구성 | 구현 | 검토 시 유의점 |
-|---|---|---|
-| 검출 | COCO class max 대신 encoder/각 decoder에 1-class foreground head | 새 head는 초기화되므로 학습 전 confidence 성능을 주장할 수 없음 |
-| Detection loss | VFL 1 / box L1 5 / GIoU 2, matcher 2/5/2, encoder·decoder auxiliary, DN | geometry gradient를 유지하는 adapter이므로 native 학습의 detach 정책과는 다름 |
-| Denoising | GT DN query를 normal query와 분리, self-attention mask 적용 | 모든 normal stage의 matching·physical head에서 DN 제외 |
-| 물체 인터페이스 | 12개 연속 속성: xy 2 + size 2 + cos/sin(2θ) 2 + color 3 + shape 3 | raw detector token과 confidence를 layout geometry 입력에서 제거 |
-| Layout | 기본 128차원, 2층 object/text encoder + 2층 causal decoder | 원래 source query 순서로 출력; target 위치로 정렬하지 않음 |
-| Orientation | π-periodic 18 bins + 각 bin의 residual | 10° 간격; 수평·수직이 bin 중심. 최종 bin은 hard 선택 |
-| Move/keep | 학습된 keep 결정이면 해당 source pose를 복사 | GT의 정확한 변화량 기준 label 사용. 기존 3mm/3° 평가 label과 구분 |
-| 언어 | MiniLM 고정, projection·layout 학습, selection/axis/region 보조 loss | 보조 정답은 loss에만 제공. 추론에서 정답 의미 필드를 전달하지 않음 |
+- 추론은 RGB와 tokenized English만 받는다. GT 개수·속성·target prefix·명령 parser·Teacher·rule-based 배치 planner를 전달하지 않는다.
+- Oracle 단계만 GT source를 받는 명시적 진단이다. Predicted/joint에서는 **query 선택 후** GT를 loss label에 대응한다. 부족한 검출을 GT로 보충하지 않는다.
+- Joint에서는 연속 source 속성을 통한 layout → perception gradient를 유지한다. Foreground threshold, move 결정, orientation bin의 이산 선택 자체가 미분 가능하다는 주장은 하지 않는다.
+- 기존 DN 분리·mask, 1-class foreground, π-periodic bin/residual, learned keep, 별도 unique-source detection replay를 유지했다.
+- 이번 수정에서 기존 legacy evaluator의 기본 3-stage 동작은 유지하고, 선택적인 `stage_count`만 추가했다. Recovery target은 1개, perception-only 보고서는 layout 결과를 미측정으로 표시한다.
 
-물체 선택 threshold와 angle bin/move 결정은 이산적이다. 연속 source 속성을 통한 RGB→target gradient 경로를 검증했으며, 이산 선택 자체가 미분 가능하다고 주장하지 않는다. Move/selection/bin은 별도 분류 loss로 학습한다.
+## 3. 실제 평가와 단계 통과 기준
 
-**HF 4.57.3 관련 주의:** 설치된 `RTDetrForObjectDetectionLoss` wrapper는 auxiliary DN split과 달리 final Hungarian 입력에서는 DN을 분리하지 않는다. 새 adapter는 `RTDetrLoss`에 normal query만 전달하고 DN loss를 별도로 구성한다. 작은 실제 RT-DETR 모듈에서 normal query 출력의 DN 유무 동등성 및 matching query 수를 테스트했다. 의존성 버전은 4.57.3으로 제한했다.
+모든 gate는 올바른 schema/단계, free rollout, pin한 전체 sample ID 일치를 요구한다. 물체를 누락하거나 capacity를 초과한 샘플은 실패로 남긴다.
 
-## 3. 단계별 학습 연결 — 실행하지 않음
-
-[`stages.py`](../src/knolling_model/recovery/stages.py)는 loss와 동결 설정만 구성한다. `backward`, optimizer 생성/step, checkpoint 저장, GPU 전송 또는 학습 loop는 실행하지 않는다. 향후 실제 학습 driver·resume·checkpoint 운용은 검토 후 별도로 연결해야 한다. 기존 S0 runner는 recovery 설정 schema를 거부한다.
-
-| 단계 | 입력/학습 대상 | 구현된 분리 | 향후 제안 상한 |
+| 단계 | 학습 대상 / 데이터 | 통과 기준 | 실행 상한 |
 |---|---|---|---|
-| 1 `oracle_layout` | GT source 속성 + 실제 English, layout만 학습 | 명시적인 진단 경로. 최종 시스템 성능으로 보고 금지 | 500 updates / 10분 |
-| 2 `perception` | RGB, 검출·physical heads | 원본 장면을 중복 없이 순회, native-style detection + DN | 1,000 / 45분 |
-| 3 `predicted_layout` | 예측 source 속성 + English, perception 고정 | source-only matching으로 학습 label 정렬. optional measured noise | 1,000 / 30분 |
-| 4 `joint` | RGB + English | 마지막 detector decoder/box/class head와 physical heads만 해제, layout 학습, 별도 detection replay 필수 | 300 / 15분 |
+| `oracle_layout` | GT source + English, layout | target P95 ≤1mm/2°, move 100%, pure-axis 100% | 500 updates / 600초 |
+| `perception` | RGB, 25개 unique source | count/coverage 100%, FP/FN 0, source 위치·크기 P95 ≤1mm, 각도 ≤2°, color/shape 100% | 1,000 / 2,700초 |
+| `predicted_layout` | 예측 source + English, perception 고정 | source 기준 + legacy S0 gate + 전체 task/pure-axis 100%, mode별 회귀 없음 | 1,000 / 1,800초 |
+| `joint` | layout 및 detector 마지막 decoder/heads, 별도 detection replay | 위 기준 + 단계 시작 reference 대비 전체 회귀 없음 | 300 / 900초 |
 
-상한은 제안값이다. 이 구현에는 update/time 실행 loop가 없으므로 실행 상한을 집행했다고 주장하지 않는다. `configure_stage()`는 shape/gradient 진단을 위해 각 단계를 직접 선택할 수 있다. `stage_gate()`는 측정값을 검증하는 함수이며, 실제 학습의 단계 전환을 자동 승인하지 않는다.
+- FP/FN은 source 중심거리 ≤10mm 및 footprint IoU ≥0.5의 독립 대응으로 센다. 단순 검출 개수 차이로 서로 상쇄하지 않는다.
+- Pure-axis는 같은 RGB에서 axis만 바꾼 검증된 pair에 대해 **두 자기 명령 성공 + 두 반대 명령 실패**를 요구한다. pair가 없거나 반쪽만 평가되면 통과하지 못한다.
+- Color/shape/move 정확도의 분모는 전체 GT 물체다. 미검출을 분모에서 제거하지 않는다.
+- 전체 회귀 비교는 동일 sample set의 count/coverage/FP/FN, source·target P95, task/axis/move/color/shape 및 mode별 task success를 포함한다.
+- Oracle target P95 기준은 모든 물체의 최대 오차 기준이 아니다. Predicted/joint 단계는 추가로 전체 semantic/geometry task success를 요구한다.
+- **실제 모델이 이 gate를 통과했다는 결과는 아직 없다.**
 
-- Layout 노출은 full/partial/no-op를 동일 횟수로 맞추면서 모든 명령을 최소 한 번 포함한다.
-- Perception은 S0의 25개 unique source를 한 번씩 순회한다. Joint에는 이 별도 stream을 넣으며, 한 epoch 안에 전체 source와 전체 instruction을 모두 포함한다.
-- Teacher forcing은 layout warmup 전용 API이며 eval mode에서 거부한다. 기본 경로는 free rollout이다.
-- Stage 3/4의 training matching은 정답 source와 대응되는 query를 confidence 아래에서도 고를 수 있다. **이 결과는 조건부 진단**이다. 추론에서는 예측 foreground만으로 물체를 선택하므로 별도 count/coverage gate를 반드시 통과해야 한다.
-- Noise는 caller가 명시한 측정 표준편차와 generator를 요구한다. 임의의 noise 값이나 semantic confusion model을 기본값으로 넣지 않았다.
-- 제안 gate: oracle target P95 ≤1mm/2°, move·pure-axis 통과 → perception count/coverage 100%, FP/FN 0, source P95 ≤1mm/2° → strict legacy S0 및 semantic/counterfactual 통과 → joint 전체 회귀 없음.
-- 실제 gate 결과는 아직 없다. 단위 테스트의 synthetic 통과는 이 gate의 실험 통과가 아니다.
+## 4. Dataset / Teacher 검증과 한계
 
-## 4. 데이터와 Teacher 후보
+새 bundle: `artifacts/recovery_v2_controls/counterfactuals.json`.
 
-[`data.py`](../src/knolling_model/recovery/data.py)는 기존 데이터를 감싸 supervision만 확장한다. family split 중복 검증, axis/region/gap/order/group 한 요인 contrast, observable selection contrast 생성 함수를 추가했다. 반환값은 메모리 내 instruction이며, feasibility와 teacher target 검증 후 새 버전 데이터로 작성해야 한다. 기존 130개 record를 재작성하지 않았다.
+- **64 records / 32 pairs:** pure-axis 21쌍, region 5쌍, selection 6쌍.
+- 원본 S0 32개를 포함한 suite는 **96개**, 원래 **25 source families**를 공유한다. RGB를 다시 렌더링하지 않았다.
+- 기존 split을 그대로 상속한다. 이 suite는 Train의 S0 복구·명령 구분용이며 **held-out 일반화 평가 데이터가 아니다**.
+- 부모 manifest, source, source RGB SHA, family/split, pair 구성, 영어와 구조화 명령의 일치, geometry/semantic 유효성을 확인한다. 기본 로딩 시 새 Teacher를 재실행하여 target과 비교한다.
+- 기존 Teacher와 새 Teacher가 **동일 source/RGB와 동일 문장에 다른 target**을 붙이는 경우를 발견해 생성 시 제외하고 로더에서도 거부한다. 기존 label은 그대로 유지한다.
+- 새 `continuous_envelope_v0_review` Teacher는 offline 전용이며 기존 default Teacher를 바꾸지 않았다. 새 contrast target에만 적용한다.
+- 연속 위치 투영, locked object 보존, no-op/full/partial 유효성, 10μm 국소 perturbation, 20개 obstacle-union fixture의 격자 참조 대비 거리 검사를 통과했다.
+- Template 전환·장애물 양쪽 동률에서 불연속이 남는다. 보수적인 envelope 때문에 가능한 문제도 generation failure로 거부할 수 있다. 대규모 안정성·일반화를 입증하지 않았다.
 
-[`teacher_continuous.py`](../src/knolling_dataset/teacher_continuous.py)는 `continuous_envelope_v0_review`라는 **offline 전용 후보**다. 기존 정책 registry/default에 등록하지 않았다.
+Bundle SHA-256:
+`2110de927ab86fc3b0b6e2a7f8a768a61d71e7ef4da23d13136f58217facccac`
 
-- Balanced row template의 이동 중심을 연속 좌표로 선택하므로 기존 5mm 이동 격자를 사용하지 않는다.
-- Locked object는 정확히 보존하며, 모든 결과를 기존 geometry/semantic validator로 확인한다.
-- Bounding-envelope obstacle 제약은 보수적이다. 후보 소진은 `generation_failure`로 반환하며 실제 물리적 infeasible이라고 단정하지 않는다.
-- Template 변경, 영역 경계, 장애물 양쪽 선택, 동률 등에서 불연속은 여전히 가능하다. 작은 단일 perturbation fixture 통과가 전체 안정성을 보장하지 않는다.
-- 아직 64–128개 contrast 생성, 대규모 geometric-only corpus 생성, render, perturbation sweep을 수행하지 않았다.
+Suite fingerprint:
+`e515a4694af4a57bc803b0a40e86665e96f596bd30aa8f01de834b485ed7db2b`
 
-## 5. 평가·검증
+Bundle은 로컬 artifact이며 Git에 포함하지 않는다. 같은 부모 dataset이 있는 새 checkout에서 다음 명령으로 재생성한다. 이미 있는 출력 폴더는 덮어쓰지 않는다.
 
-재현 명령 — 기존 캐시를 사용하며 CPU만 노출:
+```bash
+conda run --no-capture-output -n knolling python -m knolling_model.recovery.counterfactuals \
+  --output artifacts/recovery_v2_controls --pairs 32
+```
+
+## 5. Driver 운용 계약 — 아직 실행 승인하지 않음
+
+- CLI: `python -m knolling_model.recovery.driver`. 반드시 `knolling` 환경에서 사용한다.
+- `--stage`, 새로운 `--output`, `--approval`이 필요하다. 다음 단계는 `--parent-checkpoint`, 동일 단계 재개는 `--resume`을 사용하며 두 옵션은 동시에 사용할 수 없다.
+- 기본 설정은 model/CUDA/output 생성 전에 실행을 거부한다. 향후 실제 실행에는 검토된 별도 설정의 `execution=approved_training`, `allow_training=true`와 review receipt가 필요하다.
+- Receipt 필드: `approved`, `reviewer`, 정확한 `commit`, `config_sha256`(`schema.digest(config)`), `dataset_fingerprint`, 허용 `stages`; CUDA 학습에는 `gpu_training=true` 추가. 이는 실행 실수를 막는 검토 기록이지 서명된 보안 인증은 아니다.
+- 깨끗한 checkout과 code/config/data가 일치해야 한다. 설정 및 receipt도 checkpoint에 남긴다. 이번 작업에서는 실제 학습 승인 receipt를 만들지 않았다.
+- Checkpoint는 model, optimizer, Python/NumPy/Torch/CUDA RNG, update/epoch/batch cursor, 누적 시간, baseline/완료 gate, stage-entry anchor hash를 저장한다. 기존 파일을 원자적으로 덮어쓰지 않는 방식으로 생성한다.
+- SIGINT/SIGTERM은 step 경계에서 pause한다. Forward/backward 도중 중단되어 update하지 않은 batch는 RNG도 복원하여 재개 때 다시 계산한다. 강제 종료는 마지막 durable checkpoint부터 재개한다.
+- 매 실행/재개마다 새 output 디렉터리를 요구한다. `running`/`paused`만 재개 가능하다. `budget_exhausted`/`rolled_back`은 자동 재개하지 않는다.
+- Nonfinite loss/gradient/parameter, selection 실패, joint 회귀는 해당 단계 시작 anchor로 rollback하고 오류 checkpoint를 남긴다. Rollback checkpoint의 optimizer moments는 거부된 경로의 기록이므로 재개에 사용하지 않는다.
+- 이전 gate가 통과한 checkpoint 없이 다음 단계로 진입하지 않는다. 기본 `stop_on_initial_pass=true`는 처음부터 통과한 단계를 update 없이 종료한다.
+- 시간 제한은 optimizer update를 막는 cooperative 제한이다. 이미 진행 중인 kernel·평가·checkpoint 저장을 강제로 끊지는 않으므로 프로세스 종료 시각은 상한을 넘을 수 있다.
+- 기본 경로는 free rollout이다. Source-noise/teacher-forcing 보조 API는 유지하지만 측정된 noise 정책이 없으므로 driver에서 자동 활성화하지 않는다.
+
+## 6. 검증 결과
+
+CPU 재현:
 
 ```bash
 HF_HOME=/workspace/cache/huggingface TORCH_HOME=/workspace/cache/torch \
-  /venv/knolling/bin/python scripts/verify_recovery_cpu.py --cached-model
+  conda run --no-capture-output -n knolling python scripts/verify_recovery_cpu.py --cached-model
 ```
 
-Script는 Python AST 문법 검사, `git diff --check`, 전체 pytest를 수행한다. 테스트 subprocess에 `CUDA_VISIBLE_DEVICES=''`, Hub offline 설정을 강제한다. 새 모델 테스트에는 optimizer step이 없다. 기존 회귀 테스트의 tiny optimizer/checkpoint fixture는 임시 디렉터리에서만 동작한다.
+CUDA 재현 — optimizer 생성/step 없이 forward/backward만 수행:
 
-검증 항목:
+```bash
+CUDA_VISIBLE_DEVICES=0 HF_HOME=/workspace/cache/huggingface TORCH_HOME=/workspace/cache/torch \
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 TOKENIZERS_PARALLELISM=false RUN_RECOVERY_CUDA_TESTS=1 \
+  conda run --no-capture-output -n knolling python -m pytest tests/neural/test_recovery_cuda.py -q -s
+```
 
-- Source meter/image 좌표, 회전 envelope box, ID join 및 padding, source-only detector label.
-- DN batch 크기 2와 서로 다른 object 수, normal query와 GT DN의 격리, native eval output 동등성.
-- 작은 실제 RT-DETR 및 캐시된 실제 R18/MiniLM의 CPU shape·finite backward.
-- RGB→target, geometry/text projection gradient; frozen text/perception에는 gradient 없음.
-- π 경계·수평/수직 bin, keep copy, autoregressive causality, free-rollout prefix 재현, padding 격리.
-- 단계별 parameter freeze, 별도 replay 요구, 전체 source/instruction 노출, teacher-forced eval 거부.
-- 모델이 capacity 8을 넘는 물체를 검출하면 무단 자르지 않고 오류로 표시. 평가에서는 해당 샘플을 count 실패로 남기며 pose 통계에서 성공 샘플처럼 포함하지 않음.
-- strict S0 evaluator를 단일 최종 target stage로 재사용하며 기존 threshold 0.5와 denominator를 유지.
+- AST: **100 Python files**; `git diff --check` 통과.
+- 전체 CPU pytest: **187 passed, 12 skipped**. 실제 cached R18/MiniLM CPU shape/gradient 검사 포함.
+- Skip: CUDA 2개(이 중 recovery CUDA 검사는 아래에서 별도 실행), opt-in legacy pretrained 2개, 렌더링·migration·전체 pilot 검사 8개. 전체 Blender 재생성은 하지 않았다.
+- Driver 단위 테스트 **6개**: scalar fixture만 최적화했다. 실제 Knolling 모델 학습과 구분한다.
+- CUDA: **1 passed**, RTX 4090, Torch `2.9.1+cu128`, CUDA `12.8`. Perception/DN, oracle layout, predicted layout, joint의 finite forward/backward, layout→perception gradient, joint detection replay backward 확인.
+- Predicted/joint CUDA 경로는 미학습 detector의 confidence만 통제한 synthetic 선택 fixture를 사용했다. 미학습 모델 그대로는 `SourceSelectionError`를 내는 것도 확인했다. 이 검사는 정확도를 평가하지 않는다.
+- GPU peak allocated **1,146.4 MiB**, reserved **1,240.0 MiB**. Batch 1의 검증값이며 optimizer state/실제 학습 peak의 추정치가 아니다.
+- 실제 모델 **optimizer update 0회**. 검사 전후 전체 state_dict SHA 비교로 가중치·버퍼 불변 확인. 종료 시 GPU compute process 없음.
+- 기존 `artifacts/` **2,105개 파일**의 경로·크기·mtime 비교: 변경/삭제 0개. 추가된 파일은 새 bundle과 SHA 파일 2개뿐이다. 기존 checkpoint 전체 바이트를 재해시한 검증은 아니다.
 
-검증 기록 (2026-11-08 UTC):
+## 7. Work 재검토 우선순위
 
-- Python AST 문법 검사: **92개 파일 통과**. `git diff --check` 통과.
-- 전체 pytest: **175 passed, 11 skipped**, 37.08초. 새 recovery/Teacher 테스트 24개가 포함되며 실제 cached R18/MiniLM CPU 검사도 통과했다.
-- 생략 11개: CUDA 전용 1개, 별도 opt-in legacy pretrained 검사 2개, 렌더링·migration·전체 pilot deliverable 검사 8개. 이번 범위에서 CUDA/렌더링을 켜지 않았다.
-- 새 모델의 Unit/Shape/Gradient 검증에는 optimizer update가 없으며, 실제 R18/MiniLM에서도 forward/backward만 수행했다.
-- `artifacts/`의 기존 **2,105개 파일**을 작업 전후의 경로·크기·수정 시각으로 비교: 변경·삭제·추가 0개. 데이터 adapter의 기존 manifest/annotation/RGB hash 검증도 통과했다. 전체 checkpoint 바이트를 다시 해시한 검증은 아니다.
-- 종료 확인 시 GPU compute process 없음. GPU 학습·본격 실험·성능 측정 미실행.
+1. **Query/GT 경계:** 선택 정책이 train/inference에서 동일한지, source matching이 label join에만 쓰이는지, strict abort가 기대한 stage 3/4 운용과 맞는지.
+2. **평가/gate:** complete sample set, oracle와 predicted 경로 구분, physical FP/FN, pure-axis 양방향 조건, source-only 보고서, regression 분모·허용오차.
+3. **실행:** checkpoint 계약, stage 순서, data cursor/RNG 재개, 누적 시간 제한, stage-entry rollback 및 비재개 상태. 검토 후 승인할 설정·상한을 확정할 것.
+4. **Teacher/data:** 새 label의 provenance/재현, 기존 label과의 충돌 차단, conservative envelope 및 경계 불연속. 기존 25 family 기반인 점을 감안하고 일반화 자료와 구분할 것.
+5. **남은 설계 위험:** detector query 순서 변화에 대한 AR 안정성, hard move/bin 선택의 gradient 한계, loss 간 규모, 높은 source gate의 달성 가능성. 이번 테스트로 수렴·정확도·실제 knolling 성공률을 입증하지 않았다.
 
-## 6. Work가 독립적으로 검토할 항목
-
-1. **GT 유출:** DN mask와 normal/DN split, final/aux matching, `forward()` 인자, oracle/teacher-forced 경로가 공식 평가에 섞이지 않는지.
-2. **좌표·대응:** y 반전·정규화·π 주기, native box matching의 identity 정확도, source query 순서가 바뀔 때 AR 학습의 안정성.
-3. **Loss 설계:** foreground VFL 초기화, physical loss 규모, exact move label과 최종 허용오차의 차이, angle bin residual 경계, hard keep/bin 선택의 gradient 한계.
-4. **단계별 데이터:** source 중복 제거, full/partial/no-op 노출, stage 3의 조건부 GT matching과 실제 count/coverage 사이 차이, joint replay 및 해제 범위.
-5. **Teacher 후보:** 보수적인 envelope 제약, template/장애물 경계 불연속, no-op 판정, 기존 Teacher와 비교할 별도 버전·평가 정책.
-6. **승인 후 실행 계획:** Stage 1 실패 시 언어/layout부터 수정; Stage 2 실패 시 검출에 한정. 별도 output 디렉터리, schema가 있는 checkpoint/resume, update/time cap, gate 실패 중단·회귀 시 rollback을 학습 driver에 연결한 뒤 실행.
-
-아직 입증하지 않은 것은 **수렴, 실제 정확도, collision-free 성공률, counterfactual 언어 이해, 일반화 및 GPU 성능**이다. CPU gradient가 존재하는 것과 시스템이 학습에 성공하는 것은 별개의 결과다.
-
-## 7. 설계 참고
-
-- [RT-DETR criterion](https://github.com/lyuwenyu/RT-DETR/blob/main/rtdetr_pytorch/src/zoo/rtdetr/rtdetr_criterion.py): detection matching/VFL/box/auxiliary/DN 구성 참고.
-- [Knolling Bot](https://arxiv.org/abs/2310.04566), [StructFormer](https://arxiv.org/abs/2110.10189): object 중심 표현과 autoregressive arrangement 참고. 입력·언어·데이터 조건이 이 프로젝트와 같다는 주장은 하지 않는다.
-- [MultiBin](https://arxiv.org/abs/1612.00496): orientation의 분류+residual 아이디어 참고. 현재 구현은 π-periodic non-overlapping bin으로, 원 논문의 완전한 재현은 아니다.
+이 수정은 **재검토 가능한 구현 상태**를 만든 것이다. 실제 GPU 학습의 시작 여부는 Work 재검토 이후 결정한다.
