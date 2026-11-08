@@ -20,11 +20,11 @@ class PeriodicBins(nn.Module):
             raise ValueError('at least two orientation bins required')
         self.bins = bins
         self.width = math.pi/bins
-        self.register_buffer('centers', -math.pi/2 + (torch.arange(bins)+.5)*self.width)
+        self.register_buffer('centers', (-math.pi/2 + torch.arange(bins, dtype=torch.float64)*self.width).float())
 
     def encode(self, angle):
         wrapped = wrap_pi(angle)
-        index = ((wrapped+math.pi/2)/self.width).floor().long().clamp(0, self.bins-1)
+        index = ((wrapped+math.pi/2)/self.width+.5).floor().long().remainder(self.bins)
         residual = angle_delta(wrapped, self.centers[index])/(self.width/2)
         return index, residual
 

@@ -28,6 +28,8 @@ def test_periodic_angle_bins_at_boundaries_and_no_mode_average():
     residual.scatter_(1, index[:, None], torch.atanh(offset.clamp(-.999999, .999999))[:, None])
     decoded = bins.decode(logits, residual)
     assert angle_delta(decoded, angles).abs().max() < 1e-5
+    _, axis_residual = bins.encode(torch.tensor([0., -torch.pi/2]))
+    torch.testing.assert_close(axis_residual, torch.zeros(2), atol=1e-6, rtol=0)
     scores = torch.zeros(1, 18)
     scores[0, 0], scores[0, 9] = 10., 9.9
     assert abs(float(bins.decode(scores, torch.zeros_like(scores)))) > 1.4
