@@ -43,3 +43,22 @@ def test_teacher_keeps_valid_noop_and_full_geometry(simple_scene, simple_instruc
     vertical = replace(simple_instruction, axis_alignment='vertical')
     full = solve(simple_scene, vertical)
     assert full.status == 'ok' and validate_layout(simple_scene, full.target, vertical, 'full').valid
+
+
+def test_projection_matches_or_improves_exhaustive_grid_reference():
+    import random
+    rng=random.Random(7)
+    for _ in range(20):
+        preferred=(rng.random(),rng.random())
+        forbidden=[]
+        for _ in range(3):
+            x,y=rng.random()*.7,rng.random()*.7
+            forbidden.append((x,y,x+.25,y+.25))
+        result=project_translation(preferred,(0,0,1,1),forbidden)
+        assert result is not None
+        assert not any(a<result[0]<c and b<result[1]<d for a,b,c,d in forbidden)
+        grid=[(x/30,y/30) for x in range(31) for y in range(31)
+              if not any(a<x/30<c and b<y/30<d for a,b,c,d in forbidden)]
+        distance=lambda p:(p[0]-preferred[0])**2+(p[1]-preferred[1])**2
+        assert distance(result) <= min(map(distance,grid))+1e-12
+        assert project_translation(preferred,(0,0,1,1),forbidden)==result
