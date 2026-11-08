@@ -101,3 +101,16 @@ def test_micro_maximum_errors_and_fixed_cases(suite_v3,case):
     m.layout.forward=shifted
     out,_=evaluate_v4(m,b,stage='micro_pose',expected_ids=list(MICRO_CASES[case]),micro_case=case)
     assert not gate('micro_pose',out) and out['micro']['max_position_mm']>1
+
+
+def test_nonfinite_goal_cannot_pass_or_emit_nan_metrics(suite_v3):
+    import json
+    record=next(r for r in suite_v3.records if not r['instruction']['keep_all'] and r['instruction']['axis_alignment']=='horizontal')
+    model=ExactV4Fixture([record]);original=model.layout.goal_encoder.forward
+    def corrupt(*args):
+        goal=original(*args);goal['logits']['axis'].fill_(float('nan'));return goal
+    model.layout.goal_encoder.forward=corrupt
+    out,_=evaluate_v4(model,fixture_batches([record]),stage='grounding',expected_ids=[record['sample_id']])
+    row=out['grounding']['rows'][0]
+    assert not row['passed'] and row['min_true_probability']==0
+    json.dumps(out,allow_nan=False)

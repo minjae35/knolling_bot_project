@@ -72,9 +72,11 @@ def evaluate_goals(model, batches, *, stage, expected_ids, pairs):
                 for q,g in matches:
                     p=goal['selected'][0,q].item();label=bool(labels['goal_selected'][g])
                     probs.append(p if label else 1-p);correct.append((p>=.5)==label)
-                passed=complete_objects and all(correct) and min(probs)>=.9
+                finite=all(math.isfinite(p) for p in probs)
+                minimum=min(probs) if finite else 0.
+                passed=complete_objects and finite and all(correct) and minimum>=.9
                 rows.append(dict(sample_id=r['sample_id'],correct=sum(correct),total=len(correct),
-                                 min_true_probability=min(probs),passed=bool(passed)))
+                                 min_true_probability=minimum,passed=bool(passed)))
         ids=[r['sample_id'] for r in rows]
         complete=expected_ids is not None and len(ids)==len(set(ids))==len(expected_ids)==len(set(expected_ids)) and set(ids)==set(expected_ids)
         return goal_summary(rows,pairs,complete),complete,sorted(ids)
