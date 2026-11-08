@@ -185,3 +185,37 @@ python -m pytest -q -s \
   tests/neural/test_recovery_driver_v4.py \
   tests/neural/test_recovery_evaluation_v4.py
 ```
+
+### P1 correction: interrupted Head candidate evaluation
+
+Independent review of `7aff254` found that a journal saved before evaluation could
+resume with an extra solver update. This could skip the candidate's PASS or
+regression decision and lose the solver's pending phase-exit decision.
+
+The driver now persists `pending_head.phase_done` **before publishing the
+accepted-step journal**. Both uninterrupted and resumed execution resolve that
+candidate through the same full evaluation / Gate / regression / phase-advance
+function. Resume resolves it before any new optimizer step, including when the
+time budget or stop flag is already set. A resume checkpoint retains the pending
+state, so a second crash does not lose the decision. Stage completion, solver
+convergence, diagnostic criterion and iteration-cap exits are preserved.
+
+Existing journal files are never rewritten. A journal lacking the new field can
+recover its pending decision from the saved diagnostics and phase counter;
+existing commit/config/data validation and terminal-run restrictions still apply.
+This is not permission to resume an old commit under different code.
+
+`test_recovery_integrated_resume.py` simulates a process death after the journal
+is durable, bypassing graceful-pause cleanup. It covers all four calibration
+phases with PASS, regression, solver convergence and iteration-cap outcomes on
+CPU/CUDA. It compares exact update/cursor counts, final model weights, Adam and
+L-BFGS states, RNG, reset/closure counters and final metrics against uninterrupted
+execution. It also covers a second crash during resume, old-field journal loading
+and an expired budget. Optimizer updates are confined to synthetic tensor
+fixtures; the existing cached real-model CUDA test performs forward/backward only.
+
+Correction validation in `knolling`: CPU lifecycle suite **40 passed / 25 CUDA
+skipped**; focused CPU/CUDA suite **87 passed** (55.05 s), including readout and
+precision regressions. `compileall` and `git diff --check` passed. All **2,390**
+pre-existing artifact files retained their size and nanosecond modification time.
+No actual model training was launched, and the review-only config remains disabled.

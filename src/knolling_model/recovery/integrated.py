@@ -86,6 +86,13 @@ def load_integrated(path, config, fingerprint, commit):
         saved['model']['layout.pose.output.1.' + name][s].copy_(raw[name])
     for key in ('integrated', 'cursor', 'rng'):
         saved[key] = raw[key]
+    # Older journals also precede evaluation. Recover their pending decision
+    # without modifying the artifact or relaxing code/config/data validation.
+    if 'pending_head' not in saved['integrated']:
+        state = saved['integrated']; diagnostic = state.get('head_diagnostic') or {}
+        cap = config['integrated_pose']['stages'][saved['stage']][state['phase']]
+        state['pending_head'] = dict(phase_done=bool(diagnostic.get('converged')
+            or diagnostic.get('passed') or state['phase_update'] >= cap))
     saved['metrics'] = None; saved['status'] = 'running'
     return saved
 
@@ -179,9 +186,20 @@ class IntegratedEngine:
             return self.checkpoint('passed', metrics)
         return None
 
+    def resolve_head(self):
+        """Finish an accepted candidate before another update, including resume."""
+        pending = self.state['pending_head']
+        metrics = self.measured()
+        self.state['pending_head'] = None
+        done = self.assess(metrics)
+        if done: return done
+        if pending['phase_done']: return self.advance(metrics)
+        return None
+
     def set_phase(self, phase, metrics):
         self.state.update(phase=phase, phase_update=0, phase_seconds=0., solver=None,
-                          cache_path=None, cache_sha256=None, cache_key=None, head_diagnostic=None)
+                          cache_path=None, cache_sha256=None, cache_key=None, head_diagnostic=None,
+                          pending_head=None)
         self.phase_clock = self.elapsed()
         self.cache = self.solver = None
         self.anchor = cpu_copy(self.model.state_dict()); self.baseline = metrics
@@ -294,7 +312,12 @@ class IntegratedEngine:
         self.state = deepcopy(prior['integrated']) if resume else dict(schema=SCHEMA, phase='coarse',
             phase_update=0, phase_seconds=0., closure_evaluations=0, fine_resets=0,
             cache_path=None, cache_sha256=None, cache_key=None, solver=None, anchor_path=None,
-            phase_results=[], head_diagnostic=None)
+            phase_results=[], head_diagnostic=None, pending_head=None)
+        self.state.setdefault('pending_head', None)
+        pending = self.state['pending_head']
+        if pending is not None and (self.state['phase'] not in HEADS or not isinstance(pending, dict)
+                or set(pending) != {'phase_done'} or type(pending['phase_done']) is not bool):
+            raise ValueError('invalid pending head decision')
         if (self.state['phase'] not in PHASES or not 0 <= self.state['phase_update'] <= self.caps[self.state['phase']]
                 or self.state['fine_resets'] != int(self.state['phase'] in ('fine', 'final_xy', 'final_angle'))
                 or not 0 <= self.cursor.update <= self.spec['max_updates']):
@@ -331,6 +354,15 @@ class IntegratedEngine:
             else:
                 self.checkpoint('running', prior.get('metrics'))
             while True:
+                # Journals (and a checkpoint made while resuming one) may hold
+                # an accepted but unassessed candidate. Resolve it even if the
+                # stop/deadline is now set; never issue another solver update.
+                if self.state['pending_head'] is not None:
+                    if self.solver is None and self.state['cache_path']:
+                        self.restore_cache()
+                    done = self.resolve_head()
+                    if done: return done
+                    continue
                 self.check()
                 phase = self.state['phase']
                 if self.cursor.update >= self.spec['max_updates']:
@@ -348,22 +380,21 @@ class IntegratedEngine:
                             self.cursor.update += 1; self.state['phase_update'] += 1
                             self.state['head_diagnostic'] = dict(self.solver.measurements(), loss=loss,
                                 reason='converged' if converged else 'accepted', converged=converged)
+                            phase_done = converged or self.state['head_diagnostic']['passed'] or self.state['phase_update'] >= self.caps[phase]
+                            self.state['pending_head'] = dict(phase_done=bool(phase_done))
                             path = self.journal()
                             self.observe('update', loss=loss, gradient_norm=None, losses={HEADS[phase]: loss},
                                          remaining_seconds=max(0., self.spec['max_seconds']-self.elapsed()),
                                          journal=str(path), closure_evaluations=self.state['closure_evaluations'])
-                            phase_done = converged or self.solver.measurements()['passed'] or self.state['phase_update'] >= self.caps[phase]
                     except InterruptedTrial as exc:
                         if exc.reason != 'head_time_budget': raise
                         self.state['head_diagnostic'] = dict(reason='head_time_budget',
                             **(self.solver.measurements() if self.solver else {}))
                         phase_done = True
                     # Every accepted candidate is durable before any evaluation.
-                    metrics = self.measured(); done = self.assess(metrics)
+                    self.state['pending_head'] = dict(phase_done=bool(phase_done))
+                    done = self.resolve_head()
                     if done: return done
-                    if phase_done:
-                        done = self.advance(metrics)
-                        if done: return done
                 else:
                     if self.state['phase_update'] >= self.caps[phase]:
                         metrics = self.measured(); done = self.assess(metrics) or self.advance(metrics)
