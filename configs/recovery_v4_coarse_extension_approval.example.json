@@ -1,0 +1,23 @@
+{
+  "approved": false,
+  "reviewer": "REQUIRES_USER_GPU_EXECUTION_APPROVAL",
+  "commit": "SET_TO_REVIEWED_TARGET_COMMIT",
+  "config_sha256": "SET_TO_APPROVED_RUNTIME_CONFIG_DIGEST",
+  "dataset_fingerprint": "3af9210f8cdb5d9acda5084200940c4d2407c6a28a7268cc36f55c4793b7e6bf",
+  "stages": [
+    "oracle_layout"
+  ],
+  "gpu_training": false,
+  "coarse_extension": {
+    "approved": false,
+    "sha256": "4dec4d191e079f893d5213262f338d3103fd5c18822a660ce1141e5eb634de68",
+    "commit": "2c6e6a909739fa5a1f4fd4a77b4f9c58fd1dd9b1",
+    "config_sha256": "793d4c2ba76f3182408b9c5078490a248b138bc3464776075545a1dc39f47c10",
+    "contracts": {
+      "model": "8b23577e3e003b866d8c6c1a80e574fa9d4a042bd4d89a644e0d6b5b6bf92df8",
+      "loss": "039e960d1c47b7bcee087686a17ebcab394623109a049d1c0d9926004b099156",
+      "teacher": "563f1b0acce37541beecaa8bff66b936ed62a8f88eb3b42efd3fe7f2f54235f2",
+      "evaluator": "594f10f2486dc4af06303d94dbc87cbf71f24983c56e21e3ccb05132ede2580a"
+    }
+  }
+}

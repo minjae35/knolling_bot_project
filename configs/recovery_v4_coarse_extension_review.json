@@ -1,0 +1,133 @@
+{
+  "schema": "recovery_driver_v2",
+  "execution": "review_only",
+  "allow_training": false,
+  "device": "cuda",
+  "seed": 1203,
+  "cpu_threads": 2,
+  "batch_size": 8,
+  "evaluate_every": 25,
+  "checkpoint_every": 25,
+  "layout_lr": 0.0001,
+  "perception_lr": 1e-05,
+  "weight_decay": 0.0001,
+  "gradient_clip": 1.0,
+  "stop_on_initial_pass": true,
+  "pretrained": "configs/pretrained_rtdetr.json",
+  "dataset": "artifacts/pilot_v1_3_en",
+  "selection": "configs/s0_samples.json",
+  "model": {
+    "dimension": 128,
+    "layers": 2,
+    "bins": 18,
+    "max_objects": 8,
+    "threshold": 0.5,
+    "num_denoising": 100,
+    "architecture": "recovery_v4_goal_joint"
+  },
+  "stages": {
+    "grounding": {
+      "max_updates": 500,
+      "max_seconds": 600
+    },
+    "oracle_layout": {
+      "max_updates": 1300,
+      "max_seconds": 600
+    },
+    "perception": {
+      "max_updates": 1000,
+      "max_seconds": 2700
+    },
+    "predicted_layout": {
+      "max_updates": 1000,
+      "max_seconds": 1800
+    },
+    "joint": {
+      "max_updates": 300,
+      "max_seconds": 900
+    }
+  },
+  "data_v3": {
+    "path": "artifacts/recovery_v3_verification_r1/annotations.json",
+    "sha256": "b42ee5b9e99afeeb37036a63f4e180b791719212faa68be226f7745beb051e7c"
+  },
+  "evaluation_schema": "recovery_metrics_v4",
+  "precision": {
+    "grounding": "fp32",
+    "oracle_layout": "fp32",
+    "perception": "fp32",
+    "predicted_layout": "fp32",
+    "joint": "fp32",
+    "micro_pose": "fp32"
+  },
+  "goal_lr": 0.0003,
+  "goal_contract": {
+    "schema": "recovery_goal_labels_v1",
+    "vocabulary": {
+      "axis": [
+        "horizontal",
+        "vertical"
+      ],
+      "region": [
+        "full",
+        "left",
+        "right"
+      ],
+      "gap": [
+        0.015,
+        0.02,
+        0.03
+      ],
+      "group": [
+        "none",
+        "color"
+      ],
+      "sort": [
+        "asc",
+        "desc"
+      ]
+    }
+  },
+  "micro_pose": {
+    "max_updates": 200,
+    "max_seconds": 120
+  },
+  "budget_status": "implementation_only_requires_explicit_coarse_extension_training_approval",
+  "cache_frozen_text": true,
+  "cache_dataset": true,
+  "num_workers": 0,
+  "pin_memory": true,
+  "progress": true,
+  "integrated_pose": {
+    "schema": "integrated_pose_v1",
+    "head_seconds": 10,
+    "stages": {
+      "micro_pose": {
+        "coarse": 80,
+        "head_xy": 20,
+        "head_angle": 20,
+        "fine": 40,
+        "final_xy": 20,
+        "final_angle": 20
+      },
+      "oracle_layout": {
+        "coarse": 1000,
+        "head_xy": 50,
+        "head_angle": 50,
+        "fine": 100,
+        "final_xy": 50,
+        "final_angle": 50
+      }
+    },
+    "xy_solver": "svd_huber_v1",
+    "head_time_mode": "solver",
+    "finalize_reserve_seconds": 10
+  },
+  "coarse_extension": {
+    "schema": "coarse_extension_v1",
+    "source_sha256": "4dec4d191e079f893d5213262f338d3103fd5c18822a660ce1141e5eb634de68",
+    "interval_updates": 200,
+    "min_relative_improvement": 0.05,
+    "patience": 2
+  }
+}

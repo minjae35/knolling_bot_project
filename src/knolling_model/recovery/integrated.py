@@ -37,6 +37,8 @@ def timed(category):
 
 
 def validate_config(config):
+    from .coarse_extension import validate_policy
+    validate_policy(config)
     policy = config.get('integrated_pose')
     if policy is None: return
     if (policy.get('schema') != SCHEMA or config['model']['architecture'] != 'recovery_v4_goal_joint'
@@ -347,6 +349,49 @@ class IntegratedEngine:
             raise FloatingPointError('nonfinite parameter')
         return float(loss.detach()), float(norm), {k: float(v.detach()) for k, v in terms.items()}
 
+    def coarse_monitor(self):
+        if not self.config.get('coarse_extension') or self.state['phase'] != 'coarse':
+            return None
+        from .coarse_extension import readout_diagnostic, record_progress
+        history = self.state.setdefault('coarse_progress', [])
+        if history and history[-1]['weak_intervals'] >= 2:
+            metrics = self.measured()
+            return self.assess(metrics) or self.checkpoint('coarse_stalled', metrics, 'two XY lower-bound improvements below 5%')
+        update = self.state['phase_update']
+        if history and update < history[-1]['update']+200:
+            return None
+        rng = rng_state()
+        try:
+            with self.measure('coarse_diagnostic'):
+                data = collect_readout(self.model, self.e.readout_batches(), expected_ids=self.e.expected_ids,
+                    fingerprint=self.e.fingerprint, check=self.check)
+                row = readout_diagnostic(self.model, data)
+                # Full final pose loss, including residual, on the same complete stream.
+                totals = {}; count = 0; training = self.model.training
+                try:
+                    self.model.train()
+                    with torch.no_grad():
+                        for batch in self.e.readout_batches():
+                            self.check()
+                            terms, _ = self.e.loss_fn(self.model, batch.inputs, batch.supervision)
+                            n = len(batch.metadata); count += n
+                            for k, v in terms.items(): totals[k] = totals.get(k, 0.) + float(v)*n
+                    row['pose_losses'] = {k: v/count for k, v in totals.items()}
+                    if not all(math.isfinite(v) for v in row['pose_losses'].values()):
+                        raise FloatingPointError('nonfinite Coarse pose loss')
+                finally:
+                    self.model.train(training)
+        finally:
+            restore_rng(rng)
+        row = record_progress(history, update, row)
+        # Persist the stop decision before reporting; Resume must not take another step.
+        self.checkpoint('running')
+        self.observe('coarse_progress', diagnostic=row)
+        if row['weak_intervals'] >= 2:
+            metrics = self.measured()
+            return self.assess(metrics) or self.checkpoint('coarse_stalled', metrics, 'two XY lower-bound improvements below 5%')
+        return None
+
     def advance(self, metrics):
         self.charge_time()
         phase = self.state['phase']
@@ -365,8 +410,10 @@ class IntegratedEngine:
         e = self.e; validate_config(self.config)
         if self.model.architecture != self.config['model']['architecture']:
             raise ValueError('model/config architecture mismatch')
-        if stage not in ('micro_pose', 'oracle_layout') or bool(parent) == bool(resume) or extend_from:
-            raise ValueError('integrated execution requires exactly one parent or interrupted resume')
+        if stage not in ('micro_pose', 'oracle_layout') or sum(bool(p) for p in (parent, resume, extend_from)) != 1:
+            raise ValueError('integrated execution requires one parent, interrupted resume, or approved Coarse extension')
+        if self.config.get('coarse_extension') and not (resume or extend_from):
+            raise ValueError('Coarse extension needs an approved source or its interrupted resume')
         if not e.readout_batches or not e.expected_ids:
             raise ValueError('integrated execution requires complete calibration stream')
         from .evaluation_v4 import MICRO_CASES
@@ -379,7 +426,11 @@ class IntegratedEngine:
         self.stage, self.case = stage, micro_case
         self.policy = self.config['integrated_pose']; self.caps = self.policy['stages'][stage]
         self.spec = self.config['micro_pose'] if stage == 'micro_pose' else self.config['stages'][stage]
-        if resume:
+        if extend_from:
+            if stage != 'oracle_layout': raise ValueError('Coarse extension is oracle-only')
+            from .coarse_extension import load_extension
+            prior = load_extension(extend_from, self.config, e.fingerprint, e.review_receipt)
+        elif resume:
             terminal = Path(resume).parent/'terminal.pt'
             if terminal.exists(): raise ValueError('terminal integrated run cannot resume an older snapshot')
             prior = load_integrated(resume, self.config, e.fingerprint, e.commit)
@@ -393,14 +444,14 @@ class IntegratedEngine:
             if prior['stage'] != 'grounding' or prior['status'] != 'passed' or not e.gate('grounding', prior['completed'].get('grounding', {})):
                 raise ValueError('integrated stage must start from passed Grounding weights')
         self.completed = deepcopy(prior['completed'])
-        self.goal_parent = prior['goal_parent_sha256'] if resume else file_hash(parent)
+        self.goal_parent = prior['goal_parent_sha256'] if resume or extend_from else file_hash(parent)
         self.micro_evidence = deepcopy(prior.get('micro_evidence', {}))
-        if stage == 'oracle_layout' and not resume:
+        if stage == 'oracle_layout' and not (resume or extend_from):
             self.micro_evidence = validate_micro_checkpoints(micro_checkpoints, self.goal_parent, self.config, e.fingerprint, e.commit, e.review_receipt)
         self.model.load_state_dict(prior['model'], strict=True); e.configure(self.model, stage)
         self.adam = PoseAdam(self.model, 1e-4, self.config['weight_decay'])
-        self.cursor = Cursor(**prior['cursor']) if resume else Cursor()
-        self.state = deepcopy(prior['integrated']) if resume else dict(schema=SCHEMA, phase='coarse',
+        self.cursor = Cursor(**prior['cursor']) if resume or extend_from else Cursor()
+        self.state = deepcopy(prior['integrated']) if resume or extend_from else dict(schema=SCHEMA, phase='coarse',
             phase_update=0, phase_seconds=0., closure_evaluations=0, fine_resets=0,
             cache_path=None, cache_sha256=None, cache_key=None, solver=None, anchor_path=None,
             phase_results=[], head_diagnostic=None, pending_head=None)
@@ -414,7 +465,7 @@ class IntegratedEngine:
                 or self.state['fine_resets'] != int(self.state['phase'] in ('fine', 'final_xy', 'final_angle'))
                 or not 0 <= self.cursor.update <= self.spec['max_updates']):
             raise ValueError('invalid integrated phase cursor')
-        if resume:
+        if resume or extend_from:
             self.adam.load_state_dict(prior['optimizer'])
             expected_lr = 1e-6 if self.state['fine_resets'] else 1e-4
             if any(g['lr'] != expected_lr for g in self.adam.optimizer.param_groups):
@@ -437,7 +488,7 @@ class IntegratedEngine:
             self.model.requires_grad_(False); self.model.eval()
         try:
             self.observe('start', max_updates=self.spec['max_updates'], max_seconds=self.spec['max_seconds'])
-            if not resume:
+            if not (resume or extend_from):
                 metrics = self.measured(); self.baseline = metrics
                 if self.config.get('stop_on_initial_pass', True):
                     done = self.assess(metrics)
@@ -457,6 +508,8 @@ class IntegratedEngine:
                     done = self.resolve_head()
                     if done: return done
                     continue
+                done = self.coarse_monitor()
+                if done: return done
                 self.check()
                 phase = self.state['phase']
                 if self.cursor.update >= self.spec['max_updates']:
@@ -512,6 +565,8 @@ class IntegratedEngine:
                         self.cursor.batch = index+1; self.cursor.update += 1; self.state['phase_update'] += 1
                         self.observe('update', loss=loss, gradient_norm=norm, losses=terms,
                                      remaining_seconds=max(0., self.spec['max_seconds']-self.elapsed()))
+                        done = self.coarse_monitor()
+                        if done: return done
                         evaluate_now = (stage == 'micro_pose' or self.cursor.update % self.config['evaluate_every'] == 0
                                         or self.state['phase_update'] >= self.caps[phase])
                         if evaluate_now:

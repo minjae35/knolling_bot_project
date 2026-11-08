@@ -525,7 +525,7 @@ def main():
     parser.add_argument('--resume')
     parser.add_argument('--micro-case', choices=('translation', 'keep', 'axis'))
     parser.add_argument('--micro-checkpoints', nargs=3, help='three passed diagnostic checkpoint files for oracle layout')
-    parser.add_argument('--extend-from', help='explicitly approved Stage 1 budget checkpoint; never ordinary resume')
+    parser.add_argument('--extend-from', help='explicitly approved budget extension or pinned v4 Coarse boundary; never ordinary resume')
     args = parser.parse_args()
     config = read_config(args.config)
     # Fail closed before data/model loading, CUDA setup or artifact creation.
