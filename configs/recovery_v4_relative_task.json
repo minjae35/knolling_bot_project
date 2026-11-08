@@ -1,0 +1,18 @@
+{
+  "schema": "recovery_v4_relative_task_v1",
+  "source": "artifacts/recovery_diagnostics/split_pose_validation/final-a037610/resume/checkpoint-000002-0002.pt",
+  "source_sha256": "03a12d6f135c5169ec7bb9f8560f8c216785000f519a685ed69587e01ec093d6",
+  "seed": 1203,
+  "cpu_threads": 2,
+  "max_updates": 1200,
+  "max_seconds": 1200,
+  "final_reserve_seconds": 30,
+  "evaluate_every": 50,
+  "lr": 0.0001,
+  "min_lr": 0.000001,
+  "weight_decay": 0.0001,
+  "gradient_clip": 1.0,
+  "loss_weights": [1, 1, 1, 1, 1],
+  "precision": "fp32",
+  "batch": "full_76_with_all_35_counterfactual_pairs"
+}
