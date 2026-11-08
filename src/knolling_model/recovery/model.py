@@ -8,6 +8,7 @@ from torch import nn
 from .contracts import pack_sources
 from .layout import AutoregressiveLayout
 from .perception import RecoveryPerception
+from .selection import select_queries
 
 
 class CapacityError(ValueError):
@@ -53,8 +54,7 @@ class RecoveryModel(nn.Module):
         """Also used to evaluate a precomputed, label-free perception output."""
         source = visual['source']
         # Stable decoder-row order, never target sorting or confidence weighting.
-        indices = [torch.where(row.sigmoid() >= self.threshold)[0]
-                   for row in source['objectness_logits']]
+        indices = select_queries(source, self.threshold)
         counts = [len(i) for i in indices]
         if max(counts) > self.max_objects:
             raise CapacityError(counts, self.max_objects)

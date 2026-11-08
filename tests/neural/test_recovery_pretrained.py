@@ -29,7 +29,9 @@ def test_cached_r18_minilm_cpu_shapes_and_backward(s0_dataset):
     assert gradients and all(torch.isfinite(g).all() for g in gradients)
     assert sum(g.abs().sum() for g in gradients) > 0
     model.zero_grad(set_to_none=True)
-    configure_stage(model, 'predicted_layout')
+    # An untrained foreground head is no longer allowed to use GT-matched rows
+    # to masquerade as predicted-layout training. Test the oracle warmup instead.
+    configure_stage(model, 'oracle_layout')
     terms, output = stage_loss(model, batch.inputs, batch.supervision)
     assert output['layout']['xy'].shape == (1, len(batch.supervision[0]['size']), 2)
     assert output['layout']['rollout'] == 'free_rollout'

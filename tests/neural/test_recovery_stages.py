@@ -25,6 +25,25 @@ def inputs():
                 attention_mask=torch.tensor([[True, True, False]]))
 
 
+def selected_fixture(model, batch):
+    """Synthetic valid detections for loss wiring; not a trained detector claim."""
+    original = model.perception.forward
+    def forward(images):
+        out = original(images)
+        scores = torch.full_like(out['source']['objectness_logits'], -10.)
+        scores[:, :2] = 10.
+        out['source']['objectness_logits'] = scores
+        return out
+    model.perception.forward = forward
+    with torch.no_grad():
+        s = model.perception(batch['images'])['source']
+    t = truth()
+    t.update(source_xy=s['uv'][0, :2].detach()*torch.tensor([.6, .4], device=s['uv'].device),
+             source_angle=s['angle'][0, :2].detach(), size=s['size'][0, :2].detach())
+    t['target_xy'] = (t['source_xy']+.01).clamp_min(.01)
+    return {k: v.to(s['uv'].device) for k, v in t.items()}
+
+
 @pytest.fixture
 def model():
     return RecoveryModel(TextFixture(), tiny_detector(), dimension=32, layers=1, num_denoising=4)
@@ -34,8 +53,9 @@ def model():
 def test_stage_freeze_shape_gradient_and_no_parameter_updates(model, stage):
     configure_stage(model, stage)
     batch = inputs()
+    labels = selected_fixture(model, batch) if stage in ('predicted_layout', 'joint') else truth()
     before = {k: p.detach().clone() for k, p in model.named_parameters()}
-    terms, out = stage_loss(model, batch, [truth()], replay=(batch, [truth()]) if stage == 'joint' else None)
+    terms, out = stage_loss(model, batch, [labels], replay=(batch, [labels]) if stage == 'joint' else None)
     assert terms and all(torch.isfinite(v) for v in terms.values())
     sum(terms.values()).backward()
     assert all(p.grad is None for p in model.text_encoder.parameters())
@@ -90,8 +110,10 @@ def test_stage_guards_and_fail_closed_review_gates(model, s0_dataset):
     wrapped = RecoveryDataset(s0_dataset)
     assert 'move' in wrapped[0]['supervision'] and 'move' not in s0_dataset[0]['supervision']
     configure_stage(model, 'joint')
+    batch = inputs()
+    labels = selected_fixture(model, batch)
     with pytest.raises(ValueError, match='replay'):
-        stage_loss(model, inputs(), [truth()])
+        stage_loss(model, batch, [labels])
     with pytest.raises(ValueError, match='teacher forcing'):
         stage_loss(model, inputs(), [truth()], teacher_forcing=True)
     for stage in config['stages']:

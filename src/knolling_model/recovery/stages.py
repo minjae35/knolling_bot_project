@@ -8,8 +8,9 @@ from pathlib import Path
 
 import torch
 
-from .contracts import detector_labels, oracle_objects, pack_sources
+from .contracts import oracle_objects, pack_sources
 from .layout import layout_loss
+from .selection import match_selected
 
 STAGES = ('oracle_layout', 'perception', 'predicted_layout', 'joint')
 
@@ -29,6 +30,7 @@ def configure_stage(model, stage):
     if stage not in STAGES:
         raise ValueError('unknown recovery stage')
     model.requires_grad_(False)
+    model.zero_grad(set_to_none=True)
     if stage in ('oracle_layout', 'predicted_layout', 'joint'):
         model.layout.requires_grad_(True)
     if stage == 'perception':
@@ -70,23 +72,15 @@ def aligned_targets(truths, gt_indices, objects):
 
 
 def source_matches(model, visual, truths):
-    from transformers.loss.loss_rt_detr import RTDetrHungarianMatcher
-    final = visual['stages'][-1]
-    matches = RTDetrHungarianMatcher(model.perception.detector.config)(
-        dict(logits=final['logits'], pred_boxes=final['boxes']), detector_labels(truths))
-    result = []
-    for pred, gt in matches:
-        order = pred.argsort()
-        result.append((pred[order].to(final['boxes'].device), gt[order].to(final['boxes'].device)))
-    return result
+    return match_selected(model, visual, truths)
 
 
 def stage_loss(model, inputs, truths, *, teacher_forcing=False, replay=None, source_noise=None):
     """Return losses and diagnostic outputs; never calls backward/step/save.
 
-    Predicted-layout training uses source-only matching even below threshold,
-    explicitly conditioning on correct cardinality. Deployment still thresholds
-    predicted foreground, so a separate strict inference gate is mandatory.
+    Predicted-layout training uses exactly the inference foreground rows.
+    Source matching attaches labels only; bad count/correspondence aborts rather
+    than substituting GT cardinality or selecting below-threshold queries.
 
     Joint detection replay must use the full unique-source stream, not only the
     instruction-balanced layout batch. The caller supplies that separate batch.
@@ -113,7 +107,7 @@ def stage_loss(model, inputs, truths, *, teacher_forcing=False, replay=None, sou
             raise ValueError('not enough detector queries for training correspondence')
         objects = pack_sources(visual['source'], [pred for pred, _ in matches])
         gt_indices = [gt for _, gt in matches]
-        diagnostic = 'matched_predicted_source'
+        diagnostic = 'inference_selected_source'
     if objects.valid.shape[1] > model.max_objects:
         raise ValueError('training source count exceeds reviewed object capacity')
     if source_noise is not None:
