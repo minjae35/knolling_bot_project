@@ -1,0 +1,30 @@
+{
+  "schema": "standalone_perception_run_v1",
+  "dataset": "/workspace/knolling_bot_project/artifacts/pilot_v1_3_en",
+  "manifest_sha256": "8000428a04522f50cf37567d85d442ac94d1f8a87121747d4243e33974320d06",
+  "recovery_path": "/workspace/knolling_bot_project/artifacts/recovery_v3_verification_r1/annotations.json",
+  "recovery_sha256": "b42ee5b9e99afeeb37036a63f4e180b791719212faa68be226f7745beb051e7c",
+  "pretrained": "configs/pretrained_rtdetr.json",
+  "device": "cuda",
+  "allow_training": true,
+  "seed": 1203,
+  "cpu_threads": 2,
+  "num_denoising": 100,
+  "threshold": 0.5,
+  "batch_size": 2,
+  "max_updates": 500,
+  "max_seconds": 1800,
+  "final_reserve_seconds": 120,
+  "evaluate_every": 50,
+  "backbone_lr": 1e-05,
+  "lr": 0.0001,
+  "weight_decay": 0.0001,
+  "gradient_clip": 1.0,
+  "gpu_exclusive_window": {
+    "device_uuid": "GPU-b3cf854f-ddad-0652-a844-5b3a82fa8962",
+    "start_unix": 1794133424.3317826,
+    "end_unix": 1794137029.3317826,
+    "authorization": "User requested actual GPU training exactly once on 2026-11-08; GPU and training processes verified idle before reservation"
+  },
+  "cpu_preflight_checkpoint": "/root/.codex/worktrees/perception/knolling_bot_project/artifacts/perception/gpu-once-cpu-preflight/cpu-preflight.pt"
+}

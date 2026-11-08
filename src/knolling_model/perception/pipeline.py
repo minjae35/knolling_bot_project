@@ -8,6 +8,7 @@ import time
 
 import numpy as np
 import torch
+from tqdm import tqdm
 
 from . import checkpoint
 from .adapter import oracle_frame, to_arrangement
@@ -29,6 +30,8 @@ def setup(config):
     torch.manual_seed(config['seed'])
     torch.set_num_threads(config['cpu_threads'])
     torch.use_deterministic_algorithms(True)
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.backends.cudnn.allow_tf32 = False
 
 
 def catalog(config):
@@ -202,6 +205,8 @@ def train(config, pins, output):
                 metrics=metrics, purpose='validation_selected_best')
     assess()  # Preserve initial state too; later updates cannot erase the best.
     stop = 'update_budget'
+    bar = tqdm(total=config['max_updates'], desc='Perception RT-DETR + Pose', unit='update',
+               mininterval=1, dynamic_ncols=True)
     try:
         while update < config['max_updates']:
             generator = torch.Generator().manual_seed(config['seed']+epoch)
@@ -220,11 +225,16 @@ def train(config, pins, output):
                 norm = torch.nn.utils.clip_grad_norm_(model.parameters(), config['gradient_clip'], error_if_nonfinite=True)
                 optimizer.step()
                 update += 1
+                bar.update(1)
+                bar.set_postfix(loss=f'{float(value.detach()):.4f}',
+                                elapsed_s=f'{time.monotonic()-started:.0f}', refresh=False)
                 with (output/'history.jsonl').open('a') as stream:
                     stream.write(json.dumps(dict(update=update, epoch=epoch, loss=float(value.detach()),
                         gradient_norm=float(norm), elapsed_seconds=time.monotonic()-started), allow_nan=False)+'\n')
                 if update % config['evaluate_every'] == 0:
                     assess()
+                    tqdm.write(f'Validation update={update} best_mAP={best_score[0]:.5f} '
+                               f'best_count={best_score[1]:.3f}')
             epoch += 1
             if stop == 'time_budget':
                 break
@@ -244,3 +254,5 @@ def train(config, pins, output):
     except BaseException as error:
         write_json(output/'failure.json', dict(error=type(error).__name__, message=str(error), updates=update))
         raise
+    finally:
+        bar.close()
