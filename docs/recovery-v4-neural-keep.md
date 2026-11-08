@@ -64,3 +64,58 @@ actual neural forward reproduces at least Oracle's 45 scenes / 10 pairs with
 the same nonregression checks. Reload Best and independently evaluate before
 reporting success. Accuracy on these 76 training scenes is not generalization
 or proof of completed RGB-to-pose training.
+
+## Completed result — 2026-11-08
+
+**Adoption PASS; full Arrangement Gate remains unmet.** Exactly one GPU run,
+1,200 updates in 221.639 seconds, training commit `72ab474`. Best was first
+reached at update 400. No extension, restart, Micro or calibration run occurred.
+
+| Metric | Accepted donor | Oracle Keep (diagnostic) | Learned Keep Best |
+|---|---:|---:|---:|
+| Validity | 28/76 | 45/76 | **40/76** |
+| Counterfactual | 3/35 | 10/35 | **7/35** |
+| Keep-violating scenes | 20 | 0 | **5** |
+| Teacher XY RMS, mm | 27.7162 | — | 27.2272 |
+| Teacher XY P95, mm | 62.6479 | — | 62.6479 |
+| Teacher XY ≤1 mm | 27/215 | — | 52/215 |
+| Orientation P95, degrees | 0.03339 | — | 0.02405 |
+| Orientation ≤2 degrees | 215/215 | — | 215/215 |
+
+Move/Keep labels were correct for 198/215 objects (92.09%): no false Keep,
+17 false Move. Keep recall was 43/60; every actual Move remained on the original
+neural pose path. All 28 previously successful scenes and all three successful
+pairs survived. Twelve scenes and four pairs became successful. No new error
+category appeared in any individual scene. Exact Best tensor restoration and
+reloaded metrics passed; all pre-existing model weights, source checkpoint and
+dataset hashes remained unchanged.
+
+The 17 missed Keep objects occur in six **already-arranged, selected-object**
+scenes whose ordinary arrangement commands do not explicitly say Keep-all.
+Five scenes still violate the physical Keep tolerance; the sixth passes despite
+one false-Move classification. Thus the remaining Oracle gap is observed on
+context-dependent no-op recognition, not on excluded-object selection. This run
+does not establish whether further optimization or a richer representation is
+needed for those six scenes.
+
+Partial scenes improved 4→15/18, no-op scenes 3→4/9, and full scenes stayed
+21/49. Overlapping error counts other than Keep stayed unchanged: vertical gap
+21, horizontal gap 19, clearance 13, collision 9, row alignment 4, size order 2,
+region 1. This intervention improves task success without solving Move layout
+precision; the unchanged XY P95 makes that limitation explicit. BCE decreased
+0.69315→0.15461, but task counts stopped improving after update 400. No further
+training or architecture changes were made.
+
+Artifacts under
+`artifacts/recovery_runs/recovery_v4_neural_keep_once_20261108T101334Z/`:
+
+- `checkpoint-000400.pt`: adopted Best; SHA256
+  `d92ad1ffcabf1842c7d805e8a8445b3dfca7cf3bfad05aa92318db3c010ba3d9`.
+- `result.json`, `best-evaluation.json`: completion and actual reloaded forward.
+- `comparison.json`: baseline/Best summary, every scene's resolved/introduced
+  errors, classification errors and gained/lost successes.
+- `history.jsonl`, `training-curve.png`: actual updates, BCE and task curves.
+- Terminal log:
+  `artifacts/recovery_runs/launch_logs/neural_keep_once_20261108T101334Z.log`.
+
+The preserved tmux screen is `tmux attach -t knolling-v4-neural-keep`.
