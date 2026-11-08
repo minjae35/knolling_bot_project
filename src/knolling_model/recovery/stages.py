@@ -138,6 +138,9 @@ def stage_gate(stage, metrics):
     """
     if stage not in STAGES:
         raise ValueError('unknown recovery stage')
+    from .evaluation import METRICS_SCHEMA
+    if metrics.get('schema') != METRICS_SCHEMA or metrics.get('stage') != stage:
+        return False
     if metrics.get('evaluation_mode') != 'free_rollout' or metrics.get('complete_set') is not True:
         return False
     def at_most(key, limit):
@@ -151,7 +154,8 @@ def stage_gate(stage, metrics):
         return False
     source_ok = (at_most('source_position_p95_mm', 1) and at_most('source_size_p95_mm', 1)
                  and at_most('source_angle_p95_deg', 2) and metrics.get('false_positives') == 0
-                 and metrics.get('false_negatives') == 0)
+                 and metrics.get('false_negatives') == 0 and metrics.get('color_accuracy') == 1
+                 and metrics.get('shape_accuracy') == 1)
     if stage == 'perception':
         return source_ok
     return (source_ok and metrics.get('legacy_s0_gate') is True and metrics.get('pure_axis_success') == 1

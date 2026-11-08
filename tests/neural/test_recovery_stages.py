@@ -119,6 +119,7 @@ def test_stage_guards_and_fail_closed_review_gates(model, s0_dataset):
     for stage in config['stages']:
         assert not stage_gate(stage, {})
     metrics = dict(evaluation_mode='free_rollout', complete_set=True, source_mode='oracle',
+                   schema='recovery_metrics_v2', stage='oracle_layout',
                    target_position_p95_mm=.5, target_angle_p95_deg=1., move_accuracy=1., pure_axis_success=1.)
     assert stage_gate('oracle_layout', metrics)
     assert not stage_gate('oracle_layout', {**metrics, 'evaluation_mode': 'teacher_forced'})

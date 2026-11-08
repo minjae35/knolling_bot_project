@@ -112,7 +112,7 @@ def language_sensitivity(rows, records, semantic_check):
             'sensitivity': distinguished_n/n if n else None, 'evaluated': bool(n), 'pairs': pairs}
 
 
-def summarize_diagnostics(rows, records, semantic_check):
+def summarize_diagnostics(rows, records, semantic_check, stage_count=3):
     groups = defaultdict(lambda: defaultdict(list))
     for row in rows:
         for name, value in row.get('conditions', {}).items():
@@ -127,7 +127,7 @@ def summarize_diagnostics(rows, records, semantic_check):
     checked = [r for r in partial if r.get('keep_violation') is not None]
     violations = sum(r['keep_violation'] for r in checked)
     stages = []
-    for i in range(3):
+    for i in range(stage_count):
         observed = [r['stages'][i] for r in rows if len(r.get('stages', [])) > i]
         stages.append({'stage': i+1, 'n': len(rows), 'evaluated_n': len(observed),
                        'position_mm': distribution([v for s in observed for v in s['position_mm']]),

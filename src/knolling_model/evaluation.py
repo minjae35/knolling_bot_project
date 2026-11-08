@@ -140,7 +140,7 @@ def evaluate_batch(output, batch):
     return rows
 
 
-def summarize(rows, records=()):
+def summarize(rows, records=(), *, stage_count=3):
     result = {'samples': len(rows), 'count_accuracy': sum(r['count_correct'] for r in rows)/len(rows),
               'correspondence_coverage': sum(r['matched_objects'] for r in rows)/sum(r['gt_count'] for r in rows),
               'raw_geometry_success': sum(r['raw_geometry_success'] for r in rows)/len(rows),
@@ -157,7 +157,7 @@ def summarize(rows, records=()):
                             [('source_position_mm',1),('target_position_mm',1),('source_size_mm',1),
                              ('source_angle_deg',2),('target_angle_deg',2)]))
     # Safety/semantic residuals remain explicit even when the memorization gate passes.
-    result.update(summarize_diagnostics(rows, records, semantic_errors))
+    result.update(summarize_diagnostics(rows, records, semantic_errors, stage_count=stage_count))
     return result
 
 
