@@ -86,6 +86,9 @@ def stage_loss(model, inputs, truths, *, teacher_forcing=False, replay=None, sou
     instruction-balanced layout batch. The caller supplies that separate batch.
     """
     stage = model.stage
+    joint_v3 = getattr(model, 'architecture', None) == 'recovery_v3_joint'
+    if joint_v3 and (teacher_forcing or source_noise is not None):
+        raise ValueError('v3 has no teacher-prefix or unreviewed source-noise path')
     if stage not in STAGES or not model.training:
         raise ValueError('configure a training stage before constructing its loss')
     if teacher_forcing and stage not in ('oracle_layout', 'predicted_layout'):
@@ -119,7 +122,12 @@ def stage_loss(model, inputs, truths, *, teacher_forcing=False, replay=None, sou
         output = model.layout.teacher_forced(objects, text, inputs['attention_mask'], targets['xy'], targets['angle'])
     else:
         output = model.layout(objects, text, inputs['attention_mask'])
-    terms = {'layout/'+k: v for k, v in layout_loss(output, targets, model.layout.orientation).items()}
+    if joint_v3:
+        from .joint_layout import joint_pose_loss
+        losses = joint_pose_loss(output, targets, model.layout.orientation)
+    else:
+        losses = layout_loss(output, targets, model.layout.orientation)
+    terms = {'layout/'+k: v for k, v in losses.items()}
     if stage == 'joint':
         if replay is None:
             raise ValueError('joint stage requires a separate unique-source detection replay batch')

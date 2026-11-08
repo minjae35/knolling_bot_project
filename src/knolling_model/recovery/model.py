@@ -19,13 +19,20 @@ class CapacityError(ValueError):
 
 class RecoveryModel(nn.Module):
     def __init__(self, text_encoder, detector, *, dimension=128, layers=2, bins=18,
-                 max_objects=8, threshold=.5, num_denoising=100):
+                 max_objects=8, threshold=.5, num_denoising=100, architecture='recovery_v2_ar'):
         super().__init__()
         if max_objects < 1 or not 0 < threshold < 1:
             raise ValueError('invalid object capacity or foreground threshold')
         self.text_encoder = text_encoder.requires_grad_(False).eval()
         self.perception = RecoveryPerception(detector, num_denoising)
-        self.layout = AutoregressiveLayout(dimension=dimension, layers=layers, bins=bins)
+        if architecture == 'recovery_v3_joint':
+            from .joint_layout import JointPoseDecoder
+            self.layout = JointPoseDecoder(dimension=dimension, layers=layers, bins=bins)
+        elif architecture == 'recovery_v2_ar':
+            self.layout = AutoregressiveLayout(dimension=dimension, layers=layers, bins=bins)
+        else:
+            raise ValueError('unknown recovery architecture')
+        self.architecture = architecture
         self.max_objects, self.threshold = max_objects, threshold
         self.stage = None
 
