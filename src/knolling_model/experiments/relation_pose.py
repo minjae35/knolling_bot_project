@@ -26,6 +26,28 @@ class NeuralRelationPose(nn.Module):
         self.angle = nn.Sequential(nn.Linear(hidden+goal_dim, hidden), nn.GELU(), nn.Linear(hidden, 2))
         nn.init.zeros_(self.anchor[-1].bias)
         self.anchor[-1].bias.data.copy_(torch.tensor([0., 0.]))
+        self.row_transition = False
+        self.transition = None
+
+    def enable_row_transition(self):
+        """Add a same-row versus new-row decision without changing the old delta at bit 0."""
+        if self.row_transition:
+            return self
+        layer = self.relation[0]
+        expanded = nn.Linear(layer.in_features+1, layer.out_features)
+        with torch.no_grad():
+            expanded.weight[:, :-1].copy_(layer.weight)
+            expanded.weight[:, -1].zero_()
+            expanded.bias.copy_(layer.bias)
+        expanded = expanded.to(layer.weight.device, layer.weight.dtype)
+        self.relation[0] = expanded
+        self.transition = nn.Sequential(
+            nn.Linear(layer.in_features, layer.out_features), nn.GELU(),
+            nn.Linear(layer.out_features, 1)).to(layer.weight.device, layer.weight.dtype)
+        nn.init.zeros_(self.transition[-1].weight)
+        nn.init.constant_(self.transition[-1].bias, -4.)
+        self.row_transition = True
+        return self
 
     def _hidden(self, features):
         return self.hidden(features)
@@ -51,7 +73,7 @@ class NeuralRelationPose(nn.Module):
             available = available & ~(F.one_hot(chosen, count).bool() & active[:, None])
         return torch.stack(order, 1), torch.stack(logits, 1)
 
-    def forward(self, features, valid, goal, teacher_order=None):
+    def forward(self, features, valid, goal, teacher_order=None, teacher_break=None):
         if features.shape[-1] != self.feature_dim or goal.shape[-1] != 13:
             raise ValueError('feature or goal width does not match this head')
         if features.shape[:2] != valid.shape or len(features) != len(goal):
@@ -64,6 +86,7 @@ class NeuralRelationPose(nn.Module):
         raw_angle = self.angle(torch.cat((hidden, goal[:, None].expand(-1, count, -1)), -1))
         angle = wrap_pi(.5*torch.atan2(raw_angle[..., 1], raw_angle[..., 0])).masked_fill(~valid, 0)
         deltas = features.new_zeros(batch, count, 2)
+        transition_logits = features.new_zeros(batch, count)
         carried = None
         for step in range(count):
             active = order[:, step] >= 0
@@ -72,7 +95,18 @@ class NeuralRelationPose(nn.Module):
             if carried is None:
                 predicted = torch.sigmoid(self.anchor(torch.cat((current, goal), -1)))*current.new_tensor([.6, .4])
             else:
-                delta = self.relation(torch.cat((carried, current, goal), -1))
+                pair = torch.cat((carried, current, goal), -1)
+                if self.row_transition:
+                    logit = self.transition(pair).squeeze(-1)
+                    if teacher_break is None:
+                        bit = (logit.detach() > 0).to(pair.dtype)
+                    else:
+                        bit = teacher_break[rows, chosen].to(pair.dtype)
+                    delta = self.relation(torch.cat((pair, bit[:, None]), -1))
+                    placed_now = active & (order[:, step-1] >= 0)
+                    transition_logits = transition_logits+F.one_hot(chosen, count).to(logit.dtype)*logit[:, None]*placed_now[:, None]
+                else:
+                    delta = self.relation(pair)
                 base = xy[rows, order[:, step-1].clamp_min(0)]
                 predicted = base+delta
                 placed = active & (order[:, step-1] >= 0)
@@ -82,7 +116,22 @@ class NeuralRelationPose(nn.Module):
             fallback = current if carried is None else carried
             carried = torch.where(active[:, None], current, fallback)
         return dict(xy=xy.masked_fill(~valid[..., None], 0), angle=angle, predicted_order=order,
-                    order_logits=logits, deltas=deltas, rollout='free_rollout' if teacher_order is None else 'teacher_order')
+                    order_logits=logits, deltas=deltas, transition_logits=transition_logits,
+                    rollout='free_rollout' if teacher_order is None else 'teacher_order')
+
+
+def transition_loss(output, teacher_break, teacher_order):
+    """Supervise the same-row versus new-row decision. It is not used at inference."""
+    if output['rollout'] != 'teacher_order':
+        raise ValueError('row-transition supervision requires the teacher order')
+    current = teacher_order[:, 1:]
+    active = current >= 0
+    if not bool(active.any()):
+        return output['transition_logits'].sum()*0
+    rows = torch.arange(len(teacher_order), device=current.device)[:, None]
+    logits = output['transition_logits'][rows, current.clamp_min(0)]
+    target = teacher_break[rows, current.clamp_min(0)]
+    return F.binary_cross_entropy_with_logits(logits[active], target[active])
 
 
 def relation_loss(output, target_xy, target_angle, teacher_order):

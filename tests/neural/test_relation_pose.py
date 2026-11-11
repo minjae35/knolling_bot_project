@@ -29,6 +29,30 @@ def test_later_position_is_only_the_relation_delta():
     assert own.isdisjoint(id(p) for p in head.anchor.parameters())
 
 
+def test_row_transition_preserves_the_old_delta_until_a_break_is_chosen():
+    features, valid, goal, teacher, target, angle = batch()
+    torch.manual_seed(1)
+    old = NeuralRelationPose(12)
+    new = NeuralRelationPose(12)
+    new.load_state_dict(old.state_dict())
+    new.enable_row_transition()
+    left = old(features, valid, goal, teacher)
+    right = new(features, valid, goal, teacher)
+    torch.testing.assert_close(left['xy'], right['xy'])
+    torch.testing.assert_close(left['deltas'], right['deltas'])
+    assert torch.all(right['transition_logits'] <= 0)
+    assert torch.any(right['transition_logits'] < 0)
+    bits = torch.zeros(2, 3)
+    bits[torch.arange(2), teacher[:, 1]] = 1
+    supervised = new(features, valid, goal, teacher, bits)
+    relation_loss(supervised, target, angle, teacher)['loss'].backward()
+    assert new.relation[0].weight.grad[:, -1].abs().sum() > 0
+    new.zero_grad(set_to_none=True)
+    again = new(features, valid, goal, teacher, bits)
+    again['transition_logits'].sum().backward()
+    assert new.transition[-1].weight.grad.abs().sum() > 0
+
+
 def test_relation_and_anchor_both_receive_the_pose_loss():
     features, valid, goal, teacher, target, angle = batch()
     head = NeuralRelationPose(12)
