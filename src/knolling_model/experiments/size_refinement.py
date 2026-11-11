@@ -60,6 +60,19 @@ def matched_queries(tokens, images, boxes, base_size, pairs):
     return images[index].detach(), chosen_tokens, chosen_boxes, chosen_size
 
 
+def scatter_refined(base, pairs, refined):
+    """Write refined sizes back without dropping the residual gradient."""
+    if not pairs:
+        return base.detach()
+    index = torch.tensor([item[0] for item in pairs], device=base.device, dtype=torch.long)
+    query = torch.tensor([item[1] for item in pairs], device=base.device, dtype=torch.long)
+    flat = base.detach().reshape(-1, 2)
+    slot = index*base.shape[1]+query
+    delta = torch.zeros_like(flat)
+    delta = delta.index_add(0, slot, refined-flat[slot])
+    return (flat+delta).view_as(base)
+
+
 def install_refined_size(head, images, visual, threshold):
     """Replace selected query sizes. Centers, angles, and scores stay put."""
     source = visual['source']
@@ -67,13 +80,13 @@ def install_refined_size(head, images, visual, threshold):
     boxes = visual['stages'][-1]['boxes']
     chosen = select_queries(source, threshold)
     pairs = [(image, int(query)) for image, queries in enumerate(chosen) for query in queries.tolist()]
-    size = source['size'].detach().clone()
-    if pairs:
+    if not pairs:
+        size = source['size'].detach().clone()
+    else:
         rgb, query_tokens, query_boxes, query_size = matched_queries(
             tokens, images, boxes, source['size'], pairs)
         refined = head(query_tokens, rgb, query_boxes, query_size)[:, 0]
-        for (image, query), value in zip(pairs, refined):
-            size[image, query] = value
+        size = scatter_refined(source['size'], pairs, refined)
     replaced = dict(source)
     replaced['size'] = size
     return dict(visual, source=replaced)
@@ -85,6 +98,38 @@ def encode_instruction(system, texts, device):
     text = system.arrangement.text_encoder(
         input_ids=tokens['input_ids'].to(device), attention_mask=mask).last_hidden_state
     return text, mask
+
+
+def live_poses(system, relation, row_model, head, images, texts, visual=None, text=None, mask=None):
+    """Same RGB path as inference, with a gradient only through the size residual.
+
+    Perception, text, and the base size are detached. The goal encoder, relation
+    hidden, and row layout stay in the graph so a pose loss can reach the residual,
+    but this function does not read a target pose, row, or order.
+    """
+    if images.ndim != 4 or len(images) != len(texts):
+        raise ValueError('one instruction per image required')
+    if visual is None or text is None or mask is None:
+        with torch.no_grad():
+            visual = system.perception(images)
+            text, mask = encode_instruction(system, texts, images.device)
+    source = visual['source']
+    chosen = select_queries(source, system.threshold)
+    pairs = [(image, int(query)) for image, queries in enumerate(chosen) for query in queries.tolist()]
+    if not pairs or any(len(queries) < 1 or len(queries) > 8 for queries in chosen):
+        raise ValueError('detection count is outside 1..8')
+    rgb, query_tokens, query_boxes, query_size = matched_queries(
+        visual['stages'][-1]['tokens'], images, visual['stages'][-1]['boxes'], source['size'], pairs)
+    refined = head(query_tokens, rgb, query_boxes, query_size)[:, 0]
+    size = scatter_refined(source['size'], pairs, refined)
+    replaced = dict(source)
+    replaced['size'] = size
+    objects = pack_sources(replaced, chosen)
+    goal = system.layout.goal_encoder(objects, text, mask)['vector']
+    hidden = relation._hidden(objects.features())
+    output = row_model(hidden, objects.valid, goal, objects.size[..., 0], objects.size[..., 1],
+                       None, None, True)
+    return output, objects, refined, pairs
 
 
 @torch.no_grad()

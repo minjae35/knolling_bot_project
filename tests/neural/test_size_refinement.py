@@ -4,9 +4,10 @@ import inspect
 import torch
 from torch.nn import functional as F
 
+from knolling_model.experiments.row_layout import NeuralRowPlacement
 from knolling_model.experiments.size_refinement import (
-    ObjectSizeRefinement, horizontal_extent, install_refined_size, matched_queries,
-    poses_from_detection)
+    ObjectSizeRefinement, horizontal_extent, install_refined_size, live_poses,
+    matched_queries, poses_from_detection, scatter_refined)
 
 
 def _inputs():
@@ -29,9 +30,10 @@ def test_zero_residual_keeps_the_detector_size():
 def test_forward_does_not_take_a_ground_truth_size():
     names = inspect.signature(ObjectSizeRefinement.forward).parameters
     assert set(names) == {'self', 'tokens', 'images', 'boxes', 'base_size'}
-    source = inspect.getsource(poses_from_detection)
-    for word in ('target_xy', 'target_angle', 'teacher_row', 'teacher_slot', 'supervision', 'source_xy'):
-        assert word not in source
+    for function in (poses_from_detection, live_poses):
+        source = inspect.getsource(function)
+        for word in ('target_xy', 'target_angle', 'teacher_row', 'teacher_slot', 'supervision', 'source_xy'):
+            assert word not in source
 
 
 def test_one_step_changes_refined_size_without_touching_the_query():
@@ -77,6 +79,34 @@ def test_matched_queries_do_not_keep_a_gradient_into_detector_tokens():
     head(query_tokens, rgb, query_boxes, query_size).sum().backward()
     assert tokens.grad is None
     assert query_tokens.shape == (2, 1, 256)
+
+
+def test_pose_loss_reaches_the_size_residual_and_not_the_row_weights():
+    generator = torch.Generator().manual_seed(3)
+    head = ObjectSizeRefinement()
+    row = NeuralRowPlacement()
+    row.requires_grad_(False)
+    with torch.no_grad():
+        row.assign[-1].weight.zero_()
+        row.assign[-1].bias.zero_()
+        row.assign[-1].bias[0] = 10.
+        row.step[-1].weight.fill_(.5)
+    tokens = torch.randn(1, 2, 256, generator=generator)
+    images = torch.rand(1, 3, 24, 32, generator=generator)
+    boxes = torch.tensor([[[.4, .4, .2, .15], [.7, .6, .18, .12]]])
+    base = torch.tensor([[[.05, .02], [.04, .025]]])
+    refined = head(tokens, images, boxes, base)[:, 0]
+    size = scatter_refined(base, [(0, 0), (0, 1)], refined)
+    hidden = torch.randn(1, 2, 128, generator=generator)
+    valid = torch.ones(1, 2, dtype=torch.bool)
+    goal = torch.zeros(1, 13)
+    goal[0, 6] = 1.
+    output = row(hidden, valid, goal, size[..., 0], size[..., 1], None, None, True)
+    target = output['xy'].detach()+.02
+    F.smooth_l1_loss(output['xy'], target).backward()
+    assert any(parameter.grad is not None and float(parameter.grad.abs().sum()) > 0
+               for parameter in head.parameters())
+    assert all(parameter.grad is None for parameter in row.parameters())
 
 
 def test_horizontal_extent_uses_both_axes():
