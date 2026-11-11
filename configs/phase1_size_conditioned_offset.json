@@ -1,0 +1,69 @@
+{
+  "execution_authorized": false,
+  "hypothesis": "A zero-initialized direct size input on the existing offset head can learn to use object size where the trained hidden path does not, improving 3- and 4-object gap and task success together.",
+  "change": "Append previous and current object size, four values scaled by the existing 0.6 m and 0.4 m feature scale, to the offset MLP input. New columns start at zero. Encoder, selector, attention, loss, dataset and optimizer stay unchanged.",
+  "forbidden": ["geometry solver", "analytic edge placement", "teacher pose at inference", "loss change", "dataset change", "another architecture", "retry"],
+  "initial_checkpoint": "artifacts/neural_sequential_phase1_once/checkpoint-000000.pt",
+  "initial_sha256": "7c42f91ed8ca4dbe5c4072c0bef598403a7b494778f19567b5a3d7eaf66112d6",
+  "control_checkpoint": "artifacts/phase1_size_diversity_B_environment_fixed_once/checkpoint-002250.pt",
+  "control_evaluation": "artifacts/phase1_size_diversity_B_environment_fixed_once/evaluation-002250.json",
+  "training": {
+    "loss": "unchanged selector CE plus actual-output XY Huber at 10 mm",
+    "optimizer": "AdamW",
+    "lr": 0.0001,
+    "weight_decay": 0.0001,
+    "clip_norm": 1.0,
+    "precision": "fp32",
+    "seed": 1203,
+    "batch_size": 16,
+    "exposure": "same paired size-diversity visits as the control",
+    "max_updates": 2250,
+    "max_driver_seconds": 1200,
+    "evaluate_every": 250
+  },
+  "before_first_update": "Widened forward with zero new columns must exactly match the unwidened decoder. Selector CE must match the control history at every step. A mismatch aborts the run.",
+  "adopt": {
+    "require_complete_2250_updates": true,
+    "oracle_task_strictly_greater_than": 12,
+    "rgb_task_strictly_greater_than": 11,
+    "oracle_three_object_strictly_greater_than": 1,
+    "rgb_three_object_strictly_greater_than": 1,
+    "oracle_four_object_strictly_greater_than": 0,
+    "rgb_four_object_strictly_greater_than": 0,
+    "oracle_gap_p95_mm_strictly_less_than": 14.72933248632299,
+    "rgb_gap_p95_mm_strictly_less_than": 14.811620263387958,
+    "retain_all_control_successes": true
+  },
+  "control_successes": {
+    "oracle": [
+      "expanded_a99a7c6d51c25f858b8f622d_1",
+      "expanded_ceffd85bd9660555eb877a02_1",
+      "expanded_cfac29c728c61659a742fad1_1",
+      "expanded_cfac29c728c61659a742fad1_4",
+      "expanded_443044b8cad0c1e443e3d849_1",
+      "expanded_1c6d12617f3418e71b0b7218_1",
+      "expanded_7b5f95b7543efe2768f3eb4d_4",
+      "expanded_34449fceb1e1b49280525d79_1",
+      "expanded_784ed3f47d5604665c323234_1",
+      "expanded_4541d1f4d57b602c4f7b8d4f_1",
+      "expanded_a7e7159b0a771a4be29cef6f_1",
+      "expanded_7780ebdd60767f081d7bb067_1"
+    ],
+    "rgb": [
+      "expanded_a99a7c6d51c25f858b8f622d_1",
+      "expanded_ceffd85bd9660555eb877a02_1",
+      "expanded_cfac29c728c61659a742fad1_1",
+      "expanded_443044b8cad0c1e443e3d849_1",
+      "expanded_1c6d12617f3418e71b0b7218_1",
+      "expanded_34449fceb1e1b49280525d79_1",
+      "expanded_784ed3f47d5604665c323234_1",
+      "expanded_d2b9ca99a581bc6f6c37174c_1",
+      "expanded_4541d1f4d57b602c4f7b8d4f_1",
+      "expanded_a7e7159b0a771a4be29cef6f_1",
+      "expanded_7780ebdd60767f081d7bb067_1"
+    ]
+  },
+  "not_an_adoption_metric": "Endpoint size sensitivity is recorded. A 1:1 half-width response is not required.",
+  "stop": "Stop at 2250 updates, 1200 seconds, a selector mismatch, or a numerical failure. An earlier checkpoint cannot be selected. No retry and no Test.",
+  "test": "never"
+}

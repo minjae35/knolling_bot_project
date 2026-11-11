@@ -1,0 +1,21 @@
+{
+  "hypothesis": "Replacing absolute XY Huber with a Teacher-prefix X-offset Huber improves validation gap and task success together",
+  "max_updates": 2250,
+  "max_driver_seconds": 1200,
+  "evaluate_every": 250,
+  "huber_scale_m": 0.01,
+  "anchor_x_m": 0.3,
+  "supervision": "Teacher order plus detached GT previous pose, inside the pose loss only. Inference keeps predicted order and predicted prefix.",
+  "unchanged": ["sequential architecture", "selector CE", "dataset", "AdamW", "seed 1203", "batch 16", "paired exposure"],
+  "control_checkpoint": "artifacts/phase1_size_diversity_B_environment_fixed_once/checkpoint-002250.pt",
+  "control_evaluation": "artifacts/phase1_size_diversity_B_environment_fixed_once/evaluation-002250.json",
+  "adopt": {
+    "oracle_task_strictly_greater_than": 12,
+    "rgb_task_strictly_greater_than": 11,
+    "oracle_gap_p95_mm_strictly_less_than": 14.72933248632299,
+    "rgb_gap_p95_mm_strictly_less_than": 14.811620263387958,
+    "step_gap": "On the preflight measurement of the control checkpoint, the mean of autonomous per-step gap medians must fall for 3-object scenes and for 4-object scenes."
+  },
+  "test": "never",
+  "retry": false
+}

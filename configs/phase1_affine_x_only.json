@@ -1,0 +1,28 @@
+{
+  "architecture": "pairwise_affine_residual_v1",
+  "change": "Decoder X delta is not added. X comes from the learnable size/gap affine path and its residual. Y still uses the decoder.",
+  "base_config": "configs/neural_sequential_phase1.json",
+  "initial_checkpoint": "artifacts/neural_sequential_phase1_once/checkpoint-000000.pt",
+  "control_evaluation": "artifacts/phase1_pairwise_affine/evaluation-002250.json",
+  "control_history": "artifacts/phase1_size_diversity_B_environment_fixed_once/history.jsonl",
+  "schedule": "artifacts/phase1_size_diversity_B_readiness_v1/paired-batches.json",
+  "variants": "artifacts/phase1_size_diversity_A_v2",
+  "output": "artifacts/phase1_affine_x_only",
+  "max_updates": 2250,
+  "loop_seconds": 1080,
+  "alarm_seconds": 1200,
+  "evaluate_every": 250,
+  "seed": 1203,
+  "test_used": false,
+  "retry": false,
+  "adopt": {
+    "oracle_task_greater_than": 26,
+    "rgb_task_greater_than": 23,
+    "oracle_3_at_least": 3,
+    "rgb_3_at_least": 3,
+    "oracle_4_at_least": 2,
+    "rgb_4_at_least": 2,
+    "min_retention": 0.7,
+    "meaning": "Beat the pairwise-affine validation counts, with at least 3/23 three-object and 2/16 four-object successes on both paths, and keep at least 70% of that model's successful scenes."
+  }
+}

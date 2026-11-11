@@ -1,0 +1,19 @@
+{
+  "schema": "structural_integration_v1",
+  "source_commit": "f23c0496e60613b2f10cefb19cabd1f0a5006f88",
+  "arrangement": {
+    "path": "artifacts/planned_comparison/arrangement/checkpoint-006000-1794143135401793729.pt",
+    "sha256": "a5239b04715bc2a1ae2b95a50bf3e572d025652e031b1fe78f2184875b1e5863",
+    "update": 6000
+  },
+  "perception": {
+    "path": "artifacts/planned_comparison/perception/checkpoint-002400-1794143658089190589.pt",
+    "sha256": "551b5c057603cb5ef1eedf23a66e3d1fe654ec640521915bd202b8253f5834ad",
+    "update": 2400
+  },
+  "evaluation": "unchanged evaluation_v3.evaluate_joint, stage predicted_layout versus oracle_layout",
+  "threshold": 0.5,
+  "capacity": 8,
+  "training": false,
+  "test_policy": "reuse frozen existing holdout, no tuning or selection"
+}

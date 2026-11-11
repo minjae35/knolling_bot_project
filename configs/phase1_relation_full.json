@@ -1,0 +1,19 @@
+{
+  "architecture": "neural_relation_pose_v1",
+  "output": "artifacts/phase1_relation_full",
+  "seed": 1203,
+  "lr": 0.0003,
+  "warmup_steps": 200,
+  "scheduler": "linear_warmup_then_constant",
+  "weight_decay": 0.0,
+  "grad_clip": 1.0,
+  "batch_size": 16,
+  "max_epochs": 100,
+  "patience_epochs": 12,
+  "train_eval_every": 5,
+  "why_schedule": "Constant 0.001 made 24-scene success swing between 21 and 8. Cosine decay from 0.0001 to 0.00001 over 4000 steps stalled at 17/24 while order errors remained. This run warms up to 0.0003 and holds that rate until validation placement stops improving.",
+  "baseline_rgb_task": 23,
+  "baseline_rgb_4": 0,
+  "test_used": false,
+  "joint_training": false
+}

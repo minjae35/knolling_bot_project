@@ -90,7 +90,13 @@ class Asset:
         finite(self.a_m, self.b_m, self.h_m, self.mass_kg, self.friction)
         if self.shape not in SHAPES or not (0.040 <= self.a_m <= 0.080):
             raise ValueError("invalid shape or major dimension")
-        if not (0.025 <= self.b_m <= 0.050 and self.a_m / self.b_m >= 1.3):
+        # Unit conversion can put the exact 52/40 boundary one ULP below 1.3.
+        # This tolerance is dimensionless and applies only to this comparison.
+        if not (0.025 <= self.b_m <= 0.050 and (
+            self.a_m / self.b_m >= 1.3 or math.isclose(
+                self.a_m / self.b_m, 1.3, rel_tol=0.0, abs_tol=4 * math.ulp(1.3)
+            )
+        )):
             raise ValueError("invalid minor dimension or aspect ratio")
         if not (0.005 <= self.h_m <= 0.020) or len(self.footprint) < 4:
             raise ValueError("invalid height or footprint")

@@ -1,0 +1,38 @@
+{
+  "dataset": "artifacts/generalization_20000/dataset",
+  "dataset_sha256": "3e44cc3b623efa56d86a638d1f7fed51c0b4fd2e397a17ed72274e77d5509a04",
+  "source_manifest": "configs/structural_integration.json",
+  "initial_checkpoint": "artifacts/generalization_20000/train-02000/checkpoint-002000-1794195876300727863.pt",
+  "initial_sha256": "a0c0b64eecbe67411ead5f25e466cbe694846236e3108eb9115bec5ba2b1f66b",
+  "seed": 1203,
+  "lr": 0.0001,
+  "clip_norm": 1.0,
+  "batch_size": 16,
+  "weight_decay": 0.0001,
+  "precision": "fp32",
+  "optimizer": "AdamW",
+  "min_free_gib": 12,
+  "immutable_code": {
+    "src/knolling_model/experiments/phase1_single_row.py": "f644b35c66e1b0c8554be5132606b1d7af5a41dc5caf7984de3719bc39fd2caa",
+    "src/knolling_model/experiments/phase1_evaluation.py": "1ba330ed09a323c7e19c5a86cc0bad322e076d70f8c0072f353047f079f7eb2e"
+  },
+  "architecture": "neural_sequential_xy_v1",
+  "schema": "neural_sequential_phase1_once_v1",
+  "output": "artifacts/neural_sequential_phase1_once",
+  "train_manifest": "artifacts/phase1_definition/train-manifest.json",
+  "validation_manifest": "artifacts/phase1_definition/validation-manifest.json",
+  "max_updates": 3000,
+  "total_seconds": 1200,
+  "final_reserve_seconds": 120,
+  "evaluate_every": 250,
+  "stop": "comparison PASS, 3000 updates, 1200 seconds or safety failure; no retries",
+  "scope": "Train791 Oracle training, independent Validation94 paired Oracle/RGB and 23 contrasts; teacher-prefix diagnostic only",
+  "integrity": {
+    "train_manifest": "eac95d6703b39fb109f1301dd040d3ddce9a3182f4c2e7ffffca6d0fc50b2ca7",
+    "validation_manifest": "f0c6fdab12cba8678bc64efd077c9d59c439400723f743bf77b7ecc5abf8e21b",
+    "baseline_evaluation": "a305399dfad801de12d22d90af4a172a8034aebc80636a27b0696e466c69daf0"
+  },
+  "baseline_evaluation": "artifacts/phase1_single_row_generalization_once/evaluation-001000.json",
+  "objective": "selector teacher-order CE + existing actual-output pose Huber; disjoint encoders; predicted order and predicted prefix for pose training",
+  "selection_rule": "comparison PASS first, RGB Task, RGB CF, Oracle Task, lower RGB gap P95"
+}

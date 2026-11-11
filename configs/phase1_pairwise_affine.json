@@ -1,0 +1,26 @@
+{
+  "architecture": "pairwise_affine_residual_v1",
+  "base_config": "configs/neural_sequential_phase1.json",
+  "initial_checkpoint": "artifacts/neural_sequential_phase1_once/checkpoint-000000.pt",
+  "control_evaluation": "artifacts/phase1_size_diversity_B_environment_fixed_once/evaluation-002250.json",
+  "control_history": "artifacts/phase1_size_diversity_B_environment_fixed_once/history.jsonl",
+  "schedule": "artifacts/phase1_size_diversity_B_readiness_v1/paired-batches.json",
+  "variants": "artifacts/phase1_size_diversity_A_v2",
+  "output": "artifacts/phase1_pairwise_affine",
+  "max_updates": 2250,
+  "loop_seconds": 1080,
+  "alarm_seconds": 1200,
+  "evaluate_every": 250,
+  "seed": 1203,
+  "test_used": false,
+  "retry": false,
+  "adopt": {
+    "oracle_task_greater_than": 12,
+    "rgb_task_greater_than": 11,
+    "oracle_3_at_least": 3,
+    "rgb_3_at_least": 3,
+    "oracle_4_at_least": 2,
+    "rgb_4_at_least": 2,
+    "meaning": "3-object at least 3/23 and 4-object at least 2/16 on both Oracle and RGB, and both overall success counts strictly above the size-diversity control."
+  }
+}
