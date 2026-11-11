@@ -3,13 +3,13 @@ import time
 
 from knolling_model.experiments.inference import SCOPE, format_poses
 from knolling_model.experiments.size_refinement import poses_from_detection
-from score_end_to_end import load_bundle
+from score_end_to_end import JOINT_BEST, load_bundle
 
 
-def load(size_path=None):
-    if size_path is None:
-        return load_bundle()
-    return load_bundle(size_path)
+def load(size_path=None, row_path=None):
+    if size_path is None and row_path is None:
+        return load_bundle(JOINT_BEST, row_path=JOINT_BEST)
+    return load_bundle(size_path, row_path=row_path)
 
 
 def predict(system, relation, row_model, head, image, text):

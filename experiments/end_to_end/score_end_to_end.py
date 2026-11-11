@@ -29,6 +29,7 @@ import run_relation_stable as stable
 ROW_BEST = Path('artifacts/row_layout_origin_y/checkpoint-best.pt')
 RELATION_BEST = Path('artifacts/phase1_relation_continue/checkpoint-best.pt')
 SIZE_BEST = Path('artifacts/experiments/size_refinement/checkpoint-best.pt')
+JOINT_BEST = Path('artifacts/experiments/joint_stage/checkpoint-best.pt')
 DATA = 'artifacts/generalization_20000/dataset'
 
 
@@ -39,15 +40,24 @@ def describe(values):
     return dict(median=float(tensor.median()), p95=float(tensor.quantile(.95)), n=len(values))
 
 
-def load_bundle(size_path=SIZE_BEST, device=None):
+def _weights(checkpoint):
+    if 'model' in checkpoint:
+        return checkpoint['model']
+    if 'head' in checkpoint:
+        return checkpoint['head']
+    raise KeyError('checkpoint has no model or head weights')
+
+
+def load_bundle(size_path=SIZE_BEST, device=None, row_path=None):
     device = stable.DEVICE if device is None else device
     system = load_integrated(device=device)
     relation = cap.load_head(128, torch.load(RELATION_BEST, map_location='cpu', weights_only=False)['model']).to(device)
     row_model = NeuralRowPlacement().to(device)
-    row_model.load_state_dict(torch.load(ROW_BEST, map_location=device, weights_only=False)['model'])
+    row_checkpoint = torch.load(ROW_BEST if row_path is None else row_path, map_location=device, weights_only=False)
+    row_model.load_state_dict(row_checkpoint['row'] if row_path is not None and 'row' in row_checkpoint else row_checkpoint['model'])
     head = ObjectSizeRefinement().to(device)
     checkpoint = torch.load(size_path, map_location=device, weights_only=False)
-    head.load_state_dict(checkpoint['model'])
+    head.load_state_dict(_weights(checkpoint))
     for module in (system, relation, row_model, head):
         module.eval()
     for module in (system, relation, row_model):
@@ -206,7 +216,7 @@ def main():
     from run_row_layout import attach_rows
     runner.setup()
     val = ExpandedDataset(DATA, 'validation')
-    system, relation, row_model, head, checkpoint = load_bundle()
+    system, relation, row_model, head, checkpoint = load_bundle(JOINT_BEST, row_path=JOINT_BEST)
     indices = validation_indices(val)
     phase_val = subset(val, 'validation', 94)
     multi_val = [record for record in val.records if multi_row(record)]
