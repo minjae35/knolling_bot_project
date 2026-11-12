@@ -142,6 +142,8 @@ def live_poses(system, relation, row_model, head, images, texts, visual=None, te
 
 _KEEP_HEAD = None
 _KEEP_TRIED = False
+_CHROMA = 25
+_WINDOW_M = 0.08
 
 
 def _direction_angle(module, tokens):
@@ -151,8 +153,58 @@ def _direction_angle(module, tokens):
     return .5 * torch.atan2(raw[..., 1], horizontal)
 
 
-def keep_angles(system, visual, queries):
-    """Refined source angle for objects that stay put. The layout solver is not given this angle."""
+def silhouette_angle(image, xy):
+    """Major axis of the colored pixels around one detected center.
+
+    Rectangles repeat every half turn, so the result is in [-pi/2, pi/2).
+    A missing silhouette returns None and the caller keeps the direction head.
+    """
+    import math
+    import numpy as np
+    from scipy import ndimage
+
+    plane = image.detach().cpu()
+    if plane.ndim != 3:
+        raise ValueError('one RGB image required')
+    if plane.shape[0] == 3:
+        plane = plane.permute(1, 2, 0)
+    height, width = plane.shape[:2]
+    pixels = plane.numpy()
+    if pixels.dtype != np.uint8:
+        pixels = np.clip(pixels * 255.0, 0, 255).astype(np.uint8)
+    chroma = pixels.max(-1).astype(np.int16) - pixels.min(-1).astype(np.int16)
+    x_m, y_m = (float(item) for item in xy)
+    center_x = width * x_m / 0.6 - 0.5
+    center_y = height * (1.0 - y_m / 0.4) - 0.5
+    radius = _WINDOW_M / 0.6 * width
+    x0, x1 = int(max(0, math.floor(center_x - radius))), int(min(width, math.ceil(center_x + radius)))
+    y0, y1 = int(max(0, math.floor(center_y - radius))), int(min(height, math.ceil(center_y + radius)))
+    labeled, _count = ndimage.label(chroma[y0:y1, x0:x1] > _CHROMA)
+    if labeled.size == 0 or not labeled.any():
+        return None
+    local_x = min(max(int(round(center_x - x0)), 0), labeled.shape[1] - 1)
+    local_y = min(max(int(round(center_y - y0)), 0), labeled.shape[0] - 1)
+    chosen = int(labeled[local_y, local_x])
+    if chosen == 0:
+        ys, xs = np.nonzero(labeled)
+        if len(xs) == 0:
+            return None
+        nearest = int(np.argmin((xs - local_x) ** 2 + (ys - local_y) ** 2))
+        if (int(xs[nearest]) - local_x) ** 2 + (int(ys[nearest]) - local_y) ** 2 > 12 ** 2:
+            return None
+        chosen = int(labeled[int(ys[nearest]), int(xs[nearest])])
+    ys, xs = np.nonzero(labeled == chosen)
+    if len(xs) < 40:
+        return None
+    coords = np.vstack((xs.astype(np.float64), ys.astype(np.float64)))
+    coords -= coords.mean(1, keepdims=True)
+    values, vectors = np.linalg.eigh(np.cov(coords))
+    horizontal, vertical = vectors[:, int(np.argmax(values))]
+    return (math.atan2(-vertical, horizontal) + math.pi / 2) % math.pi - math.pi / 2
+
+
+def direction_keep_angles(system, visual, queries):
+    """Direction-head angle for objects that stay put. None when that checkpoint is absent."""
     global _KEEP_HEAD, _KEEP_TRIED
     if not _KEEP_TRIED:
         _KEEP_TRIED = True
@@ -167,12 +219,34 @@ def keep_angles(system, visual, queries):
     if _KEEP_HEAD is None:
         return None
     tokens = visual['stages'][-1]['tokens']
-    head = _KEEP_HEAD.to(tokens.device)
+    module = _KEEP_HEAD.to(tokens.device)
     packed = tokens.new_zeros(len(queries), max(int(item.numel()) for item in queries))
     for row, chosen in enumerate(queries):
         if int(chosen.numel()) == 0:
             continue
-        packed[row, :int(chosen.numel())] = _direction_angle(head, tokens[row, chosen])
+        packed[row, :int(chosen.numel())] = _direction_angle(module, tokens[row, chosen])
+    return packed
+
+
+def keep_angles(system, visual, queries, images):
+    """Source angle for objects that stay put. The layout solver does not read it."""
+    neural = direction_keep_angles(system, visual, queries)
+    width = max(int(item.numel()) for item in queries)
+    if neural is None:
+        packed = visual['source']['angle'].new_zeros(len(queries), width)
+        source = visual['source']['angle']
+        for row, chosen in enumerate(queries):
+            if int(chosen.numel()) == 0:
+                continue
+            packed[row, :int(chosen.numel())] = source[row, chosen]
+    else:
+        packed = neural.clone()
+    scale = visual['source']['uv'].new_tensor([.6, .4])
+    for row, chosen in enumerate(queries):
+        for slot, query in enumerate(chosen.tolist()):
+            angle = silhouette_angle(images[row], visual['source']['uv'][row, query] * scale)
+            if angle is not None:
+                packed[row, slot] = packed.new_tensor(angle)
     return packed
 
 
@@ -206,7 +280,7 @@ def poses_from_detection(system, relation, row_model, images, texts, head=None):
     if not text_requests_every_object(texts) and not command_is_full(
             encoded['keep_logit'], encoded['selected'], objects.valid):
         return arrange_held(
-            relation, row_model, objects, encoded, keep_angles(system, visual, queries)), objects, visual
+            relation, row_model, objects, encoded, keep_angles(system, visual, queries, images)), objects, visual
     hidden = relation._hidden(objects.features())
     output = row_model(hidden, objects.valid, goal, objects.size[..., 0], objects.size[..., 1],
                        None, None, True, colors=objects.color)

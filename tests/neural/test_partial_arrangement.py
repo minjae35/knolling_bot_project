@@ -1,8 +1,12 @@
 """Partial and no-op routing. No checkpoint and no GPU."""
+import math
+
 import torch
 
+from knolling_dataset.schema import angle_error
 from knolling_model.experiments.partial_arrangement import (
     clear_held_objects, command_is_full, text_requests_every_object)
+from knolling_model.experiments.size_refinement import silhouette_angle
 
 
 def _goal():
@@ -29,6 +33,27 @@ def test_an_all_objects_command_is_not_a_partial_command():
     assert text_requests_every_object(['Arrange all objects in rows in the full workspace.'])
     assert not text_requests_every_object(['Arrange only the red objects in rows.'])
     assert not text_requests_every_object(['Keep every object at its current position and orientation.'])
+
+
+def test_a_colored_silhouette_reports_its_major_axis():
+    image = torch.full((3, 384, 576), 179 / 255)
+    theta, center_x, center_y = 0.4, 0.30, 0.20
+    major, minor = 0.08, 0.03
+    columns = torch.arange(576)
+    rows = torch.arange(384)
+    x_m = (columns + 0.5) / 576 * 0.6
+    y_m = (1 - (rows + 0.5) / 384) * 0.4
+    grid_y, grid_x = torch.meshgrid(y_m, x_m, indexing='ij')
+    cosine, sine = math.cos(theta), math.sin(theta)
+    local_x = cosine * (grid_x - center_x) + sine * (grid_y - center_y)
+    local_y = -sine * (grid_x - center_x) + cosine * (grid_y - center_y)
+    inside = (local_x.abs() <= major / 2) & (local_y.abs() <= minor / 2)
+    image[0, inside] = 0.85
+    image[1, inside] = 0.08
+    image[2, inside] = 0.08
+    found = silhouette_angle(image, torch.tensor([center_x, center_y]))
+    assert found is not None
+    assert angle_error(found, theta) < math.radians(1)
 
 
 def test_a_moved_object_shifts_off_a_fixed_object_and_a_clear_one_stays():
