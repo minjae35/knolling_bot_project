@@ -1,4 +1,6 @@
 """Splits that reproduce the adopted Dev scores. They do not open the test set."""
+from collections import defaultdict
+
 import torch
 
 from knolling_model.experiments.full_arrangement import is_full
@@ -7,6 +9,8 @@ HOLDOUT_SEED = 1510
 DEV_SEED = 1703
 VAL_SEED = 90211
 VAL_COUNT = 256
+RESERVED_SEED = 44021
+RESERVED_COUNT = 128
 
 
 def family_splits(records):
@@ -45,3 +49,19 @@ def heldout_validation(fit):
     """256 scenes from the fit families. They do not overlap the 512-scene dev."""
     order = torch.randperm(len(fit), generator=torch.Generator().manual_seed(VAL_SEED)).tolist()
     return [fit[index] for index in order[:VAL_COUNT]]
+
+
+def families(records):
+    """Train families, with Dev, holdout, and one reserved slice held out."""
+    _fit, _dev, hold = family_splits(records)
+    _fit2, dev512, _blocked = fresh_split(records)
+    dev256 = heldout_validation(_fit2)
+    blocked = {records[index]['scene_family_id'] for index in hold + dev512 + dev256}
+    grouped = defaultdict(list)
+    for index, record in enumerate(records):
+        grouped[record['scene_family_id']].append(index)
+    allowed = sorted(set(grouped) - blocked)
+    order = torch.randperm(len(allowed), generator=torch.Generator().manual_seed(RESERVED_SEED)).tolist()
+    reserved = {allowed[index] for index in order[:RESERVED_COUNT]}
+    trainable = [name for name in allowed if name not in reserved]
+    return grouped, trainable, reserved, blocked

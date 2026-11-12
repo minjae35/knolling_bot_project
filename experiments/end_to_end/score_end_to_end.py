@@ -91,6 +91,44 @@ def labels_of(record, identities):
     return row, slot
 
 
+def blank(record, errors, objects, seconds, geometry):
+    return dict(sample_id=record['sample_id'], objects=objects, task=False, errors=list(errors),
+                row_match=False, row_hits=0, slot_hits=0, labeled=0, seconds=seconds, geometry=geometry)
+
+
+def judge_scene(output, objects, visual, record, identities, truth, seconds, threshold, detail=True):
+    """Judge one RGB prediction. Ground truth is not an inference input."""
+    source = {key: value[0:1].detach().cpu() for key, value in visual['source'].items()}
+    layout = dict(xy=output['xy'][0:1].detach().cpu(), angle=output['angle'][0:1].detach().cpu(),
+                  valid=objects.valid[0:1].detach().cpu(), query_index=objects.query_index[0:1].detach().cpu(),
+                  rollout='free_rollout')
+    judged = evaluate_batch(
+        legacy_evaluation_view(dict(source=source, layout=layout, threshold=.5)),
+        Batch({}, [truth], [dict(sample_id=record['sample_id'], object_ids=identities, record=record)]),
+        semantic_check=semantic_errors_v3)[0]
+    detail_row = arrangement_errors(record, judged['predicted_targets']) if detail and judged.get('predicted_targets') else None
+    row_hits = slot_hits = labeled = 0
+    if judged['count_correct']:
+        row, slot = labels_of(record, identities)
+        chosen = select_queries(visual['source'], threshold)[0]
+        distance = torch.cdist(objects.xy[0, :len(chosen)], truth['source_xy'].to(objects.xy.device))
+        used_query, used_gt = set(), set()
+        for item in distance.flatten().argsort().tolist():
+            query, gt = divmod(item, distance.shape[1])
+            if query in used_query or gt in used_gt or float(distance[query, gt]) > .010:
+                continue
+            used_query.add(query)
+            used_gt.add(gt)
+            labeled += 1
+            row_hits += int(int(output['row'][0, query]) == int(row[gt]))
+            slot_hits += int(int(output['slot'][0, query]) == int(slot[gt]))
+    geometry = '' if not output.get('geometry_status') else str(output['geometry_status'][0])
+    return dict(sample_id=record['sample_id'], objects=len(identities),
+                task=bool(accepted_success(record, judged['task_success'])), errors=list(judged['errors']),
+                row_match=bool(detail_row and detail_row['row_match']), row_hits=row_hits, slot_hits=slot_hits,
+                labeled=labeled, seconds=seconds, geometry=geometry)
+
+
 def score_rgb(system, relation, row_model, head, data, indices):
     system.perception.eval()
     relation.eval()
