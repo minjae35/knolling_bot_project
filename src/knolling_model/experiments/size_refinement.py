@@ -250,6 +250,39 @@ def keep_angles(system, visual, queries, images):
     return packed
 
 
+DUPLICATE_M = 0.010
+
+
+def suppress_duplicate_detections(source, threshold=0.5, radius=DUPLICATE_M):
+    """Ignore a lower-scoring detection that repeats one already kept.
+
+    The detector weights are not changed. A detection farther than `radius`
+    stays, including one that the threshold itself rejected.
+    """
+    logits = source['objectness_logits']
+    centers = source['uv']
+    if logits.ndim != 2 or centers.shape[:2] != logits.shape:
+        raise ValueError('duplicate suppression expects one score row per image')
+    scores = logits.detach()
+    xy = centers.detach() * centers.new_tensor([0.6, 0.4])
+    updated = logits.clone()
+    for row in range(logits.shape[0]):
+        chosen = torch.where(scores[row].sigmoid() >= threshold)[0]
+        order = chosen[scores[row, chosen].argsort(descending=True)]
+        kept = []
+        for query in order.tolist():
+            repeated = any(
+                float(torch.linalg.vector_norm(xy[row, query] - xy[row, other])) < radius
+                for other in kept)
+            if repeated:
+                updated[row, query] = -20
+            else:
+                kept.append(query)
+    replaced = dict(source)
+    replaced['objectness_logits'] = updated
+    return replaced
+
+
 def install_selection_head(system):
     """Use the trained selection layer when its checkpoint is present."""
     if getattr(system, '_selection_head_ready', False):
@@ -270,6 +303,7 @@ def poses_from_detection(system, relation, row_model, images, texts, head=None):
     visual = system.perception(images)
     if head is not None:
         visual = install_refined_size(head, images, visual, system.threshold)
+    visual = dict(visual, source=suppress_duplicate_detections(visual['source'], system.threshold))
     queries = select_queries(visual['source'], system.threshold)
     if any(len(chosen) < 1 or len(chosen) > 8 for chosen in queries):
         raise ValueError('detection count is outside 1..8')

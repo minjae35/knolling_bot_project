@@ -7,7 +7,7 @@ from torch.nn import functional as F
 from knolling_model.experiments.row_layout import NeuralRowPlacement
 from knolling_model.experiments.size_refinement import (
     ObjectSizeRefinement, horizontal_extent, install_refined_size, live_poses,
-    matched_queries, poses_from_detection, scatter_refined)
+    matched_queries, poses_from_detection, scatter_refined, suppress_duplicate_detections)
 
 
 def _inputs():
@@ -19,6 +19,19 @@ def _inputs():
     base = torch.tensor([[[.040, .020], [.055, .030], [.035, .018], [.048, .022]],
                          [[.042, .021], [.060, .028], [.033, .019], [.050, .025]]])
     return tokens, images, boxes, base
+
+
+def test_a_repeated_detection_is_dropped_and_a_separate_one_stays():
+    source = dict(
+        objectness_logits=torch.tensor([[2.0, 0.2, 3.0]]),
+        uv=torch.tensor([[[0.20, 0.50], [0.210, 0.50], [0.80, 0.20]]]))
+    updated = suppress_duplicate_detections(source)
+    assert float(updated['objectness_logits'][0, 1]) == -20
+    assert torch.equal(updated['objectness_logits'][0, [0, 2]], source['objectness_logits'][0, [0, 2]])
+    apart = dict(
+        objectness_logits=torch.tensor([[2.0, 2.0]]),
+        uv=torch.tensor([[[0.20, 0.50], [0.40, 0.50]]]))
+    assert torch.equal(suppress_duplicate_detections(apart)['objectness_logits'], apart['objectness_logits'])
 
 
 def test_zero_residual_keeps_the_detector_size():
