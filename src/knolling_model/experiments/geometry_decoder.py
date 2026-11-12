@@ -4,9 +4,11 @@ The selector chooses the row, the order, and the goal. This layer only solves
 X and Y. A pose already inside the evaluator bands is left where it is. A
 vertical opening tighter than the request is opened to that request when the
 rows still fit, and a horizontal opening is placed at the request when the row
-still fits. Otherwise the band placement is kept. If the row cannot fit
-the requested region, the original coordinates are returned with an explicit
-failure instead of a layout that still breaks the constraints.
+still fits. Otherwise the band placement is kept. When the predicted boxes
+fit 1 mm inside the requested region, the layout is shifted there. A span
+that does not fit is left where it is. If the row cannot fit the requested
+region, the original coordinates are returned with an explicit failure
+instead of a layout that still breaks the constraints.
 """
 import math
 
@@ -21,6 +23,8 @@ WORK_LOW = 0.010 - 0.0001
 WORK_X_HIGH = WIDTH_M - 0.010 + 0.0001
 WORK_Y_HIGH = HEIGHT_M - 0.010 + 0.0001
 REGION_SLACK = 0.0001
+# Pull a fitted layout this far inside the region when the slack exists.
+REGION_INSET = 0.001
 # Same band the axis check uses. An angle already inside it is left untouched.
 AXIS_TOL = math.radians(2.)
 
@@ -205,6 +209,57 @@ def normalize_axis_angle(angle, valid, goal):
     return torch.where(replace, target[:, None].expand_as(angle), angle)
 
 
+def _span_shift(xy, offsets, limits, inset):
+    left, bottom, right, top = (limits[0]+inset, limits[1]+inset, limits[2]-inset, limits[3]-inset)
+    dx_low = torch.stack([left-(xy[index, 0]+offsets[index][0]) for index in range(len(xy))]).max()
+    dx_high = torch.stack([right-(xy[index, 0]+offsets[index][1]) for index in range(len(xy))]).min()
+    dy_low = torch.stack([bottom-(xy[index, 1]+offsets[index][2]) for index in range(len(xy))]).max()
+    dy_high = torch.stack([top-(xy[index, 1]+offsets[index][3]) for index in range(len(xy))]).min()
+    return dx_low, dx_high, dy_low, dy_high
+
+
+def _pick_shift(low, high):
+    if float((low-high).detach()) > 1e-6:
+        return None
+    if float(low.detach()) <= 0. <= float(high.detach()):
+        return low.new_zeros(())
+    return low if float(low.detach()) > 0. else high
+
+
+def nudge_scene(xy, angle, major, minor, goal):
+    """Shift a layout up to the 1 mm region inset when its predicted span fits."""
+    if len(xy) == 0:
+        return xy, 'empty'
+    _gap, _grouped, limits = _instruction(goal)
+    offsets = [extent_offsets(angle[index], major[index], minor[index]) for index in range(len(xy))]
+    inset = _span_shift(xy, offsets, limits, REGION_INSET)
+    dx, dy = _pick_shift(inset[0], inset[1]), _pick_shift(inset[2], inset[3])
+    if dx is None or dy is None or (abs(float(dx.detach())) < 1e-6 and abs(float(dy.detach())) < 1e-6):
+        return xy, 'kept'
+    moved = xy.clone()
+    moved[:, 0] = moved[:, 0]+dx
+    moved[:, 1] = moved[:, 1]+dy
+    return moved, 'placed'
+
+
+def nudge_batch(xy, angle, major, minor, goal, valid):
+    """Apply the region inset to each valid prefix. Padding stays put."""
+    if xy.shape[:2] != valid.shape or goal.ndim != 2 or len(goal) != len(xy):
+        raise ValueError('geometry decoder batch shapes do not match')
+    nudged = xy.clone()
+    status = []
+    for index in range(len(xy)):
+        count = int(valid[index].sum())
+        if count == 0 or not bool(valid[index, :count].all()):
+            status.append('empty')
+            continue
+        pose, name = nudge_scene(
+            xy[index, :count], angle[index, :count], major[index, :count], minor[index, :count], goal[index])
+        nudged[index, :count] = pose
+        status.append(name)
+    return nudged, status
+
+
 def _accept(base, base_status, proposal, proposal_status, valid):
     chosen = base.clone()
     status = []
@@ -231,6 +286,9 @@ def apply_geometry(output, objects, goal):
     chosen, chosen_status = _accept(decoded, status, tightened, tight_status, objects.valid)
     closed, closed_status = decode_batch(chosen, *shared, exact_horizontal=True)
     chosen, chosen_status = _accept(chosen, chosen_status, closed, closed_status, objects.valid)
+    nudged, nudge_status = nudge_batch(
+        chosen, angle, objects.size[..., 0], objects.size[..., 1], goal, objects.valid)
+    chosen, chosen_status = _accept(chosen, chosen_status, nudged, nudge_status, objects.valid)
     replaced = dict(output)
     replaced['xy'] = chosen.to(dtype=output['xy'].dtype, device=output['xy'].device)
     replaced['angle'] = angle.to(dtype=output['angle'].dtype, device=output['angle'].device)

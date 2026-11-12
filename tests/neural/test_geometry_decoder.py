@@ -6,7 +6,7 @@ import torch
 from knolling_dataset.schema import Pose
 from knolling_dataset.validator import polygon
 from knolling_model.experiments.geometry_decoder import (
-    apply_geometry, decode_scene, extent_offsets)
+    REGION_INSET, _instruction, apply_geometry, decode_scene, extent_offsets)
 from knolling_model.recovery.contracts import Objects
 
 
@@ -182,6 +182,27 @@ def test_a_horizontal_gap_moves_to_the_request_when_the_row_fits():
     closed = apply_geometry(_output(tight, angle, row, slot), _objects(major, minor, angle), goal[None])
     tight_opening = (closed['xy'][0, 1, 0]-.030)-(closed['xy'][0, 0, 0]+.030)
     torch.testing.assert_close(tight_opening, torch.tensor(.015), atol=1e-5, rtol=0)
+
+
+def test_a_layout_touching_the_region_edge_moves_inward():
+    goal = _goal(region='left')
+    _gap, _grouped, limits = _instruction(goal)
+    half = .030
+    right_center = float(limits[2])-half
+    left_center = right_center-half-.015-half
+    xy = torch.tensor([[[left_center, .20], [right_center, .20]]])
+    angle = torch.zeros(1, 2)
+    row, slot = torch.zeros(1, 2, dtype=torch.long), torch.tensor([[0, 1]])
+    major, minor = torch.full((1, 2), .060), torch.full((1, 2), .040)
+    result = apply_geometry(_output(xy, angle, row, slot), _objects(major, minor, angle), goal[None])
+    torch.testing.assert_close(result['xy'][0, :, 0], xy[0, :, 0]-REGION_INSET, atol=1e-5, rtol=0)
+    torch.testing.assert_close(result['xy'][0, :, 1], xy[0, :, 1], atol=1e-5, rtol=0)
+    opening = (result['xy'][0, 1, 0]-half)-(result['xy'][0, 0, 0]+half)
+    torch.testing.assert_close(opening, torch.tensor(.015), atol=1e-5, rtol=0)
+    clear_center = float(limits[2])-.002-half
+    clear = torch.tensor([[[clear_center-half-.015-half, .20], [clear_center, .20]]])
+    stayed = apply_geometry(_output(clear, angle, row, slot), _objects(major, minor, angle), goal[None])
+    torch.testing.assert_close(stayed['xy'], clear)
 
 
 def test_width_still_moves_the_following_object():
