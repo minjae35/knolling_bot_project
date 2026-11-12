@@ -11,7 +11,12 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
+from knolling_dataset.schema import REGIONS
 from knolling_model.coordinates import angle_delta, wrap_pi
+
+# Every requested region shares these vertical limits. The anchor can see them.
+ROW_Y_MIN = REGIONS['full'][1]
+ROW_Y_MAX = REGIONS['full'][3]
 
 
 class NeuralRowPlacement(nn.Module):
@@ -38,6 +43,26 @@ class NeuralRowPlacement(nn.Module):
         self.row_layout[-1].bias.data.copy_(torch.tensor([0.3, 0.2]))
         nn.init.zeros_(self.step[-1].weight)
         nn.init.constant_(self.step[-1].bias, -2.5)
+        # The first row keeps the frozen origin Y. Later rows step down by a gap.
+        # Both heads start at zero, so the gap stays the one already implied by that origin.
+        self.row_anchor = nn.Linear(18, 1)
+        self.row_gap = nn.Sequential(nn.Linear(18, 32), nn.GELU(), nn.Linear(32, 1))
+        nn.init.zeros_(self.row_anchor.weight)
+        nn.init.zeros_(self.row_anchor.bias)
+        nn.init.zeros_(self.row_gap[-1].weight)
+        nn.init.zeros_(self.row_gap[-1].bias)
+
+    def load_state_dict(self, state_dict, strict=True, **kwargs):
+        incoming = dict(state_dict)
+        owned = self.state_dict()
+        for key, value in owned.items():
+            head = key.split('.', 1)[0]
+            if key not in incoming and head in ('row_anchor', 'row_gap'):
+                incoming[key] = value
+        return super().load_state_dict(incoming, strict=strict, **kwargs)
+
+    def y_parameters(self):
+        return list(self.row_anchor.parameters())+list(self.row_gap.parameters())
 
     def coordinate_parameters(self):
         return list(self.row_layout.parameters())+list(self.step.parameters())+list(self.angle.parameters())
@@ -72,8 +97,80 @@ class NeuralRowPlacement(nn.Module):
                 table[:, index], table[:, :index].sum(1), table[:, index+1:].sum(1), goal, code), -1))
         return torch.stack(parts, 1)
 
-    def _origins(self, hidden, valid, goal, row, widths, heights, slot):
-        return self.row_layout(self.origin_inputs(hidden, valid, goal, row, widths, heights, slot))
+    def _origins(self, hidden, valid, goal, row, widths, heights, slot, extent, colors=None):
+        base = self.row_layout(self.origin_inputs(hidden, valid, goal, row, widths, heights, slot))
+        linked = self._link_y(base[..., 1].detach(), extent, valid, row, goal, colors)
+        return torch.stack((base[..., 0], linked), -1)
+
+    def _link_y(self, base_y, extent, valid, row, goal, colors):
+        """First occupied row keeps its origin Y. Each later row steps down by a gap.
+
+        The gap starts as the opening already implied by the frozen origin, plus a
+        zero-initialized correction. A zero correction reproduces that origin.
+        """
+        batch = base_y.shape[0]
+        occupied, height, row_color = [], [], []
+        for index in range(self.max_rows):
+            member = valid & (row == index)
+            occupied.append(member.any(-1))
+            height.append(torch.where(member, extent, torch.zeros_like(extent)).amax(-1))
+            if colors is None:
+                row_color.append(base_y.new_zeros(batch, 3))
+            else:
+                count = member.sum(-1, keepdim=True).clamp_min(1).to(colors.dtype)
+                row_color.append((colors*member[..., None]).sum(1)/count)
+        occupied = torch.stack(occupied, 1)
+        height = torch.stack(height, 1)
+        row_color = torch.stack(row_color, 1)
+        first_height = height.new_zeros(batch)
+        first_base = base_y.new_zeros(batch)
+        seen = torch.zeros(batch, dtype=torch.bool, device=base_y.device)
+        for index in range(self.max_rows):
+            take = occupied[:, index] & ~seen
+            first_height = torch.where(take, height[:, index], first_height)
+            first_base = torch.where(take, base_y[:, index], first_base)
+            seen = seen | occupied[:, index]
+        linked = base_y.clone()
+        previous_y = base_y.new_zeros(batch)
+        previous_h = base_y.new_zeros(batch)
+        previous_c = base_y.new_zeros(batch, 3)
+        seen = torch.zeros(batch, dtype=torch.bool, device=base_y.device)
+        instructed = self._gap(goal)
+        for index in range(self.max_rows):
+            active = occupied[:, index]
+            first = active & ~seen
+            follow = active & seen
+            linked[:, index] = torch.where(first, base_y[:, index], linked[:, index])
+            if bool(follow.any()):
+                implied = (previous_y-previous_h/2)-(base_y[:, index]+height[:, index]/2)
+                if colors is None:
+                    different = torch.zeros(batch, device=base_y.device)
+                else:
+                    different = ((previous_c*row_color[:, index]).sum(-1) < .5).to(base_y.dtype)
+                correction = self.row_gap(torch.cat((
+                    goal, previous_h[:, None], height[:, index, None], instructed[:, None],
+                    different[:, None], implied[:, None]), -1)).squeeze(-1)
+                gap = implied+correction
+                stepped = previous_y-previous_h/2-gap-height[:, index]/2
+                linked[:, index] = torch.where(follow, stepped, linked[:, index])
+            previous_y = torch.where(active, linked[:, index], previous_y)
+            previous_h = torch.where(active, height[:, index], previous_h)
+            previous_c = torch.where(active[:, None], row_color[:, index], previous_c)
+            seen = seen | active
+        last_height = height.new_zeros(batch)
+        last_y = base_y.new_zeros(batch)
+        seen = torch.zeros(batch, dtype=torch.bool, device=base_y.device)
+        for index in range(self.max_rows-1, -1, -1):
+            take = occupied[:, index] & ~seen
+            last_height = torch.where(take, height[:, index], last_height)
+            last_y = torch.where(take, linked[:, index], last_y)
+            seen = seen | occupied[:, index]
+        span = (first_base+first_height/2)-(last_y-last_height/2)
+        bounds = base_y.new_tensor((ROW_Y_MIN, ROW_Y_MAX))
+        anchor = self.row_anchor(torch.cat((
+            goal, first_height[:, None], bounds.expand(batch, -1), first_base[:, None], span[:, None]), -1)).squeeze(-1)
+        shift = torch.where(occupied, anchor[:, None], torch.zeros_like(base_y))
+        return linked+shift
 
     def _gap(self, goal):
         values = goal.new_tensor((.015, .020, .030))
@@ -138,7 +235,7 @@ class NeuralRowPlacement(nn.Module):
             return slot, hidden.new_zeros(1, batch, count), torch.full((1, batch), -100, device=hidden.device)
         return slot, torch.stack(logits), torch.stack(targets)
 
-    def forward(self, hidden, valid, goal, widths, heights, teacher_row=None, teacher_slot=None, predict_order=False):
+    def forward(self, hidden, valid, goal, widths, heights, teacher_row=None, teacher_slot=None, predict_order=False, *, context=None, selector=None, colors=None):
         if hidden.shape[-1] != self.hidden_dim or goal.shape[-1] != 13:
             raise ValueError('row placement received the wrong hidden or goal width')
         if hidden.shape[:2] != valid.shape or widths.shape[:2] != valid.shape or len(hidden) != len(goal):
@@ -150,7 +247,13 @@ class NeuralRowPlacement(nn.Module):
         batch, count, _ = hidden.shape
         if count > self.max_slots:
             raise ValueError('row placement received more objects than its slot table')
-        row_logits = self.assign(torch.cat((hidden, goal[:, None].expand(-1, count, -1)), -1))
+        # `context` replaces the pose and selector features together. `selector` is
+        # only the row and order input, so a set encoder cannot move a fixed row's pose.
+        posed = hidden if context is None else context
+        chosen = posed if selector is None else selector
+        if posed.shape != hidden.shape or chosen.shape != hidden.shape:
+            raise ValueError('row context does not match the object hidden states')
+        row_logits = self.assign(torch.cat((chosen, goal[:, None].expand(-1, count, -1)), -1))
         if teacher_row is None:
             row = torch.where(valid, row_logits.argmax(-1), torch.full((batch, count), -1, device=hidden.device))
         else:
@@ -159,16 +262,27 @@ class NeuralRowPlacement(nn.Module):
             row = torch.where(valid, teacher_row, torch.full_like(teacher_row, -1))
         order_logits = order_targets = None
         if predict_order:
-            predicted, order_logits, order_targets = self._order(hidden, valid, goal, row, teacher_slot)
+            predicted, order_logits, order_targets = self._order(chosen, valid, goal, row, teacher_slot)
             slot = predicted if teacher_slot is None else torch.where(valid, teacher_slot, torch.full_like(teacher_slot, -1))
         else:
             slot = torch.where(valid, teacher_slot, torch.full_like(teacher_slot, -1))
-        origins = self._origins(hidden, valid, goal, row, widths, heights, slot)
-        xy, delta_x = self._positions(valid, goal, row, slot, widths, origins)
         raw_angle = self.angle(torch.cat((hidden, goal[:, None].expand(-1, count, -1)), -1))
         angle = wrap_pi(.5*torch.atan2(raw_angle[..., 1], raw_angle[..., 0])).masked_fill(~valid, 0)
+        extent = widths*angle.sin().abs()+heights*angle.cos().abs()
+        origins = self._origins(posed, valid, goal, row, widths, heights, slot, extent, colors)
+        xy, delta_x = self._positions(valid, goal, row, slot, widths, origins)
         return dict(xy=xy, delta_x=delta_x, angle=angle, row=row, slot=slot, origins=origins,
                     row_logits=row_logits, order_logits=order_logits, order_targets=order_targets)
+
+
+def chain_centers(anchor, heights, gaps):
+    """One anchor and one gap per consecutive pair. Later rows step downward."""
+    if heights.ndim != 1 or gaps.ndim != 1 or gaps.shape[0] != heights.shape[0]-1:
+        raise ValueError('chain_centers expects one row list')
+    centers = [anchor]
+    for index in range(gaps.shape[0]):
+        centers.append(centers[-1]-heights[index]/2-gaps[index]-heights[index+1]/2)
+    return torch.stack(centers)
 
 
 def placement_loss(output, target_xy, target_angle, valid):
@@ -232,6 +346,28 @@ def origin_loss(output, target_xy, valid, slot):
     if not bool(chosen.any()):
         raise ValueError('origin loss needs a row origin')
     return F.smooth_l1_loss(output['xy'][chosen], target_xy[chosen], beta=.010)
+
+
+def color_separation_loss(row_logits, color, valid, group_color):
+    """Penalty for a shared row across colors. Active only for color grouping.
+
+    `group_color` is the instruction label used as supervision. It is not read
+    at inference, and this term does not see coordinates.
+    """
+    if row_logits.shape[:2] != valid.shape or color.shape[:2] != valid.shape or color.shape[-1] != 3:
+        raise ValueError('color separation batch shape mismatch')
+    if group_color.shape != (len(valid),) or group_color.dtype != torch.bool:
+        raise ValueError('color separation expects one grouping flag per scene')
+    if not bool(group_color.any()):
+        return row_logits.sum()*0
+    probability = row_logits.softmax(-1)
+    shared = torch.einsum('bik,bjk->bij', probability, probability)
+    different = color @ color.transpose(-1, -2) < .5
+    pair = valid[:, :, None] & valid[:, None, :] & different & group_color[:, None, None]
+    pair = torch.triu(pair, diagonal=1)
+    if not bool(pair.any()):
+        return row_logits.sum()*0
+    return shared[pair].mean()
 
 
 def assignment_loss(output, teacher_row, valid):

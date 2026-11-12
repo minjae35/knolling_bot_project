@@ -19,8 +19,9 @@ SCOPE = dict(
     outputs=('x_m', 'y_m', 'theta_rad'),
     not_supported=('partial', 'no_op', 'keep_all', 'locked_objects'),
     inference_uses=(
-        'rt_detr', 'size_refinement', 'goal_encoder', 'relation_head', 'hierarchical_arrangement'),
-    inference_does_not_use=('ground_truth', 'teacher_row', 'teacher_order', 'geometry_solver'),
+        'rt_detr', 'size_refinement', 'goal_encoder', 'relation_head', 'hierarchical_arrangement',
+        'constraint_decode', 'geometry_decoder'),
+    inference_does_not_use=('ground_truth', 'teacher_row', 'teacher_order'),
 )
 CAPTION = 'Supported: full arrangement, 2-8 objects. Partial and no-op are not supported.'
 UNSUPPORTED = 'UNSUPPORTED instruction. Partial and no-op are not results of this system.'

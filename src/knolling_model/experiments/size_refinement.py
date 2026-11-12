@@ -7,6 +7,8 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
+from knolling_model.experiments.constraint_decode import select_layout
+from knolling_model.experiments.geometry_decoder import apply_geometry
 from knolling_model.recovery.contracts import pack_sources
 from knolling_model.recovery.selection import select_queries
 
@@ -128,8 +130,9 @@ def live_poses(system, relation, row_model, head, images, texts, visual=None, te
     goal = system.layout.goal_encoder(objects, text, mask)['vector']
     hidden = relation._hidden(objects.features())
     output = row_model(hidden, objects.valid, goal, objects.size[..., 0], objects.size[..., 1],
-                       None, None, True)
-    return output, objects, refined, pairs
+                       None, None, True, colors=objects.color)
+    output = select_layout(row_model, hidden, objects, goal, output)
+    return apply_geometry(output, objects, goal), objects, refined, pairs
 
 
 @torch.no_grad()
@@ -148,8 +151,9 @@ def poses_from_detection(system, relation, row_model, images, texts, head=None):
     goal = system.layout.goal_encoder(objects, text, mask)['vector']
     hidden = relation._hidden(objects.features())
     output = row_model(hidden, objects.valid, goal, objects.size[..., 0], objects.size[..., 1],
-                       None, None, True)
-    return output, objects, visual
+                       None, None, True, colors=objects.color)
+    output = select_layout(row_model, hidden, objects, goal, output)
+    return apply_geometry(output, objects, goal), objects, visual
 
 
 def horizontal_extent(size, angle):
