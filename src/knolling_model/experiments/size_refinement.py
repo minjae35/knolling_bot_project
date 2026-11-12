@@ -3,13 +3,17 @@
 The detector, language encoder, goal encoder, relation head, and row layout
 stay fixed. Ground-truth size is a training target only and is not an input.
 """
+from copy import deepcopy
+from pathlib import Path
+
 import torch
 from torch import nn
 from torch.nn import functional as F
 
 from knolling_model.experiments.constraint_decode import select_layout
 from knolling_model.experiments.geometry_decoder import apply_geometry
-from knolling_model.experiments.partial_arrangement import arrange_held, command_is_full
+from knolling_model.experiments.partial_arrangement import (
+    arrange_held, command_is_full, text_requests_every_object)
 from knolling_model.recovery.contracts import pack_sources
 from knolling_model.recovery.selection import select_queries
 
@@ -136,11 +140,59 @@ def live_poses(system, relation, row_model, head, images, texts, visual=None, te
     return apply_geometry(output, objects, goal), objects, refined, pairs
 
 
+_KEEP_HEAD = None
+_KEEP_TRIED = False
+
+
+def _direction_angle(module, tokens):
+    raw = module(tokens)
+    near_zero = raw.square().sum(-1) < 1e-12
+    horizontal = torch.where(near_zero, raw[..., 0] + 1e-6, raw[..., 0])
+    return .5 * torch.atan2(raw[..., 1], horizontal)
+
+
+def keep_angles(system, visual, queries):
+    """Refined source angle for objects that stay put. The layout solver is not given this angle."""
+    global _KEEP_HEAD, _KEEP_TRIED
+    if not _KEEP_TRIED:
+        _KEEP_TRIED = True
+        path = Path(__file__).resolve().parents[3] / 'artifacts' / 'experiments' / 'selector_full' / 'direction-head.pt'
+        if path.exists():
+            saved = torch.load(path, map_location='cpu', weights_only=True)
+            head = deepcopy(system.perception.physical.direction).cpu()
+            head.load_state_dict(saved['direction'])
+            head.eval()
+            head.requires_grad_(False)
+            _KEEP_HEAD = head
+    if _KEEP_HEAD is None:
+        return None
+    tokens = visual['stages'][-1]['tokens']
+    head = _KEEP_HEAD.to(tokens.device)
+    packed = tokens.new_zeros(len(queries), max(int(item.numel()) for item in queries))
+    for row, chosen in enumerate(queries):
+        if int(chosen.numel()) == 0:
+            continue
+        packed[row, :int(chosen.numel())] = _direction_angle(head, tokens[row, chosen])
+    return packed
+
+
+def install_selection_head(system):
+    """Use the trained selection layer when its checkpoint is present."""
+    if getattr(system, '_selection_head_ready', False):
+        return
+    path = Path(__file__).resolve().parents[3] / 'artifacts' / 'experiments' / 'selector_full' / 'selection-head.pt'
+    if path.exists():
+        saved = torch.load(path, map_location='cpu', weights_only=True)
+        system.layout.goal_encoder.selection.load_state_dict(saved['selection'])
+    system._selection_head_ready = True
+
+
 @torch.no_grad()
 def poses_from_detection(system, relation, row_model, images, texts, head=None):
     """RGB and text to target poses. No ground-truth size, pose, row, or order."""
     if images.ndim != 4 or len(images) != len(texts):
         raise ValueError('one instruction per image required')
+    install_selection_head(system)
     visual = system.perception(images)
     if head is not None:
         visual = install_refined_size(head, images, visual, system.threshold)
@@ -151,8 +203,10 @@ def poses_from_detection(system, relation, row_model, images, texts, head=None):
     text, mask = encode_instruction(system, texts, images.device)
     encoded = system.layout.goal_encoder(objects, text, mask)
     goal = encoded['vector']
-    if not command_is_full(encoded['keep_logit'], encoded['selected'], objects.valid):
-        return arrange_held(relation, row_model, objects, encoded), objects, visual
+    if not text_requests_every_object(texts) and not command_is_full(
+            encoded['keep_logit'], encoded['selected'], objects.valid):
+        return arrange_held(
+            relation, row_model, objects, encoded, keep_angles(system, visual, queries)), objects, visual
     hidden = relation._hidden(objects.features())
     output = row_model(hidden, objects.valid, goal, objects.size[..., 0], objects.size[..., 1],
                        None, None, True, colors=objects.color)

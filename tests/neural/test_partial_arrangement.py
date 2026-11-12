@@ -1,7 +1,8 @@
 """Partial and no-op routing. No checkpoint and no GPU."""
 import torch
 
-from knolling_model.experiments.partial_arrangement import clear_held_objects, command_is_full
+from knolling_model.experiments.partial_arrangement import (
+    clear_held_objects, command_is_full, text_requests_every_object)
 
 
 def _goal():
@@ -22,6 +23,12 @@ def test_a_full_command_stays_on_the_full_path():
     assert not command_is_full(torch.tensor([-2.]), torch.tensor([[0.9, 0.2, 0.0]]), valid)
     near = torch.tensor([[1.0, 0.465, 0.0]])
     assert command_is_full(torch.tensor([-2.]), near, valid)
+
+
+def test_an_all_objects_command_is_not_a_partial_command():
+    assert text_requests_every_object(['Arrange all objects in rows in the full workspace.'])
+    assert not text_requests_every_object(['Arrange only the red objects in rows.'])
+    assert not text_requests_every_object(['Keep every object at its current position and orientation.'])
 
 
 def test_a_moved_object_shifts_off_a_fixed_object_and_a_clear_one_stays():

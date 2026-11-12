@@ -23,6 +23,13 @@ _REACH_M = 0.12
 HELD_BELOW = 0.45
 
 
+def text_requests_every_object(texts):
+    """A full command names every object. A low selection score must not reroute it."""
+    if not texts or any(not isinstance(text, str) or not text for text in texts):
+        raise ValueError('one instruction text per scene required')
+    return all(text.startswith('Arrange all objects') for text in texts)
+
+
 def command_is_full(keep_logit, selected, valid):
     """True when keep is off and no valid object is confidently rejected."""
     if keep_logit.shape[0] != valid.shape[0] or selected.shape != valid.shape:
@@ -113,16 +120,17 @@ def _take(objects, index, chosen):
         query_index=column(objects.query_index)).validate()
 
 
-def _source_pose(objects, index, route):
+def _source_pose(objects, index, route, keep_angle=None):
     count = objects.valid.shape[1]
     row = torch.full((1, count), -1, dtype=torch.long, device=objects.xy.device)
     slot = row.clone()
+    angle = objects.angle if keep_angle is None else keep_angle
     return dict(
-        xy=objects.xy[index:index + 1].clone(), angle=objects.angle[index:index + 1].clone(),
+        xy=objects.xy[index:index + 1].clone(), angle=angle[index:index + 1].clone(),
         row=row, slot=slot, geometry_status=['source'], route=route)
 
 
-def _place_selected(relation, row_model, objects, index, goal, chosen):
+def _place_selected(relation, row_model, objects, index, goal, chosen, keep_angle=None):
     subset = _take(objects, index, chosen)
     hidden = relation._hidden(subset.features())
     output = row_model(
@@ -130,7 +138,7 @@ def _place_selected(relation, row_model, objects, index, goal, chosen):
         None, None, True, colors=subset.color)
     output = select_layout(row_model, hidden, subset, goal, output)
     output = apply_geometry(output, subset, goal)
-    placed = _source_pose(objects, index, 'partial')
+    placed = _source_pose(objects, index, 'partial', keep_angle)
     placed['xy'][0, chosen] = output['xy'][0]
     placed['angle'][0, chosen] = output['angle'][0]
     placed['xy'] = clear_held_objects(placed['xy'], placed['angle'], objects.size[index:index + 1], chosen, goal)
@@ -140,7 +148,7 @@ def _place_selected(relation, row_model, objects, index, goal, chosen):
     return placed
 
 
-def arrange_held(relation, row_model, objects, encoded):
+def arrange_held(relation, row_model, objects, encoded, keep_angle=None):
     """Place one batch. Keep copies the detection. Partial arranges the selection."""
     goal = encoded['vector']
     keep = encoded['keep_logit'].sigmoid()
@@ -150,9 +158,10 @@ def arrange_held(relation, row_model, objects, encoded):
         count = int(objects.valid[index].sum())
         moving = ((selected[index, :count] >= HELD_BELOW) & (keep[index] <= 0.5)).nonzero().flatten()
         if float(keep[index]) > 0.5 or int(moving.numel()) == 0:
-            scene = _source_pose(objects, index, 'noop')
+            scene = _source_pose(objects, index, 'noop', keep_angle)
         else:
-            scene = _place_selected(relation, row_model, objects, index, goal[index:index + 1], moving)
+            scene = _place_selected(
+                relation, row_model, objects, index, goal[index:index + 1], moving, keep_angle)
         scene['selected'] = selected[index:index + 1]
         scene['keep_probability'] = keep[index:index + 1]
         scenes.append(scene)
