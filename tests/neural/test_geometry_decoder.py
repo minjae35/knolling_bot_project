@@ -6,7 +6,8 @@ import torch
 from knolling_dataset.schema import Pose
 from knolling_dataset.validator import polygon
 from knolling_model.experiments.geometry_decoder import (
-    REGION_INSET, _instruction, align_goal_axis, apply_geometry, decode_scene, extent_offsets)
+    REGION_INSET, _instruction, align_goal_axis, align_goal_instruction, apply_geometry,
+    decode_scene, extent_offsets)
 from knolling_model.recovery.contracts import Objects
 
 
@@ -133,6 +134,18 @@ def test_text_axis_overrides_a_tied_goal_without_touching_keep():
     torch.testing.assert_close(aligned[0, 2], goal.new_tensor(0.8))
     torch.testing.assert_close(aligned[0, 1], goal.new_zeros(()))
     assert torch.equal(align_goal_axis(goal, ['Keep every object at its current position and orientation.']), goal)
+
+
+def test_text_region_and_gap_move_only_a_disagreement():
+    goal = _goal()[None].clone()
+    goal[0, 3:6] = torch.tensor([0.7, 0.2, 0.1])
+    goal[0, 6:9] = torch.tensor([0.1, 0.2, 0.7])
+    text = 'Arrange all objects in rows in the left region; long axes horizontal. Leave 20 mm horizontal gaps.'
+    aligned = align_goal_instruction(goal, [text])
+    torch.testing.assert_close(aligned[0, 3:6], torch.tensor([0., 1., 0.]))
+    torch.testing.assert_close(aligned[0, 6:9], torch.tensor([0., 1., 0.]))
+    assert align_goal_instruction(aligned, [text]) is aligned
+    assert align_goal_instruction(goal, ['Keep every object at its current position and orientation.']) is goal
 
 
 def test_an_aligned_angle_and_a_keep_command_stay_put():

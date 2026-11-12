@@ -182,6 +182,37 @@ def decode_scene(xy, angle, row, slot, major, minor, color, goal, *, tighten_ver
     return placed, 'placed'
 
 
+def align_goal_instruction(goal, texts):
+    """Use the named region and gap when the goal picked a different one.
+
+    The mass already on that field stays, so only the chosen bin changes.
+    A goal that already agrees with the text is returned as the same tensor.
+    No-op text names neither field.
+    """
+    if goal.ndim != 2 or goal.shape[-1] != 13 or len(texts) != goal.shape[0]:
+        raise ValueError('instruction command does not match the goal batch')
+    replaced = None
+    for index, text in enumerate(texts):
+        if not isinstance(text, str):
+            raise ValueError('instruction command text required')
+        region = 1 if 'left region' in text else 2 if 'right region' in text else 0 if 'full workspace' in text else None
+        gap = 0 if 'Leave 15 mm' in text else 1 if 'Leave 20 mm' in text else 2 if 'Leave 30 mm' in text else None
+        chosen = []
+        if region is not None and int(goal[index, 3:6].argmax()) != region:
+            chosen.append((3, region))
+        if gap is not None and int(goal[index, 6:9].argmax()) != gap:
+            chosen.append((6, gap))
+        if not chosen:
+            continue
+        if replaced is None:
+            replaced = goal.clone()
+        for start, choice in chosen:
+            mass = replaced[index, start:start + 3].sum()
+            replaced[index, start:start + 3] = 0
+            replaced[index, start + choice] = mass
+    return goal if replaced is None else replaced
+
+
 def align_goal_axis(goal, texts):
     """Use the requested long-axis words for geometry. The selector goal stays put.
 

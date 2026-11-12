@@ -11,7 +11,7 @@ from torch import nn
 from torch.nn import functional as F
 
 from knolling_model.experiments.constraint_decode import apply_area_order, select_layout
-from knolling_model.experiments.geometry_decoder import apply_geometry
+from knolling_model.experiments.geometry_decoder import align_goal_instruction, apply_geometry
 from knolling_model.experiments.partial_arrangement import (
     arrange_held, command_is_full, text_requests_every_object)
 from knolling_model.recovery.contracts import pack_sources
@@ -310,7 +310,8 @@ def poses_from_detection(system, relation, row_model, images, texts, head=None):
     objects = pack_sources(visual['source'], queries)
     text, mask = encode_instruction(system, texts, images.device)
     encoded = system.layout.goal_encoder(objects, text, mask)
-    goal = encoded['vector']
+    goal = align_goal_instruction(encoded['vector'], texts)
+    encoded = dict(encoded, vector=goal)
     if not text_requests_every_object(texts) and not command_is_full(
             encoded['keep_logit'], encoded['selected'], objects.valid):
         return arrange_held(
