@@ -145,6 +145,30 @@ def test_an_aligned_angle_and_a_keep_command_stay_put():
     assert torch.equal(same['angle'], upright)
 
 
+def test_a_short_vertical_opening_uses_the_request_when_it_fits():
+    goal = _goal()
+    xy = torch.tensor([[[.20, .30], [.20, .25]]])
+    angle = torch.zeros(1, 2)
+    row, slot = torch.tensor([[0, 1]]), torch.zeros(1, 2, dtype=torch.long)
+    major, minor = torch.full((1, 2), .050), torch.full((1, 2), .040)
+    result = apply_geometry(_output(xy, angle, row, slot), _objects(major, minor, angle), goal[None])
+    opening = (result['xy'][0, 0, 1]-.020)-(result['xy'][0, 1, 1]+.020)
+    torch.testing.assert_close(opening, torch.tensor(.015), atol=1e-5, rtol=0)
+    legal = torch.tensor([[[.20, .30], [.20, .244]]])
+    untouched = apply_geometry(_output(legal, angle, row, slot), _objects(major, minor, angle), goal[None])
+    torch.testing.assert_close(untouched['xy'], legal)
+    crowded = _goal(gap=2)
+    tall = torch.full((1, 2), .166)
+    band, status = decode_scene(
+        torch.tensor([[.20, .24], [.20, .08]]), torch.zeros(2), torch.tensor([0, 1]), torch.zeros(2, dtype=torch.long),
+        torch.full((2,), .050), tall[0], torch.zeros(2, dtype=torch.long), crowded)
+    assert status == 'placed'
+    kept = apply_geometry(
+        _output(torch.tensor([[[.20, .24], [.20, .08]]]), angle, row, slot),
+        _objects(torch.full((1, 2), .050), tall, angle), crowded[None])
+    torch.testing.assert_close(kept['xy'][0], band)
+
+
 def test_width_still_moves_the_following_object():
     goal = _goal()
     xy = torch.tensor([[.15, .20], [.40, .20]])

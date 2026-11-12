@@ -1,9 +1,11 @@
 """Coordinates from a predicted row and order.
 
 The selector chooses the row, the order, and the goal. This layer only solves
-X and Y. A pose already inside the evaluator bands is left where it is. If the
-row cannot fit the requested region, the original coordinates are returned with
-an explicit failure instead of a layout that still breaks the constraints.
+X and Y. A pose already inside the evaluator bands is left where it is. A
+vertical opening tighter than the request is opened to that request when the
+rows still fit; otherwise the band placement is kept. If the row cannot fit
+the requested region, the original coordinates are returned with an explicit
+failure instead of a layout that still breaks the constraints.
 """
 import math
 
@@ -112,7 +114,7 @@ def _anchor(prefer, deltas, low_offset, high_offset, low_limit, high_limit):
     return torch.minimum(torch.maximum(prefer, low), high)
 
 
-def decode_scene(xy, angle, row, slot, major, minor, color, goal):
+def decode_scene(xy, angle, row, slot, major, minor, color, goal, *, tighten_vertical=False):
     """One unpadded scene. `color` is the predicted color index of each object."""
     if xy.ndim != 2 or xy.shape[-1] != 2 or len(xy) != len(angle) or len(xy) != len(row):
         raise ValueError('geometry decoder scene shapes do not match')
@@ -124,11 +126,15 @@ def decode_scene(xy, angle, row, slot, major, minor, color, goal):
     if groups is None:
         return xy, 'infeasible:duplicate_slot'
     colors = [int(color[index]) for index in range(len(color))]
-    if _feasible(xy, groups, offsets, gap, colors, grouped, limits):
+    if _feasible(xy, groups, offsets, gap, colors, grouped, limits) and not tighten_vertical:
         return xy, 'kept'
     horizontal, vertical = _openings(xy, groups, offsets, gap, colors, grouped)
     desired_h = [_bands(opening, required) for opening, required in horizontal]
-    desired_v = [_bands(opening, required) for opening, required in vertical]
+    if tighten_vertical:
+        desired_v = [required if float((opening-required).detach()) < -1e-6 else _bands(opening, required)
+                     for opening, required in vertical]
+    else:
+        desired_v = [_bands(opening, required) for opening, required in vertical]
     placed = xy.clone()
     cursor = 0
     for members in groups:
@@ -194,17 +200,30 @@ def normalize_axis_angle(angle, valid, goal):
 def apply_geometry(output, objects, goal):
     """Replace target X/Y with the decoded coordinates. Row stays neural."""
     angle = normalize_axis_angle(output['angle'], objects.valid, goal)
-    decoded, status = decode_batch(
-        output['xy'], angle, output['row'], output['slot'],
-        objects.size[..., 0], objects.size[..., 1], objects.color, goal, objects.valid)
+    shared = (angle, output['row'], output['slot'], objects.size[..., 0], objects.size[..., 1],
+              objects.color, goal, objects.valid)
+    decoded, status = decode_batch(output['xy'], *shared)
+    tightened, tight_status = decode_batch(decoded, *shared, tighten_vertical=True)
+    chosen = decoded.clone()
+    chosen_status = []
+    for index, (name, tight_name) in enumerate(zip(status, tight_status)):
+        count = int(objects.valid[index].sum())
+        accepted = not str(tight_name).startswith('infeasible') and tight_name != 'empty'
+        changed = accepted and count > 0 and not torch.allclose(
+            tightened[index, :count], decoded[index, :count], atol=1e-6, rtol=0)
+        if changed:
+            chosen[index, :count] = tightened[index, :count]
+            chosen_status.append(tight_name)
+        else:
+            chosen_status.append(name)
     replaced = dict(output)
-    replaced['xy'] = decoded.to(dtype=output['xy'].dtype, device=output['xy'].device)
+    replaced['xy'] = chosen.to(dtype=output['xy'].dtype, device=output['xy'].device)
     replaced['angle'] = angle.to(dtype=output['angle'].dtype, device=output['angle'].device)
-    replaced['geometry_status'] = status
+    replaced['geometry_status'] = chosen_status
     return replaced
 
 
-def decode_batch(xy, angle, row, slot, major, minor, color, goal, valid):
+def decode_batch(xy, angle, row, slot, major, minor, color, goal, valid, *, tighten_vertical=False):
     """Apply the scene decoder to each valid prefix. Padding stays at zero."""
     if xy.shape[:2] != valid.shape or goal.ndim != 2 or len(goal) != len(xy):
         raise ValueError('geometry decoder batch shapes do not match')
@@ -217,7 +236,8 @@ def decode_batch(xy, angle, row, slot, major, minor, color, goal, valid):
             continue
         pose, name = decode_scene(
             xy[index, :count], angle[index, :count], row[index, :count], slot[index, :count],
-            major[index, :count], minor[index, :count], color[index, :count].argmax(-1), goal[index])
+            major[index, :count], minor[index, :count], color[index, :count].argmax(-1), goal[index],
+            tighten_vertical=tighten_vertical)
         decoded[index, :count] = pose
         status.append(name)
     return decoded, status
