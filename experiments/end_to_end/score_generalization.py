@@ -57,7 +57,10 @@ def _decisions(output, objects, record, identities, truth):
     keep = float(output.get('keep_probability', torch.zeros(1))[0])
     chosen, pose_mm, pose_deg = [], [], []
     for query, gt in pairs:
-        pred_move = keep <= 0.5 and float(output['selected'][0, query]) >= HELD_BELOW
+        if output.get('moving_mask') is not None:
+            pred_move = bool(output['moving_mask'][0, query])
+        else:
+            pred_move = keep <= 0.5 and float(output['selected'][0, query]) >= HELD_BELOW
         identity = identities[gt]
         chosen.append(pred_move == (identity in gt_move))
         if identity not in gt_move:

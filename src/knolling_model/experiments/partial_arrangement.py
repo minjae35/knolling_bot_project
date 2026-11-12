@@ -11,6 +11,7 @@ import math
 import torch
 from shapely.geometry import Polygon
 
+from knolling_dataset.schema import COLORS
 from knolling_model.experiments.constraint_decode import select_layout
 from knolling_model.experiments.geometry_decoder import _instruction, align_goal_axis, apply_geometry
 from knolling_model.recovery.contracts import Objects
@@ -28,6 +29,35 @@ def text_requests_every_object(texts):
     if not texts or any(not isinstance(text, str) or not text for text in texts):
         raise ValueError('one instruction text per scene required')
     return all(text.startswith('Arrange all objects') for text in texts)
+
+
+def named_color(text):
+    """The one color a partial command names. Anything ambiguous stays unset."""
+    if not isinstance(text, str):
+        return None
+    found = [color for color in COLORS if f'only the {color} objects' in text]
+    return found[0] if len(found) == 1 else None
+
+
+def supplement_moving(moving, color, text):
+    """Add objects of the named color. The selector's own movers stay.
+
+    A tied color, or a sentence that does not name exactly one color, adds nothing.
+    """
+    if moving.ndim != 1 or color.ndim != 2 or color.shape[-1] != len(COLORS):
+        raise ValueError('color supplement expects one scene')
+    name = named_color(text)
+    if name is None:
+        return moving
+    probability = color.detach()
+    best = probability.argmax(-1)
+    top = probability.max(-1).values
+    second = probability.topk(2, dim=-1).values[:, 1]
+    sure = (best == COLORS.index(name)) & (top > second)
+    extra = sure.nonzero().flatten()
+    if int(extra.numel()) == 0:
+        return moving
+    return torch.unique(torch.cat((moving.to(extra.device), extra)), sorted=True)
 
 
 def command_is_full(keep_logit, selected, valid):
@@ -158,13 +188,17 @@ def arrange_held(relation, row_model, objects, encoded, keep_angle=None, texts=N
     scenes = []
     for index in range(objects.valid.shape[0]):
         count = int(objects.valid[index].sum())
+        text = None if texts is None else texts[index]
         moving = ((selected[index, :count] >= HELD_BELOW) & (keep[index] <= 0.5)).nonzero().flatten()
-        if float(keep[index]) > 0.5 or int(moving.numel()) == 0:
+        moving = supplement_moving(moving, objects.color[index, :count], text)
+        if int(moving.numel()) == 0:
             scene = _source_pose(objects, index, 'noop', keep_angle)
         else:
             scene = _place_selected(
-                relation, row_model, objects, index, goal[index:index + 1], moving, keep_angle,
-                None if texts is None else texts[index])
+                relation, row_model, objects, index, goal[index:index + 1], moving, keep_angle, text)
+        mask = torch.zeros(1, objects.valid.shape[1], dtype=torch.bool, device=objects.xy.device)
+        mask[0, moving] = True
+        scene['moving_mask'] = mask
         scene['selected'] = selected[index:index + 1]
         scene['keep_probability'] = keep[index:index + 1]
         scenes.append(scene)
