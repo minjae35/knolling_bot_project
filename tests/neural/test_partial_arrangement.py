@@ -20,6 +20,8 @@ def test_a_full_command_stays_on_the_full_path():
     assert command_is_full(torch.tensor([-2.]), selected, valid)
     assert not command_is_full(torch.tensor([2.]), selected, valid)
     assert not command_is_full(torch.tensor([-2.]), torch.tensor([[0.9, 0.2, 0.0]]), valid)
+    near = torch.tensor([[1.0, 0.465, 0.0]])
+    assert command_is_full(torch.tensor([-2.]), near, valid)
 
 
 def test_a_moved_object_shifts_off_a_fixed_object_and_a_clear_one_stays():

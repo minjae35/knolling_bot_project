@@ -18,15 +18,18 @@ from knolling_model.recovery.contracts import Objects
 CLEARANCE_M = 0.010
 _STEP_M = 0.005
 _REACH_M = 0.12
+# A score just under one half is not a confident reject. Treating it as held
+# sent a full command through the partial solver.
+HELD_BELOW = 0.45
 
 
 def command_is_full(keep_logit, selected, valid):
-    """True when keep is off and every valid object is selected."""
+    """True when keep is off and no valid object is confidently rejected."""
     if keep_logit.shape[0] != valid.shape[0] or selected.shape != valid.shape:
         raise ValueError('keep and selection do not match the objects')
     keep_off = keep_logit.sigmoid() <= 0.5
-    covered = (selected >= 0.5) | ~valid
-    return bool((keep_off & covered.all(-1)).all())
+    held = valid & (selected < HELD_BELOW)
+    return bool((keep_off & ~held.any(-1)).all())
 
 
 def _shifts():
@@ -145,7 +148,7 @@ def arrange_held(relation, row_model, objects, encoded):
     scenes = []
     for index in range(objects.valid.shape[0]):
         count = int(objects.valid[index].sum())
-        moving = ((selected[index, :count] >= 0.5) & (keep[index] <= 0.5)).nonzero().flatten()
+        moving = ((selected[index, :count] >= HELD_BELOW) & (keep[index] <= 0.5)).nonzero().flatten()
         if float(keep[index]) > 0.5 or int(moving.numel()) == 0:
             scene = _source_pose(objects, index, 'noop')
         else:
