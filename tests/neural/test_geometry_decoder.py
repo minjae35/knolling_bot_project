@@ -169,6 +169,21 @@ def test_a_short_vertical_opening_uses_the_request_when_it_fits():
     torch.testing.assert_close(kept['xy'][0], band)
 
 
+def test_a_horizontal_gap_moves_to_the_request_when_the_row_fits():
+    goal = _goal()
+    angle = torch.zeros(1, 2)
+    row, slot = torch.zeros(1, 2, dtype=torch.long), torch.tensor([[0, 1]])
+    major, minor = torch.full((1, 2), .060), torch.full((1, 2), .040)
+    wide = torch.tensor([[[.15, .20], [.15+.060+.015+.010, .20]]])
+    opened = apply_geometry(_output(wide, angle, row, slot), _objects(major, minor, angle), goal[None])
+    wide_opening = (opened['xy'][0, 1, 0]-.030)-(opened['xy'][0, 0, 0]+.030)
+    torch.testing.assert_close(wide_opening, torch.tensor(.015), atol=1e-5, rtol=0)
+    tight = torch.tensor([[[.15, .20], [.15+.060+.005, .20]]])
+    closed = apply_geometry(_output(tight, angle, row, slot), _objects(major, minor, angle), goal[None])
+    tight_opening = (closed['xy'][0, 1, 0]-.030)-(closed['xy'][0, 0, 0]+.030)
+    torch.testing.assert_close(tight_opening, torch.tensor(.015), atol=1e-5, rtol=0)
+
+
 def test_width_still_moves_the_following_object():
     goal = _goal()
     xy = torch.tensor([[.15, .20], [.40, .20]])
