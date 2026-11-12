@@ -11,6 +11,8 @@ VAL_SEED = 90211
 VAL_COUNT = 256
 RESERVED_SEED = 44021
 RESERVED_COUNT = 128
+V2_SEAL_SEED = 88021
+V2_SEAL_COUNT = 400
 
 
 def family_splits(records):
@@ -65,3 +67,21 @@ def families(records):
     reserved = {allowed[index] for index in order[:RESERVED_COUNT]}
     trainable = [name for name in allowed if name not in reserved]
     return grouped, trainable, reserved, blocked
+
+
+def v2_sealed_families(records):
+    """400 train families for a later v2 test. Do not score them while tuning.
+
+    They are disjoint from the v1 dev, holdout, validation probe, and the
+    reserved slice that was already scored. Pass train records only, so the
+    official validation and test splits stay out. Future training must skip
+    this set too.
+    """
+    _grouped, trainable, reserved, blocked = families(records)
+    if len(trainable) < V2_SEAL_COUNT:
+        raise RuntimeError('not enough untouched train families for the v2 seal')
+    order = torch.randperm(len(trainable), generator=torch.Generator().manual_seed(V2_SEAL_SEED)).tolist()
+    sealed = [trainable[index] for index in order[:V2_SEAL_COUNT]]
+    if len(set(sealed)) != V2_SEAL_COUNT or set(sealed) & set(reserved) or set(sealed) & set(blocked):
+        raise RuntimeError('v2 seal overlaps a used slice')
+    return sealed
