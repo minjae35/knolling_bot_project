@@ -35,8 +35,10 @@ def test_an_unsupported_instruction_is_not_a_success():
 
 
 def test_pose_formatting_and_the_comparison_image_use_no_labels():
-    assert 'target_xy' not in inspect.getsource(poses_from_detection)
-    assert 'geometry' not in inspect.getsource(poses_from_detection)
+    source = inspect.getsource(poses_from_detection)
+    assert 'target_xy' not in source
+    assert 'teacher_row' not in source and 'teacher_slot' not in source
+    assert 'apply_geometry' in source
     xy = torch.tensor([[0.30, 0.20]])
     poses = format_poses(xy, torch.zeros(1), torch.tensor([[0.04, 0.02]]),
                          torch.tensor([[0., 0., 1.]]), torch.tensor([True]))
