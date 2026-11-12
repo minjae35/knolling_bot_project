@@ -9,6 +9,7 @@ from torch.nn import functional as F
 
 from knolling_model.experiments.constraint_decode import select_layout
 from knolling_model.experiments.geometry_decoder import apply_geometry
+from knolling_model.experiments.partial_arrangement import arrange_held, command_is_full
 from knolling_model.recovery.contracts import pack_sources
 from knolling_model.recovery.selection import select_queries
 
@@ -148,12 +149,19 @@ def poses_from_detection(system, relation, row_model, images, texts, head=None):
         raise ValueError('detection count is outside 1..8')
     objects = pack_sources(visual['source'], queries)
     text, mask = encode_instruction(system, texts, images.device)
-    goal = system.layout.goal_encoder(objects, text, mask)['vector']
+    encoded = system.layout.goal_encoder(objects, text, mask)
+    goal = encoded['vector']
+    if not command_is_full(encoded['keep_logit'], encoded['selected'], objects.valid):
+        return arrange_held(relation, row_model, objects, encoded), objects, visual
     hidden = relation._hidden(objects.features())
     output = row_model(hidden, objects.valid, goal, objects.size[..., 0], objects.size[..., 1],
                        None, None, True, colors=objects.color)
     output = select_layout(row_model, hidden, objects, goal, output)
-    return apply_geometry(output, objects, goal), objects, visual
+    placed = apply_geometry(output, objects, goal)
+    placed['route'] = 'full'
+    placed['selected'] = encoded['selected']
+    placed['keep_probability'] = encoded['keep_logit'].sigmoid()
+    return placed, objects, visual
 
 
 def horizontal_extent(size, angle):

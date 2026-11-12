@@ -1,9 +1,9 @@
 """RGB and language in, target poses out, for the adopted knolling checkpoints.
 
-Supported task: a full arrangement of 2 to 8 objects. Partial selection and
-no-op instructions are outside this system. A prediction for those instructions
-is not a success. Inference does not read a target pose, a teacher row, an
-order, or a geometry solver.
+Supported tasks use 1 to 8 detected objects. A full command arranges every
+object. Partial moves the goal encoder's selection and keeps the rest on the
+detected source pose. No-op returns that source pose for every object.
+Inference does not read a target pose, a teacher row, or an order.
 """
 import math
 
@@ -14,23 +14,34 @@ from knolling_dataset.schema import COLORS, HEIGHT_M, WIDTH_M
 from knolling_model.experiments.full_arrangement import is_full
 
 SCOPE = dict(
-    supported='full arrangement of 2 to 8 objects',
+    supported='full, partial, and no-op arrangements of 1 to 8 objects',
     inputs=('bev_rgb', 'natural_language'),
     outputs=('x_m', 'y_m', 'theta_rad'),
-    not_supported=('partial', 'no_op', 'keep_all', 'locked_objects'),
+    not_supported=(),
     inference_uses=(
         'rt_detr', 'size_refinement', 'goal_encoder', 'relation_head', 'hierarchical_arrangement',
         'constraint_decode', 'geometry_decoder'),
     inference_does_not_use=('ground_truth', 'teacher_row', 'teacher_order'),
 )
-CAPTION = 'Supported: full arrangement, 2-8 objects. Partial and no-op are not supported.'
-UNSUPPORTED = 'UNSUPPORTED instruction. Partial and no-op are not results of this system.'
+CAPTION = 'Supported: full arrangement, partial selection, and no-op.'
+UNSUPPORTED = 'UNSUPPORTED instruction.'
 _PALETTE = {'red': (214, 70, 64), 'green': (64, 150, 86), 'blue': (55, 110, 196)}
 
 
 def instruction_supported(record):
-    """True only for a full arrangement. Partial and no-op stay false."""
-    return bool(is_full(record))
+    """Full, partial, and no-op scenes of 1 to 8 objects."""
+    instruction = record['instruction']
+    identities = [obj['object_id'] for obj in record['source']['objects']]
+    if not 1 <= len(identities) <= 8:
+        return False
+    if record['mode'] == 'full':
+        return bool(is_full(record))
+    if record['mode'] == 'no_op':
+        return bool(instruction['keep_all'])
+    if record['mode'] != 'partial' or instruction['keep_all']:
+        return False
+    selected, locked = set(instruction['selected_ids']), set(instruction['locked_ids'])
+    return bool(selected and locked and selected.isdisjoint(locked) and selected | locked == set(identities))
 
 
 def accepted_success(record, task_success):

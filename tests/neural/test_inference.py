@@ -17,21 +17,24 @@ def _record(mode, count=4, locked=(), keep=False, selected=None):
                          selected_ids=identities if selected is None else list(selected)))
 
 
-def test_only_a_full_arrangement_is_supported():
+def test_full_partial_and_noop_are_supported():
+    partial = _record('partial', selected=['o0'], locked=['o1', 'o2', 'o3'])
     assert instruction_supported(_record('full'))
-    assert not instruction_supported(_record('partial', selected=['o0'], locked=['o1', 'o2', 'o3']))
-    assert not instruction_supported(_record('no_op', keep=True))
+    assert instruction_supported(partial)
+    assert instruction_supported(_record('no_op', keep=True))
     assert not instruction_supported(_record('full', count=1))
     assert not instruction_supported(_record('full', count=9))
-    assert 'partial' in SCOPE['not_supported'] and 'no_op' in SCOPE['not_supported']
+    assert 'partial' not in SCOPE['not_supported'] and 'no_op' not in SCOPE['not_supported']
 
 
-def test_an_unsupported_instruction_is_not_a_success():
+def test_a_failed_scene_is_not_a_success():
     partial = _record('partial', selected=['o0'], locked=['o1', 'o2', 'o3'])
     assert accepted_success(_record('full'), True)
     assert not accepted_success(_record('full'), False)
-    assert not accepted_success(partial, True)
-    assert not accepted_success(_record('no_op', keep=True), True)
+    assert accepted_success(partial, True)
+    assert not accepted_success(partial, False)
+    assert accepted_success(_record('no_op', keep=True), True)
+    assert not accepted_success(_record('no_op', keep=True), False)
 
 
 def test_pose_formatting_and_the_comparison_image_use_no_labels():
@@ -49,7 +52,7 @@ def test_pose_formatting_and_the_comparison_image_use_no_labels():
     image[0, :, :24] = 1.
     panel = render_comparison(image, poses, supported=True)
     assert panel.size == (48*2+8, 32+28)
-    assert CAPTION.startswith('Supported: full arrangement')
+    assert CAPTION.startswith('Supported: full arrangement, partial')
     refused = render_comparison(image, poses, supported=False)
 
     def red_marks(picture):

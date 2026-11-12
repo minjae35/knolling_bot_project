@@ -12,6 +12,7 @@ from PIL import Image
 
 from knolling_dataset.rendering import make_job, render_batch
 from knolling_model.experiments.expanded_data import ExpandedDataset
+from knolling_model.experiments.full_arrangement import is_full
 from knolling_model.experiments.inference import instruction_supported
 from knolling_model.experiments.predicted_view import associate_source_assets, scene_at_predicted_poses
 from knolling_model.experiments.size_refinement import poses_from_detection
@@ -26,7 +27,7 @@ def candidates(records, index):
     if index is not None:
         return [index]
     return [candidate for candidate, record in enumerate(records)
-            if multi_row(record) and instruction_supported(record)]
+            if multi_row(record) and is_full(record)]
 
 
 def main():
@@ -73,7 +74,7 @@ def main():
     print(json.dumps(dict(
         sample_id=record['sample_id'], split=args.split, index=index,
         instruction=record['instruction']['text'], mode=record['mode'],
-        supported=True, not_supported=['partial', 'no_op'],
+        supported=True, not_supported=[],
         objects=count, matched=[row['object_id'] for row in association['matched']],
         omitted=association['omitted'], detection_failures_skipped=skipped,
         checkpoint_update=checkpoint.get('update'), used_gt_target_pose=False,
