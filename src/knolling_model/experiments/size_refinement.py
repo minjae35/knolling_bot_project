@@ -10,7 +10,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from knolling_model.experiments.constraint_decode import select_layout
+from knolling_model.experiments.constraint_decode import apply_area_order, select_layout
 from knolling_model.experiments.geometry_decoder import apply_geometry
 from knolling_model.experiments.partial_arrangement import (
     arrange_held, command_is_full, text_requests_every_object)
@@ -285,7 +285,17 @@ def poses_from_detection(system, relation, row_model, images, texts, head=None):
     output = row_model(hidden, objects.valid, goal, objects.size[..., 0], objects.size[..., 1],
                        None, None, True, colors=objects.color)
     output = select_layout(row_model, hidden, objects, goal, output)
-    placed = apply_geometry(output, objects, goal)
+    ordered = apply_area_order(output, objects, goal)
+    placed = apply_geometry(ordered, objects, goal)
+    undone = [index for index, name in enumerate(placed['geometry_status']) if str(name).startswith('infeasible')]
+    if undone:
+        fallback = apply_geometry(output, objects, goal)
+        for index in undone:
+            placed['xy'][index] = fallback['xy'][index]
+            placed['angle'][index] = fallback['angle'][index]
+            placed['row'][index] = fallback['row'][index]
+            placed['slot'][index] = fallback['slot'][index]
+            placed['geometry_status'][index] = fallback['geometry_status'][index]
     placed['route'] = 'full'
     placed['selected'] = encoded['selected']
     placed['keep_probability'] = encoded['keep_logit'].sigmoid()

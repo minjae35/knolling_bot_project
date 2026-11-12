@@ -194,6 +194,65 @@ def consider(placement, mixed, goal, row_logits, base_row, base_slot, xy, angle,
     return base_row, base_slot, 'kept_illegal'
 
 
+def order_by_area(row, slot, area, color, goal):
+    """Move objects into the seats already chosen, ordered by predicted area.
+
+    The legality check allows a 5% area tie, so a near-tie can sit in either
+    order. The evaluator then reads the true asset areas in that seat order.
+    Seats, rows, and colors stay where they are. An incomplete slot assignment
+    is left untouched.
+    """
+    if row.ndim != 1 or slot.shape != row.shape or area.shape != row.shape or color.shape != row.shape:
+        raise ValueError('size order expects one scene')
+    if goal.shape[-1] != 13:
+        raise ValueError('size order expects a 13-d goal')
+    count = int(row.shape[0])
+    if count == 0:
+        return row, slot
+    groups = {}
+    for index in range(count):
+        groups.setdefault(int(row[index]), []).append(index)
+    for members in groups.values():
+        taken = sorted(int(slot[index]) for index in members)
+        if int(row[members[0]]) < 0 or taken != list(range(len(members))):
+            return row, slot
+    descending = bool(goal[12] > goal[11])
+    grouped = bool(goal[10] > goal[9])
+    order = []
+    for row_id in sorted(groups):
+        order.extend(sorted(groups[row_id], key=lambda index: int(slot[index])))
+    sequences = [[index for index in order if int(color[index]) == name] for name in range(3)] if grouped else [order]
+    new_row, new_slot = row.clone(), slot.clone()
+    for sequence in sequences:
+        ranked = sorted(sequence, key=lambda index: float(area[index]), reverse=descending)
+        seats = [(row[index].clone(), slot[index].clone()) for index in sequence]
+        for index, (row_id, slot_id) in zip(ranked, seats):
+            new_row[index] = row_id
+            new_slot[index] = slot_id
+    return new_row, new_slot
+
+
+def apply_area_order(output, objects, goal):
+    """Reorder one batch by predicted area. Coordinates are unchanged here."""
+    row = output['row'].clone()
+    slot = output['slot'].clone()
+    area = (objects.size[..., 0] * objects.size[..., 1]).detach()
+    color = objects.color.detach().argmax(-1)
+    for index in range(row.shape[0]):
+        count = int(objects.valid[index].sum())
+        if count == 0 or not bool(objects.valid[index, :count].all()):
+            continue
+        new_row, new_slot = order_by_area(
+            row[index, :count], slot[index, :count], area[index, :count],
+            color[index, :count], goal[index].detach())
+        row[index, :count] = new_row
+        slot[index, :count] = new_slot
+    replaced = dict(output)
+    replaced['row'] = row
+    replaced['slot'] = slot
+    return replaced
+
+
 def select_layout(model, hidden, objects, goal, output):
     """Leave a legal selector output unchanged. Search only an illegal one."""
     if not hasattr(model, 'context') or not hasattr(model, 'placement'):
