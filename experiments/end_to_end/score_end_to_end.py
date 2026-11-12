@@ -30,7 +30,7 @@ ROW_BEST = Path('artifacts/row_layout_origin_y/checkpoint-best.pt')
 RELATION_BEST = Path('artifacts/phase1_relation_continue/checkpoint-best.pt')
 SIZE_BEST = Path('artifacts/experiments/size_refinement/checkpoint-best.pt')
 JOINT_BEST = Path('artifacts/experiments/joint_stage/checkpoint-best.pt')
-SELECTOR_BEST = Path('artifacts/experiments/selector_only/checkpoint-best.pt')
+SELECTOR_BEST = Path('artifacts/experiments/selector_full/checkpoint-best.pt')
 DATA = 'artifacts/generalization_20000/dataset'
 
 
