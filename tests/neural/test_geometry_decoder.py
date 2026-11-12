@@ -1,9 +1,13 @@
 """CPU checks for the geometry decoder. No checkpoint and no GPU."""
+import math
+
 import torch
 
 from knolling_dataset.schema import Pose
 from knolling_dataset.validator import polygon
-from knolling_model.experiments.geometry_decoder import decode_scene, extent_offsets
+from knolling_model.experiments.geometry_decoder import (
+    apply_geometry, decode_scene, extent_offsets)
+from knolling_model.recovery.contracts import Objects
 
 
 def _goal(region='full', gap=0, group='none'):
@@ -79,6 +83,66 @@ def test_color_rows_use_twice_the_gap_and_a_too_wide_row_is_rejected():
         torch.zeros(2, dtype=torch.long), wide)
     assert failure == 'infeasible:horizontal_room'
     torch.testing.assert_close(crowded, torch.tensor([[.10, .20], [.25, .20]]))
+
+
+def _objects(major, minor, angle):
+    count = major.shape[-1]
+    size = torch.stack((major, minor), -1)
+    color = torch.zeros(1, count, 3)
+    color[..., 0] = 1
+    return Objects(
+        torch.zeros(1, count, 2), size, angle, color, color.clone(),
+        torch.ones(1, count, dtype=torch.bool), torch.arange(count)[None])
+
+
+def _output(xy, angle, row, slot):
+    return dict(xy=xy, angle=angle, row=row, slot=slot)
+
+
+def test_a_requested_axis_turns_the_major_side_without_swapping_it():
+    major = torch.tensor([[.080, .060]])
+    minor = torch.tensor([[.040, .030]])
+    xy = torch.tensor([[[.20, .20], [.40, .20]]])
+    row, slot = torch.zeros(1, 2, dtype=torch.long), torch.tensor([[0, 1]])
+    horizontal = apply_geometry(
+        _output(xy, torch.full((1, 2), math.pi / 2), row, slot),
+        _objects(major, minor, torch.full((1, 2), math.pi / 2)), _goal()[None])
+    torch.testing.assert_close(horizontal['angle'], torch.zeros(1, 2))
+    vertical_goal = _goal()
+    vertical_goal[1], vertical_goal[2] = 0, 1
+    vertical = apply_geometry(
+        _output(xy, torch.zeros(1, 2), row, slot),
+        _objects(major, minor, torch.zeros(1, 2)), vertical_goal[None])
+    torch.testing.assert_close(vertical['angle'], torch.full((1, 2), math.pi / 2))
+    for result, along_x in ((horizontal, major), (vertical, minor)):
+        for index in range(2):
+            xmin, xmax, ymin, ymax = extent_offsets(
+                result['angle'][0, index], major[0, index], minor[0, index])
+            span_x, span_y = float(xmax - xmin), float(ymax - ymin)
+            assert abs(span_x - float(along_x[0, index])) < 1e-6
+            other = minor if along_x is major else major
+            assert abs(span_y - float(other[0, index])) < 1e-6
+
+
+def test_an_aligned_angle_and_a_keep_command_stay_put():
+    major, minor = torch.tensor([[.060, .060]]), torch.tensor([[.040, .040]])
+    angle = torch.tensor([[0.01, -0.01]])
+    xy = torch.tensor([[[.15, .20], [.15 + .030 + .030 + .015, .20]]])
+    row, slot = torch.zeros(1, 2, dtype=torch.long), torch.tensor([[0, 1]])
+    objects = _objects(major, minor, angle)
+    kept = apply_geometry(_output(xy, angle, row, slot), objects, _goal()[None])
+    assert kept['geometry_status'] == ['kept']
+    torch.testing.assert_close(kept['xy'], xy)
+    assert torch.equal(kept['angle'], angle)
+    keep = torch.zeros(1, 13)
+    keep[0, 0] = 1
+    upright = torch.full((1, 2), math.pi / 2)
+    untouched = apply_geometry(_output(xy, upright, row, slot), _objects(major, minor, upright), keep)
+    assert torch.equal(untouched['angle'], upright)
+    tied = _goal()[None].clone()
+    tied[0, 1] = tied[0, 2] = 0.5
+    same = apply_geometry(_output(xy, upright, row, slot), _objects(major, minor, upright), tied)
+    assert torch.equal(same['angle'], upright)
 
 
 def test_width_still_moves_the_following_object():

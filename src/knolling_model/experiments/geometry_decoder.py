@@ -5,6 +5,8 @@ X and Y. A pose already inside the evaluator bands is left where it is. If the
 row cannot fit the requested region, the original coordinates are returned with
 an explicit failure instead of a layout that still breaks the constraints.
 """
+import math
+
 import torch
 
 from knolling_dataset.schema import HEIGHT_M, REGIONS, WIDTH_M
@@ -16,6 +18,8 @@ WORK_LOW = 0.010 - 0.0001
 WORK_X_HIGH = WIDTH_M - 0.010 + 0.0001
 WORK_Y_HIGH = HEIGHT_M - 0.010 + 0.0001
 REGION_SLACK = 0.0001
+# Same band the axis check uses. An angle already inside it is left untouched.
+AXIS_TOL = math.radians(2.)
 
 
 def extent_offsets(angle, major, minor):
@@ -160,13 +164,42 @@ def decode_scene(xy, angle, row, slot, major, minor, color, goal):
     return placed, 'placed'
 
 
+def commanded_axis(goal):
+    """Predicted axis for each scene. Inactive when keep wins or the axis is tied."""
+    if goal.ndim != 2 or goal.shape[-1] != 13:
+        raise ValueError('geometry decoder expects a batched 13-d goal')
+    keep, horizontal, vertical = goal[:, 0], goal[:, 1], goal[:, 2]
+    vertical_wins = vertical > horizontal
+    horizontal_wins = horizontal > vertical
+    active = (vertical_wins | horizontal_wins) & (torch.maximum(horizontal, vertical) > keep)
+    target = torch.where(
+        vertical_wins, goal.new_full(goal.shape[:1], math.pi / 2), goal.new_zeros(goal.shape[:1]))
+    return active, target
+
+
+def normalize_axis_angle(angle, valid, goal):
+    """Turn a requested axis to 0 or pi/2 without swapping major and minor.
+
+    The asset's long and short sides stay on their own axes. The pose angle is
+    what makes that side horizontal or vertical, and it is the same angle the
+    envelope and the returned pose both use. A keep command, a tied axis, or an
+    angle already inside the axis band is not changed.
+    """
+    active, target = commanded_axis(goal)
+    delta = torch.remainder(angle - target[:, None] + math.pi / 2, math.pi) - math.pi / 2
+    replace = valid & active[:, None] & (delta.abs() > AXIS_TOL)
+    return torch.where(replace, target[:, None].expand_as(angle), angle)
+
+
 def apply_geometry(output, objects, goal):
-    """Replace target X/Y with the decoded coordinates. Row and angle stay neural."""
+    """Replace target X/Y with the decoded coordinates. Row stays neural."""
+    angle = normalize_axis_angle(output['angle'], objects.valid, goal)
     decoded, status = decode_batch(
-        output['xy'], output['angle'], output['row'], output['slot'],
+        output['xy'], angle, output['row'], output['slot'],
         objects.size[..., 0], objects.size[..., 1], objects.color, goal, objects.valid)
     replaced = dict(output)
     replaced['xy'] = decoded.to(dtype=output['xy'].dtype, device=output['xy'].device)
+    replaced['angle'] = angle.to(dtype=output['angle'].dtype, device=output['angle'].device)
     replaced['geometry_status'] = status
     return replaced
 
