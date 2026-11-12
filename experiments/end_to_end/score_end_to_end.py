@@ -30,6 +30,7 @@ ROW_BEST = Path('artifacts/row_layout_origin_y/checkpoint-best.pt')
 RELATION_BEST = Path('artifacts/phase1_relation_continue/checkpoint-best.pt')
 SIZE_BEST = Path('artifacts/experiments/size_refinement/checkpoint-best.pt')
 JOINT_BEST = Path('artifacts/experiments/joint_stage/checkpoint-best.pt')
+SELECTOR_BEST = Path('artifacts/experiments/selector_only/checkpoint-best.pt')
 DATA = 'artifacts/generalization_20000/dataset'
 
 
@@ -63,6 +64,20 @@ def load_bundle(size_path=SIZE_BEST, device=None, row_path=None):
     for module in (system, relation, row_model):
         module.requires_grad_(False)
     return system, relation, row_model, head, checkpoint
+
+
+def load_adopted(device=None):
+    """Adopted inference: set encoder for row and order, original pose weights."""
+    from knolling_model.experiments.set_context import SetArrangement
+    device = stable.DEVICE if device is None else device
+    system, relation, placement, head, _checkpoint = load_bundle(JOINT_BEST, device=device, row_path=JOINT_BEST)
+    saved = torch.load(SELECTOR_BEST, map_location=device, weights_only=False)
+    placement.load_state_dict(saved['placement'])
+    model = SetArrangement(placement).to(device)
+    model.context.load_state_dict(saved['context'])
+    model.eval()
+    model.requires_grad_(False)
+    return system, relation, model, head, saved
 
 
 def labels_of(record, identities):
