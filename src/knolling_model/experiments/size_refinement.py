@@ -280,7 +280,7 @@ def poses_from_detection(system, relation, row_model, images, texts, head=None):
     if not text_requests_every_object(texts) and not command_is_full(
             encoded['keep_logit'], encoded['selected'], objects.valid):
         return arrange_held(
-            relation, row_model, objects, encoded, keep_angles(system, visual, queries, images)), objects, visual
+            relation, row_model, objects, encoded, keep_angles(system, visual, queries, images), texts), objects, visual
     hidden = relation._hidden(objects.features())
     output = row_model(hidden, objects.valid, goal, objects.size[..., 0], objects.size[..., 1],
                        None, None, True, colors=objects.color)

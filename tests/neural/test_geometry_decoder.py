@@ -6,7 +6,7 @@ import torch
 from knolling_dataset.schema import Pose
 from knolling_dataset.validator import polygon
 from knolling_model.experiments.geometry_decoder import (
-    REGION_INSET, _instruction, apply_geometry, decode_scene, extent_offsets)
+    REGION_INSET, _instruction, align_goal_axis, apply_geometry, decode_scene, extent_offsets)
 from knolling_model.recovery.contracts import Objects
 
 
@@ -122,6 +122,17 @@ def test_a_requested_axis_turns_the_major_side_without_swapping_it():
             assert abs(span_x - float(along_x[0, index])) < 1e-6
             other = minor if along_x is major else major
             assert abs(span_y - float(other[0, index])) < 1e-6
+
+
+def test_text_axis_overrides_a_tied_goal_without_touching_keep():
+    goal = _goal()[None].clone()
+    goal[0, 1] = goal[0, 2] = 0.4
+    goal[0, 0] = 0.2
+    aligned = align_goal_axis(goal, ['Arrange all objects in rows; long axes vertical. '])
+    torch.testing.assert_close(aligned[0, 0], goal.new_tensor(0.2))
+    torch.testing.assert_close(aligned[0, 2], goal.new_tensor(0.8))
+    torch.testing.assert_close(aligned[0, 1], goal.new_zeros(()))
+    assert torch.equal(align_goal_axis(goal, ['Keep every object at its current position and orientation.']), goal)
 
 
 def test_an_aligned_angle_and_a_keep_command_stay_put():

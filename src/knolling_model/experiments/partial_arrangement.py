@@ -12,7 +12,7 @@ import torch
 from shapely.geometry import Polygon
 
 from knolling_model.experiments.constraint_decode import select_layout
-from knolling_model.experiments.geometry_decoder import _instruction, apply_geometry
+from knolling_model.experiments.geometry_decoder import _instruction, align_goal_axis, apply_geometry
 from knolling_model.recovery.contracts import Objects
 
 CLEARANCE_M = 0.010
@@ -130,14 +130,14 @@ def _source_pose(objects, index, route, keep_angle=None):
         row=row, slot=slot, geometry_status=['source'], route=route)
 
 
-def _place_selected(relation, row_model, objects, index, goal, chosen, keep_angle=None):
+def _place_selected(relation, row_model, objects, index, goal, chosen, keep_angle=None, text=None):
     subset = _take(objects, index, chosen)
     hidden = relation._hidden(subset.features())
     output = row_model(
         hidden, subset.valid, goal, subset.size[..., 0], subset.size[..., 1],
         None, None, True, colors=subset.color)
     output = select_layout(row_model, hidden, subset, goal, output)
-    output = apply_geometry(output, subset, goal)
+    output = apply_geometry(output, subset, align_goal_axis(goal, [text]) if text else goal)
     placed = _source_pose(objects, index, 'partial', keep_angle)
     placed['xy'][0, chosen] = output['xy'][0]
     placed['angle'][0, chosen] = output['angle'][0]
@@ -148,8 +148,10 @@ def _place_selected(relation, row_model, objects, index, goal, chosen, keep_angl
     return placed
 
 
-def arrange_held(relation, row_model, objects, encoded, keep_angle=None):
+def arrange_held(relation, row_model, objects, encoded, keep_angle=None, texts=None):
     """Place one batch. Keep copies the detection. Partial arranges the selection."""
+    if texts is not None and len(texts) != objects.valid.shape[0]:
+        raise ValueError('one instruction text per scene required')
     goal = encoded['vector']
     keep = encoded['keep_logit'].sigmoid()
     selected = encoded['selected']
@@ -161,7 +163,8 @@ def arrange_held(relation, row_model, objects, encoded, keep_angle=None):
             scene = _source_pose(objects, index, 'noop', keep_angle)
         else:
             scene = _place_selected(
-                relation, row_model, objects, index, goal[index:index + 1], moving, keep_angle)
+                relation, row_model, objects, index, goal[index:index + 1], moving, keep_angle,
+                None if texts is None else texts[index])
         scene['selected'] = selected[index:index + 1]
         scene['keep_probability'] = keep[index:index + 1]
         scenes.append(scene)

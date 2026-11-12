@@ -182,6 +182,29 @@ def decode_scene(xy, angle, row, slot, major, minor, color, goal, *, tighten_ver
     return placed, 'placed'
 
 
+def align_goal_axis(goal, texts):
+    """Use the requested long-axis words for geometry. The selector goal stays put.
+
+    A near tie in the goal can snap a moved object to the other axis. The
+    instruction text names the axis directly. No-op text has no axis phrase,
+    and that goal is returned unchanged.
+    """
+    if goal.ndim != 2 or goal.shape[-1] != 13 or len(texts) != goal.shape[0]:
+        raise ValueError('axis command does not match the goal batch')
+    replaced = goal.clone()
+    for index, text in enumerate(texts):
+        if not isinstance(text, str):
+            raise ValueError('axis command text required')
+        vertical = 'long axes vertical' in text
+        horizontal = 'long axes horizontal' in text
+        if vertical == horizontal:
+            continue
+        mass = replaced[index, 1] + replaced[index, 2]
+        replaced[index, 1] = mass if horizontal else replaced.new_zeros(())
+        replaced[index, 2] = mass if vertical else replaced.new_zeros(())
+    return replaced
+
+
 def commanded_axis(goal):
     """Predicted axis for each scene. Inactive when keep wins or the axis is tied."""
     if goal.ndim != 2 or goal.shape[-1] != 13:
