@@ -1,9 +1,10 @@
 """Partial and no-op routing on top of the adopted full arrangement.
 
 A full command never reaches this module. No-op copies the detected source
-pose. Partial runs the existing selector and geometry decoder on the objects
-the goal encoder selected, and leaves the others on their detected source
-pose. Those fixed objects are obstacles: the moved group is translated only
+pose. Partial runs the selector and geometry decoder on the objects that move,
+and leaves the others on their detected source pose. A command that names
+one color moves the objects of that color. Those fixed objects are obstacles:
+the moved group is translated only
 when a shift keeps it inside the requested region and at least 10 mm away.
 """
 import math
@@ -40,9 +41,12 @@ def named_color(text):
 
 
 def supplement_moving(moving, color, text):
-    """Add objects of the named color. The selector's own movers stay.
+    """Use the named color as the moving set when that color is unambiguous.
 
-    A tied color, or a sentence that does not name exactly one color, adds nothing.
+    A partial command names exactly one color. Objects whose color is a unique
+    match are the movers, and a selector object of another color is not moved.
+    A tied color, a sentence that names no single color, or a scene with no
+    sure match leaves the selector set unchanged.
     """
     if moving.ndim != 1 or color.ndim != 2 or color.shape[-1] != len(COLORS):
         raise ValueError('color supplement expects one scene')
@@ -57,7 +61,7 @@ def supplement_moving(moving, color, text):
     extra = sure.nonzero().flatten()
     if int(extra.numel()) == 0:
         return moving
-    return torch.unique(torch.cat((moving.to(extra.device), extra)), sorted=True)
+    return extra
 
 
 def command_is_full(keep_logit, selected, valid):

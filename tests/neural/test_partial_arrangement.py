@@ -56,13 +56,13 @@ def test_a_colored_silhouette_reports_its_major_axis():
     assert angle_error(found, theta) < math.radians(1)
 
 
-def test_a_named_color_is_added_and_a_tie_or_another_color_is_not():
+def test_a_named_color_replaces_a_selector_object_of_another_color():
     color = torch.tensor([[0.9, 0.05, 0.05], [0.2, 0.6, 0.2], [0.4, 0.4, 0.2]])
     moving = supplement_moving(torch.tensor([1]), color, 'Arrange only the red objects in rows.')
-    assert moving.tolist() == [0, 1]
+    assert moving.tolist() == [0]
     assert supplement_moving(torch.tensor([0]), color, 'Keep every object at its current position and orientation.').tolist() == [0]
     assert named_color('Arrange only the red objects and only the blue objects.') is None
-    assert supplement_moving(torch.zeros(0, dtype=torch.long), color, 'Arrange only the blue objects.').tolist() == []
+    assert supplement_moving(torch.tensor([1]), color, 'Arrange only the blue objects.').tolist() == [1]
 
 
 def test_a_moved_object_shifts_off_a_fixed_object_and_a_clear_one_stays():
