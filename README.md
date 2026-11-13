@@ -1,102 +1,90 @@
 # Knolling Bot
 
-Knolling Bot arranges scattered objects into aligned, evenly spaced rows from a
-single overhead photograph and one English instruction. The system returns a
-target pose `(x, y, θ)` for every detected object. It covers three requests:
-arrange everything, move only one named color, or leave the scene unchanged.
-Inference uses the image and the sentence. It does not read a ground-truth
-pose, a teacher row, or a teacher order.
+Knolling Bot predicts a target pose `(x, y, θ)` for every object in one overhead photograph, given a single English instruction. It can arrange every object, move only one named color, or leave the scene unchanged. Inference reads the image and the sentence. It does not read a ground-truth pose, a teacher row, or a teacher order.
 
-## End-to-end architecture
+## Key results
 
-A 576×384 bird's-eye image is detected with RT-DETR. The sentence is encoded
-and turned into a goal: which objects move, which region, which gap, whether
-rows are single-color, and how the long axes should point. A neural selector
-proposes rows. Constrained decoding keeps only legal candidates, and a
-geometry decoder writes the coordinates. Partial and no-op instructions leave
-the remaining objects on the pose the detector already saw.
+**v2.0.0** is the current system. **v1.0.0** is the initial baseline. Both were scored once on the same sealed holdout: 128 families and 640 synthetic images. A scene counts only when every pose check passes. The rate is target-pose accuracy on synthetic RGB, not a robot-arm success rate.
+
+| System | Full | Partial | No-op | Overall |
+| --- | ---: | ---: | ---: | ---: |
+| v1.0.0 | 287/384 | 84/127 | 118/129 | 489/640 (76.4%) |
+| v2.0.0 | 311/384 | 104/127 | 125/129 | 540/640 (84.4%) |
+
+v2.0.0 kept every v1.0.0 success and added 51 scenes. Tolerances and the family-level interval are in [docs/evaluation.md](docs/evaluation.md).
+
+## Representative demos
+
+Three passing full arrangements, with different instructions. Each figure shows the initial scene, the predicted source-to-target motion, and the predicted arrangement. The arrows are not robot trajectories. These scenes are examples, not a sample of the holdout rate.
+
+![Full, 8 objects, vertical axes, pass](docs/v2.0.0/demo-gallery/motion/02_full_pass.png)
+
+**Full · 8 objects · vertical**
+
+![Full, 8 objects, horizontal color rows in the right region, pass](docs/v2.0.0/demo-gallery/motion/13_full_pass.png)
+
+**Full · 8 objects · horizontal · color rows**
+
+![Full, 6 objects, pass](docs/v2.0.0/demo-gallery/motion/11_full_pass.png)
+
+**Full · 6 objects**
+
+Partial, no-op, and failure cases are in the [demo gallery](docs/v2.0.0/demo-gallery/index.html).
+
+## Method
+
+A 576×384 bird's-eye image is detected with RT-DETR. The sentence is encoded as a 13-dimensional goal: which objects move, which region, which gap, whether rows are single-color, and how the long axes point. A selector proposes rows, constrained decoding keeps legal candidates, and a geometry decoder writes the coordinates. Objects that should stay put remain on the detected pose.
 
 ```text
 RGB  ──► RT-DETR ──► objects
 text ──► goal ──► selector ──► constrained rows ──► geometry decoder
 ```
 
-Module roles, the 13-dimensional goal, and the repair rules are in
-[docs/architecture.md](docs/architecture.md).
+- **Full.** The sentence begins with "Arrange all objects". Every object moves.
+- **Partial.** "Arrange only the red objects", or green, or blue. Only that color moves.
+- **No-op.** "Keep every object at its current position and orientation." Nothing moves.
 
-## Current release
+The sentence also sets the region, a 15, 20, or 30 mm gap, color grouping, size order, and axis. At most eight objects are arranged. Module roles and the repair rules are in [docs/architecture.md](docs/architecture.md).
 
-**v2.0.0 (Current Release)** is the system described above. `v1.0.0` is the
-initial baseline, kept so the comparison below can be reproduced.
+## Data
 
-Both systems were scored once on the same sealed holdout: 128 scene families,
-640 synthetic images. A prediction counts as correct only when every pose
-check passes. The rate is **target-pose accuracy on synthetic RGB**. It is
-not the rate at which a robot arm would complete the arrangement.
+The training distribution is `artifacts/generalization_20000/dataset`: 4,000 families and 20,000 scenes, split 16,000 / 2,000 / 2,000. The 640-scene holdout, `artifacts/v2_independent_eval`, is a separate sealed set. It is not the 2,000-scene test split. Neither dataset is in this repository. The split, the English templates, and the file hashes are in [docs/dataset.md](docs/dataset.md) and [docs/v2.0.0.md](docs/v2.0.0.md).
 
-| System | Full | Partial | No-op | Overall |
-| --- | ---: | ---: | ---: | ---: |
-| v1.0.0 (Initial Baseline) | 287/384 | 84/127 | 118/129 | 489/640 (76.4%) |
-| v2.0.0 (Improved System) | 311/384 | 104/127 | 125/129 | 540/640 (84.4%) |
+## Installation and inference
 
-v2.0.0 kept every v1.0.0 success and added 51 scenes. Tolerances, the
-family-level interval, and the scoring command are in
-[docs/evaluation.md](docs/evaluation.md).
-
-| Mode | Instruction | Objects that move |
-| --- | --- | --- |
-| Full | begins with “Arrange all objects” | all |
-| Partial | “Arrange only the red objects” (or green, or blue) | that color |
-| No-op | “Keep every object at its current position and orientation.” | none |
-
-The sentence also names the region, a 15/20/30 mm gap, color grouping, size
-order, and axis direction. Wording and the data split are in
-[docs/dataset.md](docs/dataset.md).
-
-## Quick start
-
-Python 3.12 and a CUDA GPU. Locked versions are in
-`requirements-neural-lock.txt`.
+Python 3.12 and a CUDA GPU. Locked packages are in `requirements-neural-lock.txt`.
 
 ```bash
 python -m pip install -e ".[neural,test]"
 ```
 
-Checkpoints and datasets are not in this repository. Paths, hashes, and the
-`load_adopted` / `poses_from_detection` call are in
-[docs/reproducibility.md](docs/reproducibility.md).
+Checkpoints and pretrained snapshots are not in git. Place them at the paths in [docs/v2.0.0.md](docs/v2.0.0.md). From the repository root, with `src`, `scripts`, and `experiments/end_to_end` on `PYTHONPATH`:
 
-## Representative demos
+```python
+import run_phase1_pairwise_affine as runner
+from knolling_model.experiments.size_refinement import poses_from_detection
+from score_end_to_end import load_adopted
 
-Three passing full arrangements. The two eight-object scenes use different
-instructions: vertical axes across the full workspace, and horizontal
-single-color rows in the right region. The third scene has six objects. Each
-figure shows the initial scene, the predicted motion from source pose to
-target pose, and the predicted arrangement. The arrows join those two poses.
-They are not robot trajectories. These scenes are examples, not a success
-rate, and not robot executions.
+runner.setup()
+system, relation, model, head, _saved = load_adopted()
+output, objects, visual = poses_from_detection(
+    system, relation, model, images, texts, head)
+```
 
-![Full · 8 objects · vertical · PASS](docs/v2.0.0/demo-gallery/motion/02_full_pass.png)
+`output["xy"]` and `output["angle"]` are the target pose. `texts` is one English sentence per image. Environment variables and the reason `scripts/run_*.py` is not a verified retrain recipe are in [docs/reproducibility.md](docs/reproducibility.md).
 
-![Full · 8 objects · horizontal · right region · color rows · PASS](docs/v2.0.0/demo-gallery/motion/13_full_pass.png)
+## Evaluation and reproducibility
 
-![Full · 6 objects · PASS](docs/v2.0.0/demo-gallery/motion/11_full_pass.png)
+The holdout was scored once. This repository records that measurement and does not repeat it. The scoring command, tolerances, and the rule against tuning on the holdout are in [docs/evaluation.md](docs/evaluation.md). Seeds, checkpoint hashes, and the regression tests are in [docs/reproducibility.md](docs/reproducibility.md).
 
-Partial, no-op, and failure scenes remain in the
-[demo gallery](docs/v2.0.0/demo-gallery/index.html).
+## Documentation
 
-## Repository
+- [Architecture](docs/architecture.md)
+- [Dataset](docs/dataset.md)
+- [Evaluation](docs/evaluation.md)
+- [Reproducibility](docs/reproducibility.md)
+- [v2.0.0 release note](docs/v2.0.0.md)
+- [Limitations](docs/limitations.md)
+- [Third-party notices](docs/third-party-notices.md)
 
-| Path | Role |
-| --- | --- |
-| `src/` | model, data, and inference |
-| `configs/` | checkpoint pins the loader still opens |
-| `experiments/end_to_end/` | adopted loader, holdout scoring, demo |
-| `tests/` | unit and regression tests |
-| `docs/` | architecture, data, evaluation, reproducibility |
-| `archive/` | earlier experiment notes |
-
-Known limits, including the absence of robot execution, are in
-[docs/limitations.md](docs/limitations.md). This repository does not yet
-grant a license. Third-party terms are in
-[docs/third-party-notices.md](docs/third-party-notices.md).
+The system stops at eight objects, and no robot arm has executed these poses. Weights cannot be downloaded from this repository. This repository does not yet grant a license.
