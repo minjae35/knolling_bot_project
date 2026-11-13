@@ -1,6 +1,6 @@
 # v2.0.0-rc1
 
-The release candidate is the `v2.0.0-rc1` tag on `dev/knolling-v2`. Inference behavior matches `5efca4b` plus this record. `main` and `v1.0.0` stay at `26dca53`. Nothing in this record selects a new checkpoint or threshold.
+The release candidate tag `v2.0.0-rc1` is `d96c40e` on `dev/knolling-v2`. Its inference behavior matches `5efca4b`. `main` and `v1.0.0` stay at `26dca53`. The scores below were measured at that tag and do not select a checkpoint or threshold.
 
 ## Frozen inference
 
@@ -31,6 +31,17 @@ python experiments/end_to_end/score_holdout.py \
   --data artifacts/v2_independent_eval \
   --output /tmp/v2_holdout.jsonl
 ```
+
+The one-shot scores below are a report, not a tuning target. v1 was `v1.0.0` and v2 was `v2.0.0-rc1`, on these 640 samples only.
+
+| | full | partial | no-op | overall |
+| --- | --- | --- | --- | --- |
+| v1.0.0 | 287/384 | 84/127 | 118/129 | 489/640 |
+| v2.0.0-rc1 | 311/384 | 104/127 | 125/129 | 540/640 |
+
+v2 kept every v1 success and added 51 (full 24, partial 20, no-op 7). Across the 128 families the success-rate difference is +8.0 points, with a family bootstrap 95% interval of +4.8 to +11.6. Twenty-nine families improved and none got worse. Median inference time was 0.132 s for v1 and 0.137 s for v2.
+
+The remaining v2 failures are mostly spacing: 49 horizontal gaps and 42 vertical gaps. Detection-count failures fell from 45 to 5. Region failures fell from 17 to 4. The development assets in this holdout contain more chamfers and fewer capsules than the 20,000-scene pool, and the gain still appears there.
 
 Score v1.0.0 on the same files:
 
