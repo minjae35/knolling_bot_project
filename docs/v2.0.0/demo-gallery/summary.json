@@ -1,0 +1,276 @@
+{
+  "commit": "26dca53",
+  "split": "validation",
+  "note": "Ten scenes chosen to show commands and failure modes. This set is not a success rate.",
+  "passes": 7,
+  "fails": 3,
+  "demos": [
+    {
+      "id": "01",
+      "file": "01_full_pass.png",
+      "sample_id": "expanded_04d64094d9fd95aceba572f9_0",
+      "mode": "full",
+      "objects": 3,
+      "task": "PASS",
+      "errors": [],
+      "reason": "official checks passed",
+      "instruction": "Arrange all objects in rows in the full workspace; long axes horizontal. Across the selected objects, order by bounding-rectangle area, smallest first, left to right then top to bottom. Leave 30 mm horizontal gaps between neighboring bounding rectangles in a row. Use 30 mm vertical gaps between consecutive row bands. A row band spans the full height of that row's bounding rectangles.",
+      "axis": "horizontal",
+      "sort": "asc",
+      "group": "none",
+      "gap_mm": 30,
+      "region": "full",
+      "moved": [
+        "o01",
+        "o03",
+        "o02"
+      ],
+      "kept": [],
+      "omitted": [],
+      "why_selected": "full horizontal"
+    },
+    {
+      "id": "02",
+      "file": "02_full_pass.png",
+      "sample_id": "expanded_05911891b8ec53ba88bd00f9_1",
+      "mode": "full",
+      "objects": 8,
+      "task": "PASS",
+      "errors": [],
+      "reason": "official checks passed",
+      "instruction": "Arrange all objects in rows in the full workspace; long axes vertical. Across the selected objects, order by bounding-rectangle area, smallest first, left to right then top to bottom. Leave 20 mm horizontal gaps between neighboring bounding rectangles in a row. Use 20 mm vertical gaps between consecutive row bands. A row band spans the full height of that row's bounding rectangles.",
+      "axis": "vertical",
+      "sort": "asc",
+      "group": "none",
+      "gap_mm": 20,
+      "region": "full",
+      "moved": [
+        "o01",
+        "o02",
+        "o05",
+        "o03",
+        "o07",
+        "o06",
+        "o04",
+        "o08"
+      ],
+      "kept": [],
+      "omitted": [],
+      "why_selected": "full vertical"
+    },
+    {
+      "id": "03",
+      "file": "03_full_pass.png",
+      "sample_id": "expanded_0025df7b74321e320e47e723_0",
+      "mode": "full",
+      "objects": 4,
+      "task": "PASS",
+      "errors": [],
+      "reason": "official checks passed",
+      "instruction": "Arrange all objects in rows in the full workspace; long axes horizontal. Use single-color rows, with each color's rows together. Within each color, order by bounding-rectangle area, smallest first, left to right then top to bottom. Leave 20 mm horizontal gaps between neighboring bounding rectangles in a row. Use vertical gaps of 20 mm between consecutive row bands within a color and 40 mm between colors. A row band spans the full height of that row's bounding rectangles.",
+      "axis": "horizontal",
+      "sort": "asc",
+      "group": "color",
+      "gap_mm": 20,
+      "region": "full",
+      "moved": [
+        "o02",
+        "o03",
+        "o01",
+        "o04"
+      ],
+      "kept": [],
+      "omitted": [],
+      "why_selected": "full color groups"
+    },
+    {
+      "id": "04",
+      "file": "04_full_fail.png",
+      "sample_id": "expanded_022eb858eb1a5268acceee00_0",
+      "mode": "full",
+      "objects": 6,
+      "task": "FAIL",
+      "errors": [
+        "horizontal_gap",
+        "vertical_gap"
+      ],
+      "reason": "horizontal gap, vertical gap",
+      "instruction": "Arrange all objects in rows in the full workspace; long axes horizontal. Use single-color rows, with each color's rows together. Within each color, order by bounding-rectangle area, smallest first, left to right then top to bottom. Leave 30 mm horizontal gaps between neighboring bounding rectangles in a row. Use vertical gaps of 30 mm between consecutive row bands within a color and 60 mm between colors. A row band spans the full height of that row's bounding rectangles.",
+      "axis": "horizontal",
+      "sort": "asc",
+      "group": "color",
+      "gap_mm": 30,
+      "region": "full",
+      "moved": [
+        "o02",
+        "o04",
+        "o03",
+        "o05",
+        "o01",
+        "o06"
+      ],
+      "kept": [],
+      "omitted": [],
+      "why_selected": "full size or gap miss"
+    },
+    {
+      "id": "05",
+      "file": "05_partial_pass.png",
+      "sample_id": "expanded_045c5cb16811e0e60dec315e_2",
+      "mode": "partial",
+      "objects": 2,
+      "task": "PASS",
+      "errors": [],
+      "reason": "official checks passed",
+      "instruction": "Arrange only the red objects in rows in the full workspace; long axes horizontal. Use single-color rows, with each color's rows together. Within each color, order by bounding-rectangle area, largest first, left to right then top to bottom. Leave 15 mm horizontal gaps between neighboring bounding rectangles in a row. Use vertical gaps of 15 mm between consecutive row bands within a color and 30 mm between colors. A row band spans the full height of that row's bounding rectangles. Keep all other objects fixed in position and orientation.",
+      "axis": "horizontal",
+      "sort": "desc",
+      "group": "color",
+      "gap_mm": 15,
+      "region": "full",
+      "moved": [
+        "o02"
+      ],
+      "kept": [
+        "o01"
+      ],
+      "omitted": [],
+      "why_selected": "partial small keep"
+    },
+    {
+      "id": "06",
+      "file": "06_partial_pass.png",
+      "sample_id": "expanded_1a9fd04ee351b51e492e7884_2",
+      "mode": "partial",
+      "objects": 5,
+      "task": "PASS",
+      "errors": [],
+      "reason": "official checks passed",
+      "instruction": "Arrange only the green objects in rows in the full workspace; long axes horizontal. Across the selected objects, order by bounding-rectangle area, largest first, left to right then top to bottom. Leave 30 mm horizontal gaps between neighboring bounding rectangles in a row. Use 30 mm vertical gaps between consecutive row bands. A row band spans the full height of that row's bounding rectangles. Keep all other objects fixed in position and orientation.",
+      "axis": "horizontal",
+      "sort": "desc",
+      "group": "none",
+      "gap_mm": 30,
+      "region": "full",
+      "moved": [
+        "o01"
+      ],
+      "kept": [
+        "o04",
+        "o03",
+        "o02",
+        "o05"
+      ],
+      "omitted": [],
+      "why_selected": "partial mid keep"
+    },
+    {
+      "id": "07",
+      "file": "07_partial_pass.png",
+      "sample_id": "expanded_0518f88cb7fe83a77bbcdc8e_2",
+      "mode": "partial",
+      "objects": 7,
+      "task": "PASS",
+      "errors": [],
+      "reason": "official checks passed",
+      "instruction": "Arrange only the blue objects in rows in the left region; long axes horizontal. Use single-color rows, with each color's rows together. Within each color, order by bounding-rectangle area, smallest first, left to right then top to bottom. Leave 15 mm horizontal gaps between neighboring bounding rectangles in a row. Use vertical gaps of 15 mm between consecutive row bands within a color and 30 mm between colors. A row band spans the full height of that row's bounding rectangles. Keep all other objects fixed in position and orientation.",
+      "axis": "horizontal",
+      "sort": "asc",
+      "group": "color",
+      "gap_mm": 15,
+      "region": "left",
+      "moved": [
+        "o07",
+        "o06",
+        "o02"
+      ],
+      "kept": [
+        "o04",
+        "o03",
+        "o01",
+        "o05"
+      ],
+      "omitted": [],
+      "why_selected": "partial large keep"
+    },
+    {
+      "id": "08",
+      "file": "08_partial_fail.png",
+      "sample_id": "expanded_1216f7784f0643afcb8a16cd_2",
+      "mode": "partial",
+      "objects": 4,
+      "task": "FAIL",
+      "errors": [
+        "horizontal_gap"
+      ],
+      "reason": "horizontal gap",
+      "instruction": "Arrange only the blue objects in rows in the full workspace; long axes horizontal. Use single-color rows, with each color's rows together. Within each color, order by bounding-rectangle area, smallest first, left to right then top to bottom. Leave 30 mm horizontal gaps between neighboring bounding rectangles in a row. Use vertical gaps of 30 mm between consecutive row bands within a color and 60 mm between colors. A row band spans the full height of that row's bounding rectangles. Keep all other objects fixed in position and orientation.",
+      "axis": "horizontal",
+      "sort": "asc",
+      "group": "color",
+      "gap_mm": 30,
+      "region": "full",
+      "moved": [
+        "o02",
+        "o04"
+      ],
+      "kept": [
+        "o01",
+        "o03"
+      ],
+      "omitted": [],
+      "why_selected": "partial miss"
+    },
+    {
+      "id": "09",
+      "file": "09_no_op_pass.png",
+      "sample_id": "expanded_0025df7b74321e320e47e723_3",
+      "mode": "no_op",
+      "objects": 4,
+      "task": "PASS",
+      "errors": [],
+      "reason": "official checks passed",
+      "instruction": "Keep every object at its current position and orientation.",
+      "axis": "horizontal",
+      "sort": "asc",
+      "group": "none",
+      "gap_mm": 20,
+      "region": "full",
+      "moved": [],
+      "kept": [
+        "o02",
+        "o03",
+        "o01",
+        "o04"
+      ],
+      "omitted": [],
+      "why_selected": "no-op keep"
+    },
+    {
+      "id": "10",
+      "file": "10_no_op_fail.png",
+      "sample_id": "expanded_0bb4e6aaa9cfa024b5d5255b_3",
+      "mode": "no_op",
+      "objects": 3,
+      "task": "FAIL",
+      "errors": [
+        "count"
+      ],
+      "reason": "detection count",
+      "instruction": "Keep every object at its current position and orientation.",
+      "axis": "horizontal",
+      "sort": "asc",
+      "group": "none",
+      "gap_mm": 20,
+      "region": "full",
+      "moved": [],
+      "kept": [
+        "o02",
+        "o01",
+        "o03"
+      ],
+      "omitted": [],
+      "why_selected": "no-op miss"
+    }
+  ]
+}

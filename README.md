@@ -1,5 +1,11 @@
 # Knolling Bot
 
+Baseline v2 is tag `v2.0.0` on `main`. Checkpoints, the sealed 640-scene holdout,
+inference, and the ten demos are recorded in
+[docs/v2.0.0.md](docs/v2.0.0.md). Tag `v1.0.0` stays where it is. Further
+training belongs on `dev/knolling-v3` and needs a new development set plus a
+separate unused final test.
+
 Develop on **`main`**. The current system combines the independently trained
 RT-DETR Perception model with v4 Goal Encoder → split XY/Orientation → Neural
 Keep Arrangement. Inference uses BEV RGB and natural language only. Keep routing
