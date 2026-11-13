@@ -1,7 +1,7 @@
 {
   "commit": "26dca53",
   "split": "validation",
-  "note": "Ten scenes chosen to show commands and failure modes. This set is not a success rate.",
+  "note": "Ten scenes chosen to show commands and failure modes. Each figure shows the saved input, prediction, and reference. This set is not a success rate.",
   "passes": 7,
   "fails": 3,
   "demos": [

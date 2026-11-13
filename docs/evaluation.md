@@ -56,5 +56,5 @@ not start with `v2hold_`. It aborts if the threshold is not 0.5.
 ## Demos
 
 [The gallery](v2.0.0/demo-gallery/index.html) shows ten validation scenes from
-commit `26dca53`. Seven pass and three fail. That is a demonstration, not a
-success rate.
+commit `26dca53`. Each figure is the input, the prediction, and the reference.
+Seven pass and three fail. That is a demonstration, not a success rate.

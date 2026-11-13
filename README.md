@@ -68,28 +68,19 @@ Checkpoints and datasets are not in this repository. Paths, hashes, and the
 
 ## Representative demos
 
-The figures below are the harder scenes already saved in the demo gallery:
-eight objects arranged at once, and seven objects with only one color moved.
-They are examples, not a success rate. The same caveat applies as above: the
-panels compare predicted poses on synthetic RGB with a reference render. They
-are not robot executions.
+Three saved validation scenes. Each figure shows the input, the predicted
+poses, and the reference render. They are examples, not a success rate, and
+they are not robot executions.
 
 ![Full · 8 objects · PASS](docs/v2.0.0/demo-gallery/02_full_pass.png)
 
 ![Partial · 7 objects · PASS](docs/v2.0.0/demo-gallery/07_partial_pass.png)
 
-The saved gallery has no 7- or 8-object no-op pass, so that case is not shown
-as a figure. The no-op pass it does contain has four objects:
-[No-op · 4 objects · PASS](docs/v2.0.0/demo-gallery/09_no_op_pass.png).
-The smaller
-[3-object full pass](docs/v2.0.0/demo-gallery/index.html#demo-01)
-stays in the gallery and is not the lead example.
+![Full · 6 objects · FAIL](docs/v2.0.0/demo-gallery/04_full_fail.png)
 
-A representative failure is the six-object full scene that misses the
-horizontal and vertical gaps:
-[Full · 6 objects · FAIL](docs/v2.0.0/demo-gallery/04_full_fail.png).
-
-All ten panels are in the [demo gallery](docs/v2.0.0/demo-gallery/index.html).
+The other seven scenes, including the four-object no-op pass, are in the
+[demo gallery](docs/v2.0.0/demo-gallery/index.html). No 7- or 8-object no-op
+pass was saved.
 
 ## Repository
 
