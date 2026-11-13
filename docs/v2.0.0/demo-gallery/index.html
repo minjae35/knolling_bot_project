@@ -15,6 +15,7 @@ a { color: #1d4ed8; }
 <body>
 <h1>End-to-end knolling demos</h1>
 <p class="lead">Ten validation scenes from commit 26dca53. Each figure shows the initial scene, the predicted motion, and the predicted arrangement. An arrow connects a stored source pose to the stored predicted target pose. It is not a robot trajectory. Objects without an arrow are kept. Seven pass and three fail. This set is not a success rate.</p>
+<p class="note">The README also shows one full arrangement of six objects. That scene was inferred on the validation split and passed the same judge. It is not part of the seven-pass, three-fail count, and it is not a success rate.</p>
 <p class="note">Δθ is the change in heading, with period 180°, counterclockwise positive. It is omitted when the change is 3° or less.</p>
 <p><a href="motion/contact_sheet.png">Contact sheet</a> · <a href="summary.json">Summary</a> · <a href="comparison/index.html">Side-by-side renders</a></p>
 
@@ -67,6 +68,12 @@ a { color: #1d4ed8; }
           <img src="motion/01_full_pass.png" alt="Full, 3 objects, horizontal, full region, 30 mm, pass">
           <p>Full · 3 objects · horizontal · full region · 30 mm · PASS</p>
           <p><a href="motion/01_full_pass.svg">SVG</a> · <a href="motion/01_full_pass.pdf">PDF</a> · <a href="renders/expanded_04d64094d9fd95aceba572f9_0/reference/rgb.png">Reference render</a></p>
+        </article>
+        <article id="demo-11">
+          <img src="motion/11_full_pass.png" alt="Full, 6 objects, horizontal, full region, 30 mm, pass">
+          <p>Full · 6 objects · horizontal · full region · 30 mm · PASS</p>
+          <p>Additional validation example. Not part of the seven-pass, three-fail count, and not a success rate.</p>
+          <p><a href="motion/11_full_pass.svg">SVG</a> · <a href="motion/11_full_pass.pdf">PDF</a> · <a href="renders/expanded_e2ee7a75ae3a34826b36d71f_0/predicted/rgb.png">Predicted render</a></p>
         </article>
 </body>
 </html>
