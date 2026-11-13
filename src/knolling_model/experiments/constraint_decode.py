@@ -365,6 +365,121 @@ def repair_rows(row_logits, angle, major, minor, color, goal, limit=REPAIR_LIMIT
     return found
 
 
+def separate_color_rows(row_logits, angle, major, minor, color, goal, limit=REPAIR_LIMIT):
+    """Color-pure splits, highest selector score first.
+
+    Row ids follow the color-block order. Reusing the selector's class id
+    put those blocks back into one height band, so the score only ranks them.
+    """
+    if row_logits.ndim != 2 or angle.ndim != 1 or goal.shape[-1] != 13:
+        raise ValueError('color separation expects one scene')
+    if not (row_logits.shape[0] == angle.shape[0] == major.shape[0] == minor.shape[0] == color.shape[0]):
+        raise ValueError('color separation scene shapes do not match')
+    count = int(angle.shape[0])
+    if count == 0 or limit < 1 or not bool(goal[10] >= goal[9]):
+        return []
+    gap = float((goal[6:9]*goal.new_tensor(GAP_VALUES)).sum())
+    region = REGIONS[REGION_NAMES[int(goal[3:6].argmax())]]
+    room = min(region[2]+REGION_SLACK, WORK_X_HIGH)-max(region[0]-REGION_SLACK, WORK_LOW)
+    spans = []
+    for index in range(count):
+        xmin, xmax, _ymin, _ymax = extent_offsets(angle[index], major[index], minor[index])
+        spans.append(float(xmax-xmin))
+    log_probability = F.log_softmax(row_logits.detach().float(), dim=-1)
+    ranked = []
+    for groups in _row_groups(color.detach().cpu(), True):
+        if _too_wide(groups, spans, gap, room):
+            continue
+        score, _mapped = _rank_groups(groups, log_probability)
+        ranked.append((score, groups))
+    ranked.sort(key=lambda item: item[0], reverse=True)
+    area = (major*minor).detach()
+    found = []
+    for _score, groups in ranked:
+        row = torch.empty(count, dtype=torch.long, device=angle.device)
+        slot = torch.empty(count, dtype=torch.long, device=angle.device)
+        for group_index, members in enumerate(groups):
+            for seat, member in enumerate(members):
+                row[member] = group_index
+                slot[member] = seat
+        row, slot = order_by_area(row, slot, area, color, goal)
+        if structure_issues(row, slot, major, minor, angle, color, goal):
+            continue
+        found.append((row, slot))
+        if len(found) >= limit:
+            break
+    return found
+
+
+def apply_color_separation(output, objects, goal, texts):
+    """Split a mixed row when the sentence asks for single-color rows.
+
+    A layout that is already one color per row is returned unchanged. Flat
+    color probabilities and any other sentence are also left untouched. The
+    first split that still fits is kept; if none fits, the original stands.
+    """
+    if 'row_logits' not in output or 'geometry_status' not in output or 'row' not in output:
+        return output
+    if not isinstance(texts, (list, tuple)) or len(texts) != output['row'].shape[0]:
+        raise ValueError('color separation expects one sentence per scene')
+    if not any(isinstance(text, str) and 'single-color rows' in text for text in texts):
+        return output
+    row = output['row'].clone()
+    slot = output['slot'].clone()
+    xy = output['xy'].clone()
+    angle = output['angle'].clone()
+    status = list(output['geometry_status'])
+    changed = False
+    for index, text in enumerate(texts):
+        if not isinstance(text, str) or 'single-color rows' not in text:
+            continue
+        if not bool(goal[index, 10] >= goal[index, 9]):
+            continue
+        count = int(objects.valid[index].sum())
+        if count == 0 or not bool(objects.valid[index, :count].all()):
+            continue
+        probability = objects.color[index, :count]
+        top, second = probability.topk(2, dim=-1).values.unbind(-1)
+        if not bool((top > second).all()):
+            continue
+        color = probability.argmax(-1)
+        issues = structure_issues(
+            row[index, :count], slot[index, :count], objects.size[index, :count, 0],
+            objects.size[index, :count, 1], angle[index, :count], color, goal[index])
+        if 'mixed_color' not in issues:
+            continue
+        found = False
+        for new_row, new_slot in separate_color_rows(
+                output['row_logits'][index, :count], angle[index, :count],
+                objects.size[index, :count, 0], objects.size[index, :count, 1], color, goal[index]):
+            trial_row, trial_slot = row.clone(), slot.clone()
+            trial_row[index, :count] = new_row
+            trial_slot[index, :count] = new_slot
+            candidate = apply_geometry(
+                dict(output, row=trial_row, slot=trial_slot, xy=xy, angle=angle), objects, goal)
+            if str(candidate['geometry_status'][index]).startswith('infeasible'):
+                continue
+            xy[index] = candidate['xy'][index]
+            angle[index] = candidate['angle'][index]
+            row[index] = candidate['row'][index]
+            slot[index] = candidate['slot'][index]
+            status[index] = candidate['geometry_status'][index]
+            found = True
+            changed = True
+            break
+        if not found:
+            continue
+    if not changed:
+        return output
+    replaced = dict(output)
+    replaced['xy'] = xy
+    replaced['angle'] = angle
+    replaced['row'] = row
+    replaced['slot'] = slot
+    replaced['geometry_status'] = status
+    return replaced
+
+
 def apply_row_repair(output, objects, goal):
     """Replace a row the region cannot hold. A row the decoder accepted stays put."""
     if 'geometry_status' not in output or 'row_logits' not in output:
