@@ -12,68 +12,68 @@ p { max-width: 1100px; line-height: 1.4; }
 </head>
 <body>
 <h1>End-to-end knolling, commit 26dca53</h1>
-<p>These 10 validation scenes were picked to show full, partial, and no-op behavior, including 7 passes and 3 failures. They are not a success rate. Inference used the RGB image and the instruction only. The GT column is a reference render.</p>
+<p>These 10 validation scenes were picked to show full, partial, and no-op behavior, including 7 passes and 3 failures. They are not a success rate. Inference used the RGB image and the instruction only. The GT column is a reference render. Harder scenes are listed first. The 3-object example is at the bottom.</p>
 <p><a href="contact_sheet.png">Contact sheet</a> · <a href="summary.json">Summary</a></p>
 
-        <article>
-          <img src="01_full_pass.png" alt="01">
-          <p><strong>01 · full · 3 objects · PASS</strong></p>
-          <p>Arrange all objects in rows in the full workspace; long axes horizontal. Across the selected objects, order by bounding-rectangle area, smallest first, left to right then top to bottom. Leave 30 mm horizontal gaps between neighboring bounding rectangles in a row. Use 30 mm vertical gaps between consecutive row bands. A row band spans the full height of that row&#x27;s bounding rectangles.</p>
-          <p>official checks passed</p>
-        </article>
-        <article>
+        <article id="demo-02">
           <img src="02_full_pass.png" alt="02">
           <p><strong>02 · full · 8 objects · PASS</strong></p>
           <p>Arrange all objects in rows in the full workspace; long axes vertical. Across the selected objects, order by bounding-rectangle area, smallest first, left to right then top to bottom. Leave 20 mm horizontal gaps between neighboring bounding rectangles in a row. Use 20 mm vertical gaps between consecutive row bands. A row band spans the full height of that row&#x27;s bounding rectangles.</p>
           <p>official checks passed</p>
         </article>
-        <article>
-          <img src="03_full_pass.png" alt="03">
-          <p><strong>03 · full · 4 objects · PASS</strong></p>
-          <p>Arrange all objects in rows in the full workspace; long axes horizontal. Use single-color rows, with each color&#x27;s rows together. Within each color, order by bounding-rectangle area, smallest first, left to right then top to bottom. Leave 20 mm horizontal gaps between neighboring bounding rectangles in a row. Use vertical gaps of 20 mm between consecutive row bands within a color and 40 mm between colors. A row band spans the full height of that row&#x27;s bounding rectangles.</p>
-          <p>official checks passed</p>
-        </article>
-        <article>
-          <img src="04_full_fail.png" alt="04">
-          <p><strong>04 · full · 6 objects · FAIL</strong></p>
-          <p>Arrange all objects in rows in the full workspace; long axes horizontal. Use single-color rows, with each color&#x27;s rows together. Within each color, order by bounding-rectangle area, smallest first, left to right then top to bottom. Leave 30 mm horizontal gaps between neighboring bounding rectangles in a row. Use vertical gaps of 30 mm between consecutive row bands within a color and 60 mm between colors. A row band spans the full height of that row&#x27;s bounding rectangles.</p>
-          <p>horizontal gap, vertical gap</p>
-        </article>
-        <article>
-          <img src="05_partial_pass.png" alt="05">
-          <p><strong>05 · partial · 2 objects · PASS</strong></p>
-          <p>Arrange only the red objects in rows in the full workspace; long axes horizontal. Use single-color rows, with each color&#x27;s rows together. Within each color, order by bounding-rectangle area, largest first, left to right then top to bottom. Leave 15 mm horizontal gaps between neighboring bounding rectangles in a row. Use vertical gaps of 15 mm between consecutive row bands within a color and 30 mm between colors. A row band spans the full height of that row&#x27;s bounding rectangles. Keep all other objects fixed in position and orientation.</p>
-          <p>official checks passed</p>
-        </article>
-        <article>
-          <img src="06_partial_pass.png" alt="06">
-          <p><strong>06 · partial · 5 objects · PASS</strong></p>
-          <p>Arrange only the green objects in rows in the full workspace; long axes horizontal. Across the selected objects, order by bounding-rectangle area, largest first, left to right then top to bottom. Leave 30 mm horizontal gaps between neighboring bounding rectangles in a row. Use 30 mm vertical gaps between consecutive row bands. A row band spans the full height of that row&#x27;s bounding rectangles. Keep all other objects fixed in position and orientation.</p>
-          <p>official checks passed</p>
-        </article>
-        <article>
+        <article id="demo-07">
           <img src="07_partial_pass.png" alt="07">
           <p><strong>07 · partial · 7 objects · PASS</strong></p>
           <p>Arrange only the blue objects in rows in the left region; long axes horizontal. Use single-color rows, with each color&#x27;s rows together. Within each color, order by bounding-rectangle area, smallest first, left to right then top to bottom. Leave 15 mm horizontal gaps between neighboring bounding rectangles in a row. Use vertical gaps of 15 mm between consecutive row bands within a color and 30 mm between colors. A row band spans the full height of that row&#x27;s bounding rectangles. Keep all other objects fixed in position and orientation.</p>
           <p>official checks passed</p>
         </article>
-        <article>
+        <article id="demo-04">
+          <img src="04_full_fail.png" alt="04">
+          <p><strong>04 · full · 6 objects · FAIL</strong></p>
+          <p>Arrange all objects in rows in the full workspace; long axes horizontal. Use single-color rows, with each color&#x27;s rows together. Within each color, order by bounding-rectangle area, smallest first, left to right then top to bottom. Leave 30 mm horizontal gaps between neighboring bounding rectangles in a row. Use vertical gaps of 30 mm between consecutive row bands within a color and 60 mm between colors. A row band spans the full height of that row&#x27;s bounding rectangles.</p>
+          <p>horizontal gap, vertical gap</p>
+        </article>
+        <article id="demo-03">
+          <img src="03_full_pass.png" alt="03">
+          <p><strong>03 · full · 4 objects · PASS</strong></p>
+          <p>Arrange all objects in rows in the full workspace; long axes horizontal. Use single-color rows, with each color&#x27;s rows together. Within each color, order by bounding-rectangle area, smallest first, left to right then top to bottom. Leave 20 mm horizontal gaps between neighboring bounding rectangles in a row. Use vertical gaps of 20 mm between consecutive row bands within a color and 40 mm between colors. A row band spans the full height of that row&#x27;s bounding rectangles.</p>
+          <p>official checks passed</p>
+        </article>
+        <article id="demo-05">
+          <img src="05_partial_pass.png" alt="05">
+          <p><strong>05 · partial · 2 objects · PASS</strong></p>
+          <p>Arrange only the red objects in rows in the full workspace; long axes horizontal. Use single-color rows, with each color&#x27;s rows together. Within each color, order by bounding-rectangle area, largest first, left to right then top to bottom. Leave 15 mm horizontal gaps between neighboring bounding rectangles in a row. Use vertical gaps of 15 mm between consecutive row bands within a color and 30 mm between colors. A row band spans the full height of that row&#x27;s bounding rectangles. Keep all other objects fixed in position and orientation.</p>
+          <p>official checks passed</p>
+        </article>
+        <article id="demo-06">
+          <img src="06_partial_pass.png" alt="06">
+          <p><strong>06 · partial · 5 objects · PASS</strong></p>
+          <p>Arrange only the green objects in rows in the full workspace; long axes horizontal. Across the selected objects, order by bounding-rectangle area, largest first, left to right then top to bottom. Leave 30 mm horizontal gaps between neighboring bounding rectangles in a row. Use 30 mm vertical gaps between consecutive row bands. A row band spans the full height of that row&#x27;s bounding rectangles. Keep all other objects fixed in position and orientation.</p>
+          <p>official checks passed</p>
+        </article>
+        <article id="demo-08">
           <img src="08_partial_fail.png" alt="08">
           <p><strong>08 · partial · 4 objects · FAIL</strong></p>
           <p>Arrange only the blue objects in rows in the full workspace; long axes horizontal. Use single-color rows, with each color&#x27;s rows together. Within each color, order by bounding-rectangle area, smallest first, left to right then top to bottom. Leave 30 mm horizontal gaps between neighboring bounding rectangles in a row. Use vertical gaps of 30 mm between consecutive row bands within a color and 60 mm between colors. A row band spans the full height of that row&#x27;s bounding rectangles. Keep all other objects fixed in position and orientation.</p>
           <p>horizontal gap</p>
         </article>
-        <article>
+        <article id="demo-09">
           <img src="09_no_op_pass.png" alt="09">
           <p><strong>09 · no_op · 4 objects · PASS</strong></p>
           <p>Keep every object at its current position and orientation.</p>
           <p>official checks passed</p>
         </article>
-        <article>
+        <article id="demo-10">
           <img src="10_no_op_fail.png" alt="10">
           <p><strong>10 · no_op · 3 objects · FAIL</strong></p>
           <p>Keep every object at its current position and orientation.</p>
           <p>detection count</p>
+        </article>
+        <article id="demo-01">
+          <img src="01_full_pass.png" alt="01">
+          <p><strong>01 · full · 3 objects · PASS</strong></p>
+          <p>Arrange all objects in rows in the full workspace; long axes horizontal. Across the selected objects, order by bounding-rectangle area, smallest first, left to right then top to bottom. Leave 30 mm horizontal gaps between neighboring bounding rectangles in a row. Use 30 mm vertical gaps between consecutive row bands. A row band spans the full height of that row&#x27;s bounding rectangles.</p>
+          <p>official checks passed</p>
         </article>
 </body>
 </html>
