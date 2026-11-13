@@ -30,7 +30,7 @@
 | 사람 검토 | 130 Sample 전수 검토 미완료 |
 | Neural / 로봇 | 구현·학습·로봇 실행 완료 근거 없음; 다음 단계 |
 
-근거는 [Pilot 보고서](pilot-report.md), [현재 데이터 계약](dataset-contract.md), [구현 결정 기록](implementation-decisions.md)이다. 39개 테스트와 자동 감사는 기존 실행 결과이며, 이번 문서 작성에서 다시 실행하지 않았다. 생성 채택률은 Neural 성공률이나 미적 품질 점수가 아니다.
+근거는 [Pilot 보고서](pilot-report.md), [현재 데이터 계약](../../docs/dataset-contract.md), [구현 결정 기록](implementation-decisions.md)이다. 39개 테스트와 자동 감사는 기존 실행 결과이며, 이번 문서 작성에서 다시 실행하지 않았다. 생성 채택률은 Neural 성공률이나 미적 품질 점수가 아니다.
 
 보존할 기준 데이터는 `artifacts/pilot_v1_2/`이다. Manifest SHA-256은 `b8276caeffb0287eb738888c892d11ac508913cee514873564f5785d9bc7da27`이다. 현재 provenance의 Annotation Revision `8cda9be`와 Render Revision `47ca812`는 최종 검사 Commit `69cf565`와 역할이 다르므로 덮어쓰지 않는다.
 
@@ -80,7 +80,7 @@ Partial에서 고정 물체와 명시적 Keep-all에서는 기존 방향을 그�
 
 긴 축 방향, 선택/고정 대상, 색상별 순수·연속 Row, 외접 면적 순서, 수평 간격, Row 띠의 수직 간격, 색상 간 2g, 영역 및 Keep 의미를 빠짐없이 유지한다. Keep-all 예시는 “Keep every object at its current position and orientation.”이다. 문장을 간결하게 하기 위해 의미를 생략하거나 이미 정돈된 No-op 지시를 임의로 Keep-all로 바꾸지 않는다.
 
-최종 품질 검토에서는 현재 제한 문법을 S0에 유지한다. 짧은 사용자 표현의 의미를 보존하기 위한 기존 기본 규칙은 [English arrangement conventions](english-instruction-defaults.md)에 정리한다. 해당 문서의 짧은 예시는 후속 문법 제안이며 현재 Annotation·지원 문법을 바꾸지 않는다. Slot 값이 다른 81개 문자열을 자연스러운 영어 Paraphrase 81종으로 해석하지 않는다. S0는 고정 문법의 과적합 진단이며 자연어 일반화 검증이 아니다.
+최종 품질 검토에서는 현재 제한 문법을 S0에 유지한다. 짧은 사용자 표현의 의미를 보존하기 위한 기존 기본 규칙은 [English arrangement conventions](../../docs/english-instruction-defaults.md)에 정리한다. 해당 문서의 짧은 예시는 후속 문법 제안이며 현재 Annotation·지원 문법을 바꾸지 않는다. Slot 값이 다른 81개 문자열을 자연스러운 영어 Paraphrase 81종으로 해석하지 않는다. S0는 고정 문법의 과적합 진단이며 자연어 일반화 검증이 아니다.
 
 ## 3. 좌표와 기하 계약
 
@@ -251,7 +251,7 @@ Teacher 결과에 선택·고정 집합과 요청 조건이 같은 구조화된 
 
 ## 7. 현재 Teacher와의 비교
 
-기준은 `69cf565`의 [teacher.py](../src/knolling_dataset/teacher.py), [instructions.py](../src/knolling_dataset/instructions.py), [builder.py](../src/knolling_dataset/builder.py), [validator.py](../src/knolling_dataset/validator.py)다.
+기준은 `69cf565`의 [teacher.py](../../src/knolling_dataset/teacher.py), [instructions.py](../../src/knolling_dataset/instructions.py), [builder.py](../../src/knolling_dataset/builder.py), [validator.py](../../src/knolling_dataset/validator.py)다.
 
 | 항목 | 현재 충족 여부 | v1.3 조치 |
 |---|---|---|

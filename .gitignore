@@ -23,6 +23,7 @@ credentials.json
 service-account*.json
 artifacts/
 datasets/
+AGENTS.md
 *.blend
 *.blend1
 *.exr
