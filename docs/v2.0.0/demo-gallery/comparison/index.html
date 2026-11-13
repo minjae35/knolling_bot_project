@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Knolling demo gallery</title>
+<style>
+body { font-family: "DejaVu Sans", sans-serif; margin: 32px auto; max-width: 1180px; background: #fff; color: #1a1a1a; }
+article { margin: 0 0 36px; }
+img { width: 100%; height: auto; }
+p { margin: 8px 0 0; color: #333; }
+.lead { max-width: 760px; line-height: 1.45; }
+</style>
+</head>
+<body>
+<h1>Side-by-side renders</h1>
+<p class="lead">These are the earlier input, prediction, and reference panels for the same ten scenes. The motion figures are in the <a href="../index.html">demo gallery</a>. Seven pass and three fail. This set is not a success rate.</p>
+<p><a href="contact_sheet.png">Contact sheet</a> · <a href="summary.json">Summary</a></p>
+
+        <article id="demo-02">
+          <img src="02_full_pass.png" alt="Full, 8 objects, vertical, full region, 20 mm, pass">
+          <p>Full · 8 objects · vertical · full region · 20 mm · PASS</p>
+        </article>
+        <article id="demo-07">
+          <img src="07_partial_pass.png" alt="Partial, 7 objects, horizontal, left region, 15 mm, pass">
+          <p>Partial · 7 objects · horizontal · left region · 15 mm · PASS</p>
+        </article>
+        <article id="demo-04">
+          <img src="04_full_fail.png" alt="Full, 6 objects, horizontal, full region, 30 mm, fail, horizontal and vertical gap">
+          <p>Full · 6 objects · horizontal · full region · 30 mm · FAIL · horizontal gap, vertical gap</p>
+        </article>
+        <article id="demo-03">
+          <img src="03_full_pass.png" alt="Full, 4 objects, horizontal, full region, 20 mm, pass">
+          <p>Full · 4 objects · horizontal · full region · 20 mm · PASS</p>
+        </article>
+        <article id="demo-05">
+          <img src="05_partial_pass.png" alt="Partial, 2 objects, horizontal, full region, 15 mm, pass">
+          <p>Partial · 2 objects · horizontal · full region · 15 mm · PASS</p>
+        </article>
+        <article id="demo-06">
+          <img src="06_partial_pass.png" alt="Partial, 5 objects, horizontal, full region, 30 mm, pass">
+          <p>Partial · 5 objects · horizontal · full region · 30 mm · PASS</p>
+        </article>
+        <article id="demo-08">
+          <img src="08_partial_fail.png" alt="Partial, 4 objects, horizontal, full region, 30 mm, fail, horizontal gap">
+          <p>Partial · 4 objects · horizontal · full region · 30 mm · FAIL · horizontal gap</p>
+        </article>
+        <article id="demo-09">
+          <img src="09_no_op_pass.png" alt="No-op, 4 objects, pass">
+          <p>No-op · 4 objects · PASS</p>
+        </article>
+        <article id="demo-10">
+          <img src="10_no_op_fail.png" alt="No-op, 3 objects, fail, detection count">
+          <p>No-op · 3 objects · FAIL · detection count</p>
+        </article>
+        <article id="demo-01">
+          <img src="01_full_pass.png" alt="Full, 3 objects, horizontal, full region, 30 mm, pass">
+          <p>Full · 3 objects · horizontal · full region · 30 mm · PASS</p>
+        </article>
+</body>
+</html>

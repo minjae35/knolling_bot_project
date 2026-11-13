@@ -5,56 +5,68 @@
 <title>Knolling demo gallery</title>
 <style>
 body { font-family: "DejaVu Sans", sans-serif; margin: 32px auto; max-width: 1180px; background: #fff; color: #1a1a1a; }
-article { margin: 0 0 36px; }
+article { margin: 0 0 40px; }
 img { width: 100%; height: auto; }
 p { margin: 8px 0 0; color: #333; }
-.lead { max-width: 760px; line-height: 1.45; }
+.lead, .note { max-width: 760px; line-height: 1.45; }
+a { color: #1d4ed8; }
 </style>
 </head>
 <body>
 <h1>End-to-end knolling demos</h1>
-<p class="lead">Ten validation scenes from commit 26dca53. Each figure shows the input, the predicted poses, and the reference. Seven pass and three fail. This set is not a success rate. The renders and the pass or fail labels are the ones already saved. Inference used the RGB image and the instruction only.</p>
-<p><a href="contact_sheet.png">Contact sheet</a> · <a href="summary.json">Summary</a></p>
+<p class="lead">Ten validation scenes from commit 26dca53. Each figure shows the initial scene, the predicted motion, and the predicted arrangement. An arrow connects a stored source pose to the stored predicted target pose. It is not a robot trajectory. Objects without an arrow are kept. Seven pass and three fail. This set is not a success rate.</p>
+<p class="note">Δθ is the change in heading, with period 180°, counterclockwise positive. It is omitted when the change is 3° or less.</p>
+<p><a href="motion/contact_sheet.png">Contact sheet</a> · <a href="summary.json">Summary</a> · <a href="comparison/index.html">Side-by-side renders</a></p>
 
         <article id="demo-02">
-          <img src="02_full_pass.png" alt="Full, 8 objects, vertical, full region, 20 mm, pass">
+          <img src="motion/02_full_pass.png" alt="Full, 8 objects, vertical, full region, 20 mm, pass">
           <p>Full · 8 objects · vertical · full region · 20 mm · PASS</p>
+          <p><a href="motion/02_full_pass.svg">SVG</a> · <a href="motion/02_full_pass.pdf">PDF</a> · <a href="renders/expanded_05911891b8ec53ba88bd00f9_1/reference/rgb.png">Reference render</a></p>
         </article>
         <article id="demo-07">
-          <img src="07_partial_pass.png" alt="Partial, 7 objects, horizontal, left region, 15 mm, pass">
+          <img src="motion/07_partial_pass.png" alt="Partial, 7 objects, horizontal, left region, 15 mm, pass">
           <p>Partial · 7 objects · horizontal · left region · 15 mm · PASS</p>
+          <p><a href="motion/07_partial_pass.svg">SVG</a> · <a href="motion/07_partial_pass.pdf">PDF</a> · <a href="renders/expanded_0518f88cb7fe83a77bbcdc8e_2/reference/rgb.png">Reference render</a></p>
         </article>
         <article id="demo-04">
-          <img src="04_full_fail.png" alt="Full, 6 objects, horizontal, full region, 30 mm, fail, horizontal and vertical gap">
+          <img src="motion/04_full_fail.png" alt="Full, 6 objects, horizontal, full region, 30 mm, fail">
           <p>Full · 6 objects · horizontal · full region · 30 mm · FAIL · horizontal gap, vertical gap</p>
+          <p><a href="motion/04_full_fail.svg">SVG</a> · <a href="motion/04_full_fail.pdf">PDF</a> · <a href="renders/expanded_022eb858eb1a5268acceee00_0/reference/rgb.png">Reference render</a></p>
         </article>
         <article id="demo-03">
-          <img src="03_full_pass.png" alt="Full, 4 objects, horizontal, full region, 20 mm, pass">
+          <img src="motion/03_full_pass.png" alt="Full, 4 objects, horizontal, full region, 20 mm, pass">
           <p>Full · 4 objects · horizontal · full region · 20 mm · PASS</p>
+          <p><a href="motion/03_full_pass.svg">SVG</a> · <a href="motion/03_full_pass.pdf">PDF</a> · <a href="renders/expanded_0025df7b74321e320e47e723_0/reference/rgb.png">Reference render</a></p>
         </article>
         <article id="demo-05">
-          <img src="05_partial_pass.png" alt="Partial, 2 objects, horizontal, full region, 15 mm, pass">
+          <img src="motion/05_partial_pass.png" alt="Partial, 2 objects, horizontal, full region, 15 mm, pass">
           <p>Partial · 2 objects · horizontal · full region · 15 mm · PASS</p>
+          <p><a href="motion/05_partial_pass.svg">SVG</a> · <a href="motion/05_partial_pass.pdf">PDF</a> · <a href="renders/expanded_045c5cb16811e0e60dec315e_2/reference/rgb.png">Reference render</a></p>
         </article>
         <article id="demo-06">
-          <img src="06_partial_pass.png" alt="Partial, 5 objects, horizontal, full region, 30 mm, pass">
+          <img src="motion/06_partial_pass.png" alt="Partial, 5 objects, horizontal, full region, 30 mm, pass">
           <p>Partial · 5 objects · horizontal · full region · 30 mm · PASS</p>
+          <p><a href="motion/06_partial_pass.svg">SVG</a> · <a href="motion/06_partial_pass.pdf">PDF</a> · <a href="renders/expanded_1a9fd04ee351b51e492e7884_2/reference/rgb.png">Reference render</a></p>
         </article>
         <article id="demo-08">
-          <img src="08_partial_fail.png" alt="Partial, 4 objects, horizontal, full region, 30 mm, fail, horizontal gap">
+          <img src="motion/08_partial_fail.png" alt="Partial, 4 objects, horizontal, full region, 30 mm, fail">
           <p>Partial · 4 objects · horizontal · full region · 30 mm · FAIL · horizontal gap</p>
+          <p><a href="motion/08_partial_fail.svg">SVG</a> · <a href="motion/08_partial_fail.pdf">PDF</a> · <a href="renders/expanded_1216f7784f0643afcb8a16cd_2/reference/rgb.png">Reference render</a></p>
         </article>
         <article id="demo-09">
-          <img src="09_no_op_pass.png" alt="No-op, 4 objects, pass">
+          <img src="motion/09_no_op_pass.png" alt="No-op, 4 objects, pass">
           <p>No-op · 4 objects · PASS</p>
+          <p><a href="motion/09_no_op_pass.svg">SVG</a> · <a href="motion/09_no_op_pass.pdf">PDF</a> · <a href="renders/expanded_0025df7b74321e320e47e723_3/reference/rgb.png">Reference render</a></p>
         </article>
         <article id="demo-10">
-          <img src="10_no_op_fail.png" alt="No-op, 3 objects, fail, detection count">
+          <img src="motion/10_no_op_fail.png" alt="No-op, 3 objects, fail, detection count">
           <p>No-op · 3 objects · FAIL · detection count</p>
+          <p><a href="motion/10_no_op_fail.svg">SVG</a> · <a href="motion/10_no_op_fail.pdf">PDF</a> · <a href="renders/expanded_0bb4e6aaa9cfa024b5d5255b_3/reference/rgb.png">Reference render</a></p>
         </article>
         <article id="demo-01">
-          <img src="01_full_pass.png" alt="Full, 3 objects, horizontal, full region, 30 mm, pass">
+          <img src="motion/01_full_pass.png" alt="Full, 3 objects, horizontal, full region, 30 mm, pass">
           <p>Full · 3 objects · horizontal · full region · 30 mm · PASS</p>
+          <p><a href="motion/01_full_pass.svg">SVG</a> · <a href="motion/01_full_pass.pdf">PDF</a> · <a href="renders/expanded_04d64094d9fd95aceba572f9_0/reference/rgb.png">Reference render</a></p>
         </article>
 </body>
 </html>
