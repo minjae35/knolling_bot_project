@@ -1,5 +1,10 @@
 # Dataset contracts and implementation order
 
+The geometry rules below still describe the workspace. The closing paragraphs
+about a 100-family cap, and the sentence that no training has been run, are
+the original pilot. The 20,000-scene set and the v2 holdout are in
+[dataset.md](dataset.md).
+
 Active v1 language policy: **English only**, with `language_policy="english_only_v1"`
 and `instruction_contract="english_rows_v1"`. `pilot_v1_3_en` is the active artifact;
 original v1.2/v1.3 datasets and bilingual fixtures are archived regression evidence.

@@ -1,5 +1,8 @@
 # Dataset storage audit — 2026-11-03
 
+This note covers the small pilot sets only. It is not a record of the v2
+checkpoint or 20,000-scene backup. That copy is still unverified.
+
 Storage decision is pending user approval. No dataset was deleted, moved, added
 to Git/LFS, or uploaded. Both legacy datasets received additional verified local
 backups outside this checkout. No history rewrite is needed or recommended.
