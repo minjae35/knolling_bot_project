@@ -68,19 +68,19 @@ Checkpoints and datasets are not in this repository. Paths, hashes, and the
 
 ## Representative demos
 
-Three passing validation scenes with six to eight objects. Each figure shows
-the initial scene, the predicted motion from source pose to target pose, and
-the predicted arrangement. The arrows join those two poses. They are not robot
-trajectories. These scenes are examples, not a success rate, and not robot
-executions.
+Three passing full arrangements, with eight, seven, and six objects. Each
+figure shows the initial scene, the predicted motion from source pose to
+target pose, and the predicted arrangement. The arrows join those two poses.
+They are not robot trajectories. These scenes are examples, not a success
+rate, and not robot executions.
 
 ![Full · 8 objects · PASS](docs/v2.0.0/demo-gallery/motion/02_full_pass.png)
 
+![Full · 7 objects · PASS](docs/v2.0.0/demo-gallery/motion/12_full_pass.png)
+
 ![Full · 6 objects · PASS](docs/v2.0.0/demo-gallery/motion/11_full_pass.png)
 
-![Partial · 7 objects · PASS](docs/v2.0.0/demo-gallery/motion/07_partial_pass.png)
-
-Failures, no-op scenes, and the other passes remain in the
+Partial, no-op, and failure scenes remain in the
 [demo gallery](docs/v2.0.0/demo-gallery/index.html).
 
 ## Repository
