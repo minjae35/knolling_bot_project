@@ -1,127 +1,142 @@
-# Phase 1 Pilot 완료 보고서
+# Phase 1 pilot completion report
 
-2026-11-03. 새 저장소 `minjae35/knolling_bot_project`에서 M0–M8을 처음부터
-구현했다. 이전 프로젝트 코드를 재사용하지 않았다. Neural Network, 학습,
-로봇 시뮬레이션 및 50,000개 본 데이터셋 생성은 수행하지 않았다.
+2026-11-03. M0–M8 were implemented from scratch in the new repository
+`minjae35/knolling_bot_project`. No code from the previous project was reused.
+No neural network, training, robot simulation, or 50,000-scene production
+dataset was produced.
 
-## 결과
+## Results
 
-- 서로 다른 Scene Family **100개**, Sample **130개**, 실제 Blender Render View **210개**.
-- Primary: Full 50 / Partial 30 / No-op 20. No-op은 반복 지시 14 / 명시적 keep-all 6.
-- 30개 Family에는 동일한 입력 이미지에 서로 다른 지시·정답을 가진 추가 Sample이 있다.
-- Source 물체 495개, 장면당 2–8개. Box 166 / Chamfer 188 / Capsule 141.
-- 색상: Red 168 / Green 150 / Blue 177. 사용한 Asset Family 114개.
-- 지시 언어: 한국어 73 / 영어 57 Sample.
-- 모든 Sample에서 대상 보존, ID, 기하, 잠금, 적용 가능한 지시 조건 및 렌더 검사를 통과했다.
-- 감사 오류 **0건**. Annotation과 이미지/Mask/Render Metadata를 포함한 파일 760개를 검증했다.
+- **100** distinct scene families, **130** samples, and **210** real Blender render views.
+- Primary: full 50 / partial 30 / no-op 20. No-op is 14 repeated instructions and 6 explicit keep-all.
+- Thirty families have an extra sample that shares the input image but uses a different instruction and answer.
+- 495 source objects, 2–8 per scene. Box 166 / chamfer 188 / capsule 141.
+- Colors: red 168 / green 150 / blue 177. 114 asset families were used.
+- Instruction language: Korean 73 / English 57 samples.
+- Every sample passed identity preservation, ID, geometry, lock, applicable instruction checks, and the render check.
+- Audit errors: **0**. 760 files were checked, including annotations and image, mask, and render metadata.
 
-Primary 제안은 101회 중 100개를 채택했다: 채택률 **99.01%**, 제외율 **0.99%**.
-제외 1건의 사유는 `candidate_family_exhausted`이며 상태는 `generation_failure`다.
-이를 불가능한 지시의 증거로 처리하지 않았다. 추가 지시는 30회 중 30개 채택했다.
-렌더 검사로 제외한 Sample은 0개다. 이 수치는 **Teacher 데이터 생성 채택률**이며,
-향후 Neural Network나 로봇의 성공률을 의미하지 않는다.
+Primary proposals accepted 100 of 101: acceptance **99.01%**, exclusion **0.99%**.
+The one exclusion has reason `candidate_family_exhausted` and status
+`generation_failure`. It was not treated as evidence that the instruction is
+impossible. Extra instructions accepted 30 of 30. Zero samples were excluded
+by the render check. These figures are the **teacher's data-generation
+acceptance rate**. They are not a future neural-network or robot success rate.
 
-| 검사 | 실측 | 통과 기준 |
+| Check | Measured | Pass criterion |
 |---|---:|---:|
-| Target 최소 Envelope 간격 | 10.1688 mm | 10 mm, 수치 허용오차 0.1 mm |
-| Target 최소 Boundary Margin | 12.5813 mm | 10 mm, 수치 허용오차 0.1 mm |
-| Mask–실제 Footprint 최소 IoU | 0.998774 | ≥0.98 |
-| 최대 중심 투영 오차 | 0.636553 px | ≤1 px |
-| 내부 RGB 색상 일치 최솟값 | 100% | ≥99% |
+| Target minimum envelope gap | 10.1688 mm | 10 mm, numerical tolerance 0.1 mm |
+| Target minimum boundary margin | 12.5813 mm | 10 mm, numerical tolerance 0.1 mm |
+| Minimum mask-to-true-footprint IoU | 0.998774 | ≥0.98 |
+| Maximum center projection error | 0.636553 px | ≤1 px |
+| Minimum interior RGB color agreement | 100% | ≥99% |
 
-| Split | Scene Family | Sample | 사용 Asset Family |
+| Split | Scene families | Samples | Asset families used |
 |---|---:|---:|---:|
 | Train | 70 | 89 | 32 |
 | Validation | 10 | 13 | 26 |
 | Development | 10 | 13 | 28 |
 | Test | 10 | 15 | 28 |
 
-Scene Family, Asset Family, 정규화된 평면 형상 및 ID를 제외한 동일 장면 해시를
-검사했다. 서로 다른 Split 사이 중복은 없다. 색상·균일 확대축소·높이 변경만으로는
-다른 Asset Family가 되지 않는다. 이는 작은 **geometry-OOD Pilot**이며, 각 Split의
-크기로 신뢰도 높은 모델 성능을 추정할 수 있다는 뜻은 아니다.
+Scene family, asset family, normalized planar shape, and the hash of the same
+scene with IDs removed were checked. There is no overlap across splits.
+Changing only color, uniform scale, or height does not create another asset
+family. This is a small **geometry-OOD pilot**. The split sizes do not mean
+that model performance can be estimated with high confidence.
 
-## 구현·검증 이력
+## Implementation and verification history
 
-각 행은 해당 시점의 검증 수치다. 최종 코드에서 실제 Pilot 검증까지 포함한
-**39개 테스트를 모두 함께 실행하여 48.05초에 전부 통과**했다. 일반 빠른 테스트에서는 Blender,
-전체 Builder, 실제 Pilot 검사가 환경변수에 따라 생략되므로 명시적으로 구분한다.
+Each row is the measurement at that time. On the final code, **all 39 tests,
+including the real pilot check, passed together in 48.05 seconds**. The ordinary
+fast tests skip Blender, the full builder, and the real pilot check depending
+on environment variables, so those runs are counted separately.
 
-| Module / 수정 | Commit | Conventional Commit | 검증 |
+| Module / change | Commit | Conventional commit | Verification |
 |---|---|---|---|
-| M0 | `0e9c66f` | `feat(dataset): add schemas and coordinate utilities` | 3 통과 |
-| M5 | `82e60cb` | `feat(dataset): validate geometry and layouts` | 13 통과 |
-| M1 | `6b9b869` | `feat(dataset): implement procedural assets` | 18 통과 |
-| M2 | `a3e7ddc` | `feat(dataset): generate randomized scenes` | 19 통과; 100 Seed 검사 포함 |
-| M3 | `99e8151` | `feat(dataset): generate language instructions` | 26 통과 |
-| M4 | `f091444` | `feat(dataset): implement layout teacher` | 30 통과; 반복 No-op 및 탐색 실패 구분 |
-| M6 | `f372f76` | `feat(dataset): add Blender rendering` | 기하/RGB 검사 통과; 추가 파일 해시 검사에서 메타데이터 차이 발견 |
-| M6 수정 | `9fda1c3` | `fix(dataset): canonicalize Blender PNG metadata` | 실제 반복 렌더 포함 32 통과 |
-| M7 | `9c4960e` | `feat(dataset): build annotated samples` | 실제 10-scene 통합 생성 포함 34 통과 |
-| M8 | `47ca812` | `feat(dataset): enforce split integrity` | 실제 렌더·Builder 포함 38 통과 |
-| 언어 수정 | `8cda9be` | `fix(dataset): correct Korean selection particles` | 빠른 검사 36 통과; 외부 데이터/렌더 검사 3개 별도 실행 |
-| 최종 Pilot 검사 | 이 보고서와 함께 커밋 | `test(dataset): validate pilot dataset` | 실제 100-scene 전수 재감사 및 Annotation 재생성 포함 전체 39 통과 |
+| M0 | `0e9c66f` | `feat(dataset): add schemas and coordinate utilities` | 3 passed |
+| M5 | `82e60cb` | `feat(dataset): validate geometry and layouts` | 13 passed |
+| M1 | `6b9b869` | `feat(dataset): implement procedural assets` | 18 passed |
+| M2 | `a3e7ddc` | `feat(dataset): generate randomized scenes` | 19 passed, including a 100-seed check |
+| M3 | `99e8151` | `feat(dataset): generate language instructions` | 26 passed |
+| M4 | `f091444` | `feat(dataset): implement layout teacher` | 30 passed; repeated no-op distinguished from search failure |
+| M6 | `f372f76` | `feat(dataset): add Blender rendering` | geometry and RGB checks passed; an extra file-hash check found a metadata difference |
+| M6 fix | `9fda1c3` | `fix(dataset): canonicalize Blender PNG metadata` | 32 passed, including a real repeated render |
+| M7 | `9c4960e` | `feat(dataset): build annotated samples` | 34 passed, including a real 10-scene integrated generation |
+| M8 | `47ca812` | `feat(dataset): enforce split integrity` | 38 passed, including real renders and the builder |
+| Language fix | `8cda9be` | `fix(dataset): correct Korean selection particles` | fast check 36 passed; 3 external data/render checks run separately |
+| Final pilot check | committed with this report | `test(dataset): validate pilot dataset` | all 39 passed, including a full re-audit of the 100 scenes and annotation regeneration |
 
-모든 변경은 `main`에 순서대로 Push하며 강제 Push나 이력 재작성은 하지 않는다.
-M6의 추가 해시 검사 결과를 확인하기 전에 `f372f76`을 Push한 실수가 있었다.
-픽셀은 동일했고 PNG의 생성 시각/렌더 시간만 달랐다. 후속 수정으로 메타데이터를
-제거하고 실제 반복 렌더의 파일 해시까지 검증했다. 실패를 숨기거나 이력을 지우지 않았다.
+Every change is pushed to `main` in order. There is no force push and no
+history rewrite. `f372f76` was pushed before the extra M6 hash check had been
+read. The pixels were identical; only the PNG creation time and render time
+differed. A later fix stripped that metadata and checked file hashes of real
+repeated renders. The failure was not hidden and the history was not erased.
 
-한국어 부분 지시의 조사 오류는 `8cda9be`에서 수정했다. Pilot의 18개 문장만
-갱신했으며, 수정 전후의 모든 의미 필드·좌표·물체·이미지 해시가 동일함을 확인했다.
-Annotation 해시·Manifest·QC 보고서를 함께 갱신하고 전수 재감사했다.
-`provenance.json`에는 렌더 Revision과 수정 후 Annotation Revision을 모두 기록했다.
+The particle error in Korean partial instructions was fixed in `8cda9be`.
+Only the 18 affected pilot sentences were updated. Every semantic field,
+coordinate, object, and image hash was confirmed identical before and after.
+The annotation hash, manifest, and QC report were updated together and the
+full set was re-audited. `provenance.json` records both the render revision
+and the post-fix annotation revision.
 
-## 산출물과 검토 방법
+## Outputs and how to review them
 
-로컬 경로: `artifacts/pilot_v1_2/` (약 77.65 MB, QC 포함; Git 제외).
+Local path: `artifacts/pilot_v1_2/` (about 77.65 MB including QC; not in Git).
 
 ```text
-asset_registry.json                 절차적 Asset 등록 정보
-generation.json                     제안/채택/제외 이력 및 분포
-provenance.json                     Seed, 도구/좌표 정보, 코드 Revision
-manifest.jsonl                      130개 Annotation 경로와 SHA-256
+asset_registry.json                 procedural asset registry
+generation.json                     proposal, acceptance, and exclusion history and distributions
+provenance.json                     seed, tool and coordinate info, code revisions
+manifest.jsonl                      paths and SHA-256 of the 130 annotations
 {train,validation,development,test}.jsonl
-audit.json, COMPLETE.json           최종 감사 결과와 Manifest 해시
-scenes/<family>/source/             RGB, uint16 Instance Mask, Render Metadata
-samples/<sample>/annotation.json    현재/목표 Pose, ID, 지시, 관계, 검증 결과
-samples/<sample>/target/            No-op 외 목표 RGB/Mask/Metadata
-qc/index.html                      전체 Sample을 볼 수 있는 오프라인 QC
-qc/contact_sheet.png               대표 9개 입력/목표 장면
-qc/summary.json                     자동 QC 수치
-work/                              재현용 Render Job과 Blender 로그
+audit.json, COMPLETE.json           final audit and the manifest hash
+scenes/<family>/source/             RGB, uint16 instance mask, render metadata
+samples/<sample>/annotation.json    current and target pose, IDs, instruction, relations, validation
+samples/<sample>/target/            target RGB, mask, and metadata, except for no-op
+qc/index.html                       offline QC that can show every sample
+qc/contact_sheet.png                nine representative input and target scenes
+qc/summary.json                     automatic QC numbers
+work/                               render jobs and Blender logs for reproduction
 ```
 
-`qc/index.html`을 브라우저에서 열고 Mode/Split 필터를 사용한다. 각 카드에는
-한국어/영어 지시, 입력/목표 이미지, 일관된 Object ID, `[L]` 잠금 표시가 있다.
-원본 Annotation과 Mask에도 연결된다. Mask는 0–8의 정수값이므로 일반 이미지
-뷰어에서는 검게 보일 수 있다. No-op 목표는 정확히 동일한 Source Render를 재사용한다.
+Open `qc/index.html` in a browser and use the mode and split filters. Each
+card has the Korean or English instruction, the input and target images,
+consistent object IDs, and an `[L]` lock mark. It also links to the original
+annotation and mask. Mask values are the integers 0–8, so a normal image
+viewer can show them as black. A no-op target reuses the exact source render.
 
-Assistant가 대표 Contact Sheet의 9쌍과 `scene_0006_primary`의 8-object 배치,
-`scene_0075_primary`의 keep-all, `scene_0000_counterfactual`의 변경 지시 결과를
-이미지로 확인했다. 이 표본에서는 물체 소실, 시각적 충돌, ID/잠금 표시 누락을
-관찰하지 않았다. 한국어 조사 오류는 이 검토 중 발견하여 수정했다.
-**130개 Sample 전체를 사람이 검토한 것은 아니다.** 사용자의 자연어 의도, 가독성,
-배치 다양성 검토는 여전히 `pending_user_review`다. 자동 통과를 사람의 승인으로
-기록하지 않았다. Keep-all은 안전한 기존 장면을 유지하므로 축 정렬이 없어도 정상이다.
+The assistant checked the nine pairs on the representative contact sheet, the
+8-object layout of `scene_0006_primary`, the keep-all of `scene_0075_primary`,
+and the changed instruction of `scene_0000_counterfactual`. In that sample,
+no missing object, visual collision, or missing ID or lock mark was observed.
+The Korean particle error was found and fixed during this review.
+**A person has not reviewed all 130 samples.** Review of the user's natural
+language intent, readability, and layout diversity is still
+`pending_user_review`. An automatic pass was not recorded as a human approval.
+Keep-all preserves an already safe scene, so missing axis alignment is expected.
 
-최종 Manifest SHA-256:
+Final manifest SHA-256:
 `b8276caeffb0287eb738888c892d11ac508913cee514873564f5785d9bc7da27`
 
-## 재검증 및 다음 범위
+## Re-verification and what is next
 
 ```sh
 RUN_BLENDER_TESTS=1 RUN_BUILDER_TESTS=1 PILOT_DATASET=artifacts/pilot_v1_2 conda run -n knolling python -m pytest -q
 ```
 
-Dataset 생성기의 **소규모 기능·정합성 검증은 완료**됐다. 50,000개 운영 준비까지
-끝났다는 의미는 아니다. 현재 CLI는 100 Family까지만 허용하고, 렌더는 작은 Batch의
-동기 방식이며 중단 지점 재개를 지원하지 않는다. 대량 생성 전 사용자의 시각/언어 QC,
-Chunk/Resume 설계와 처리량·저장 공간 확인이 필요하다. 현재 분포는 3개 절차적 형상,
-3색, 고정 BEV, 제한된 한·영 문법이며 자유로운 지시나 실제 자산 일반화를 보장하지 않는다.
-Partial은 안전한 산개 장면의 일부를 수정하는 단일 단계이며 다중 대화 이력은 없다.
-실제로 렌더한 비실행(ambiguous/unsupported/infeasible) 지시 데이터는 포함하지 않고
-관련 상태 인터페이스만 테스트했다.
+**Small-scale functional and consistency checks of the dataset generator are
+done.** That does not mean the system is ready to produce 50,000 scenes. The
+current CLI allows at most 100 families. Rendering is synchronous in small
+batches and cannot resume from an interruption. Before a large run, the user
+still needs visual and language QC, a chunk and resume design, and a check of
+throughput and storage. The current distribution is three procedural shapes,
+three colors, a fixed bird's-eye view, and a limited Korean-and-English
+grammar. It does not guarantee free-form instructions or real-asset
+generalization. Partial is a single step that edits part of a safe scattered
+scene. There is no multi-turn dialogue history. The rendered data does not
+include non-executable ambiguous, unsupported, or infeasible instructions.
+Only the status interfaces for those cases were tested.
 
-이 시점에서 구현·생성을 중단한다. 본 데이터셋 확대, Neural Pilot, 학습 및 로봇
-시뮬레이션은 실행하지 않았다.
+Implementation and generation stop at this point. The production dataset was
+not scaled up, and the neural pilot, training, and robot simulation were not
+run.

@@ -1,29 +1,39 @@
-# neural_sequential_xy_v1 참고 스냅샷
+# neural_sequential_xy_v1 reference snapshot
 
-이 디렉터리는 `experiment/neural-sequential-phase1` 커밋 `4019217954eaa8b9d9a322ad2bc48d278e0bca2c`의 `neural_sequential_xy_v1`를 그대로 얼려 둔 참고 사본이다.
+This directory freezes `neural_sequential_xy_v1` from commit
+`4019217954eaa8b9d9a322ad2bc48d278e0bca2c` on
+`experiment/neural-sequential-phase1`.
 
-현재 end-to-end 아키텍처가 아니다. `current.py`, 기본 모델, 그 밖의 라이브 진입점에 연결하지 않는다. 추론에서 GT, 규칙 플래너, 기하 솔버를 쓰면 안 된다.
+It is not the current end-to-end architecture. Do not connect it to
+`current.py`, the default model, or any other live entry point. Inference
+must not read ground truth, a rule planner, or a geometry solver.
 
-실패한 형제 실험은 일부러 빼 두었다. direct-centre, relational row/slot, StructDiffusion, single-row decoder, gap auxiliary loss, teacher-prefix X-offset loss, size-conditioned offset head, Set Network, pairwise XY는 이 스냅샷에 없다.
+Rejected sibling experiments were left out on purpose. This snapshot does not
+include direct-centre, relational row/slot, StructDiffusion, the single-row
+decoder, the gap auxiliary loss, the teacher-prefix X-offset loss, the
+size-conditioned offset head, the Set Network, or pairwise XY.
 
-## 들어 있는 파일
+## Files included
 
-- `neural_sequential.py`: 위 커밋의 `src/knolling_model/experiments/neural_sequential.py`와 내용이 같다. `ScenePoseDecoder`가 이 파일 안에 있다.
-- `test_neural_sequential.py`: 같은 커밋의 단위 테스트 사본이다. 실행 스위트로 쓰지 않는다. `test_phase1_single_row`의 `Reference`, `example`, `device`를 import하고, 라이브 경로 `knolling_model.experiments.neural_sequential`를 import한다. 그 의존 파일은 복사하지 않았다.
+- `neural_sequential.py`: identical to `src/knolling_model/experiments/neural_sequential.py` at that commit. `ScenePoseDecoder` lives in this file.
+- `test_neural_sequential.py`: a copy of that commit's unit test. It is not part of the test suite that is run. It imports `Reference`, `example`, and `device` from `test_phase1_single_row`, and it imports the live path `knolling_model.experiments.neural_sequential`. Those dependencies were not copied.
 - `docs/neural-sequential-phase1.md`
 - `configs/neural_sequential_phase1.json`
 
-## 넣지 않은 파일
+## Files not included
 
-- `scripts/run_neural_sequential.py`는 `knolling_model.experiments.direct_center`, `knolling_model.experiments.phase1_evaluation`, `run_phase1_single_row_generalization`, `run_phase1_single_row_overfit`, `verify_phase1_single_row`를 import해서 복사하지 않았다.
-- `tests/neural/test_neural_sequential_driver.py`는 그 러너를 import해서 복사하지 않았다.
-- `offset_supervision.py`, `size_conditioned_offset.py`, `horizontal_gap.py`와 미추적 실험 러너는 거절된 실험이라 커밋하지 않았다.
+- `scripts/run_neural_sequential.py` was not copied because it imports `knolling_model.experiments.direct_center`, `knolling_model.experiments.phase1_evaluation`, `run_phase1_single_row_generalization`, `run_phase1_single_row_overfit`, and `verify_phase1_single_row`.
+- `tests/neural/test_neural_sequential_driver.py` was not copied because it imports that runner.
+- `offset_supervision.py`, `size_conditioned_offset.py`, `horizontal_gap.py`, and untracked experiment runners were not committed because those experiments were rejected.
 
-## 이 모듈이 기대는 import
+## Imports this module expects
 
-`neural_sequential.py`는 실패한 실험 모듈을 직접 import한다. 그 파일은 `src/`에 다시 넣지 않았다.
+`neural_sequential.py` imports failed experiment modules directly. Those files
+were not put back under `src/`.
 
 - `.generalization.new_model`
-- `.phase1_single_row.position_loss` (`position_loss`는 이 모듈 이름으로도 다시 export된다)
+- `.phase1_single_row.position_loss` (`position_loss` is also re-exported under this module's name)
 
-그 밖에는 당시에도 쓰이던 `knolling_dataset.builder.file_hash`와 `knolling_model.recovery.storage.load_artifact`만 import한다.
+The only other imports that were already in use then are
+`knolling_dataset.builder.file_hash` and
+`knolling_model.recovery.storage.load_artifact`.
