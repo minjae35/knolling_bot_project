@@ -58,7 +58,8 @@ not start with `v2hold_`. It aborts if the threshold is not 0.5.
 [The gallery](v2.0.0/demo-gallery/index.html) keeps ten validation scenes from
 commit `26dca53`. Each motion figure draws the stored source pose and the
 stored predicted target pose. Seven pass and three fail. The README shows
-three passing full arrangements: that saved eight-object scene, plus full
-arrangements of seven and six objects inferred on the validation split and
-accepted by the same judge. Neither set is a success rate. The earlier
-side-by-side renders are kept beside the gallery.
+three passing full arrangements: that saved eight-object scene with vertical
+axes, a different eight-object scene with horizontal color rows in the right
+region, and a six-object scene. The last two were inferred on the validation
+split and accepted by the same judge. Neither set is a success rate. The
+earlier side-by-side renders are kept beside the gallery.
