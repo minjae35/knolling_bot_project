@@ -17,17 +17,14 @@ v2.0.0 kept every v1.0.0 success and added 51 scenes. Tolerances and the family-
 
 Three passing full arrangements, with different instructions. Each figure shows the initial scene, the predicted source-to-target motion, and the predicted arrangement. The arrows are not robot trajectories. These scenes are examples, not a sample of the holdout rate.
 
+**Full · 8 objects · Vertical**<br>
 ![Full, 8 objects, vertical axes, pass](docs/v2.0.0/demo-gallery/motion/02_full_pass.png)
 
-**Full · 8 objects · vertical**
-
+**Full · 8 objects · Horizontal / Color Grouping**<br>
 ![Full, 8 objects, horizontal color rows in the right region, pass](docs/v2.0.0/demo-gallery/motion/13_full_pass.png)
 
-**Full · 8 objects · horizontal · color rows**
-
+**Full · 6 objects**<br>
 ![Full, 6 objects, pass](docs/v2.0.0/demo-gallery/motion/11_full_pass.png)
-
-**Full · 6 objects**
 
 Partial, no-op, and failure cases are in the [demo gallery](docs/v2.0.0/demo-gallery/index.html).
 
