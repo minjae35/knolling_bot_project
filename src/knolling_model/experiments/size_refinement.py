@@ -10,7 +10,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from knolling_model.experiments.constraint_decode import apply_area_order, select_layout
+from knolling_model.experiments.constraint_decode import apply_area_order, apply_row_repair, select_layout
 from knolling_model.experiments.geometry_decoder import align_goal_instruction, apply_geometry
 from knolling_model.experiments.partial_arrangement import (
     arrange_held, command_is_full, text_requests_every_object)
@@ -331,6 +331,7 @@ def poses_from_detection(system, relation, row_model, images, texts, head=None):
             placed['row'][index] = fallback['row'][index]
             placed['slot'][index] = fallback['slot'][index]
             placed['geometry_status'][index] = fallback['geometry_status'][index]
+    placed = apply_row_repair(placed, objects, goal)
     placed['route'] = 'full'
     placed['selected'] = encoded['selected']
     placed['keep_probability'] = encoded['keep_logit'].sigmoid()

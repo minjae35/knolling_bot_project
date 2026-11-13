@@ -9,7 +9,8 @@ from torch.nn import functional as F
 
 from knolling_dataset.schema import REGIONS
 from knolling_model.experiments.geometry_decoder import (
-    BAND_M, GAP_VALUES, REGION_NAMES, REGION_SLACK, WORK_LOW, WORK_X_HIGH, decode_scene, extent_offsets)
+    BAND_M, GAP_VALUES, REGION_NAMES, REGION_SLACK, WORK_LOW, WORK_X_HIGH, apply_geometry,
+    decode_scene, extent_offsets)
 
 K = 8
 ACTIONABLE = {'mixed_color', 'size_order', 'color_order', 'duplicate', 'missing', 'horizontal'}
@@ -250,6 +251,170 @@ def apply_area_order(output, objects, goal):
     replaced = dict(output)
     replaced['row'] = row
     replaced['slot'] = slot
+    return replaced
+
+
+REPAIR_LIMIT = 8
+
+
+def _set_partitions(items):
+    if len(items) <= 1:
+        yield [list(items)]
+        return
+    first, *rest = items
+    for part in _set_partitions(rest):
+        for index, group in enumerate(part):
+            nxt = [list(group) for group in part]
+            nxt[index] = [first, *group]
+            yield nxt
+        yield [[first], *[list(group) for group in part]]
+
+
+def _row_groups(color, grouped):
+    indices = list(range(len(color)))
+    if not grouped:
+        yield from _set_partitions(indices)
+        return
+    blocks = [[] for _ in range(3)]
+    for index in indices:
+        blocks[int(color[index])].append(index)
+    keys = [key for key, members in enumerate(blocks) if members]
+    from itertools import permutations, product
+    for order in permutations(keys):
+        parts = [list(_set_partitions(blocks[key])) for key in order]
+        for combo in product(*parts):
+            groups = []
+            for block in combo:
+                groups.extend(block)
+            yield groups
+
+
+def _too_wide(groups, spans, gap, room):
+    allowance = max(gap-BAND_M, 0.)
+    for members in groups:
+        span = sum(spans[index] for index in members)
+        if len(members) > 1:
+            span += (len(members)-1)*allowance
+        if span > room+1e-6:
+            return True
+    return False
+
+
+def _rank_groups(groups, log_probability):
+    matrix = torch.stack([log_probability[members].sum(0) for members in groups])
+    choice = matrix.argmax(-1)
+    if len({int(item) for item in choice}) < len(groups):
+        order = matrix.max(-1).values.argsort(descending=True).tolist()
+        used, mapped = set(), {}
+        for group_index in order:
+            available = [class_id for class_id in range(matrix.shape[1]) if class_id not in used]
+            class_id = max(available, key=lambda item, group_index=group_index: float(matrix[group_index, item]))
+            used.add(class_id)
+            mapped[group_index] = class_id
+    else:
+        mapped = {group_index: int(class_id) for group_index, class_id in enumerate(choice.tolist())}
+    score = sum(float(matrix[group_index, class_id]) for group_index, class_id in mapped.items())
+    return score, mapped
+
+
+def repair_rows(row_logits, angle, major, minor, color, goal, limit=REPAIR_LIMIT):
+    """Row splits that fit the region width, highest selector score first.
+
+    Only the selector's row scores rank the splits. Color groups, size order,
+    and the requested gap stay in force. At most `limit` splits are returned.
+    """
+    if row_logits.ndim != 2 or angle.ndim != 1 or goal.shape[-1] != 13:
+        raise ValueError('row repair expects one scene')
+    if not (row_logits.shape[0] == angle.shape[0] == major.shape[0] == minor.shape[0] == color.shape[0]):
+        raise ValueError('row repair scene shapes do not match')
+    count = int(angle.shape[0])
+    if count == 0 or limit < 1:
+        return []
+    grouped = bool(goal[10] >= goal[9])
+    gap = float((goal[6:9]*goal.new_tensor(GAP_VALUES)).sum())
+    region = REGIONS[REGION_NAMES[int(goal[3:6].argmax())]]
+    room = min(region[2]+REGION_SLACK, WORK_X_HIGH)-max(region[0]-REGION_SLACK, WORK_LOW)
+    spans = []
+    for index in range(count):
+        xmin, xmax, _ymin, _ymax = extent_offsets(angle[index], major[index], minor[index])
+        spans.append(float(xmax-xmin))
+    log_probability = F.log_softmax(row_logits.detach().float(), dim=-1)
+    ranked = []
+    for groups in _row_groups(color.detach().cpu(), grouped):
+        if _too_wide(groups, spans, gap, room):
+            continue
+        score, mapped = _rank_groups(groups, log_probability)
+        ranked.append((score, groups, mapped))
+    ranked.sort(key=lambda item: item[0], reverse=True)
+    area = (major*minor).detach()
+    found = []
+    for _score, groups, mapped in ranked:
+        renumber = {old: new for new, old in enumerate(sorted(set(mapped.values())))}
+        row = torch.empty(count, dtype=torch.long, device=angle.device)
+        slot = torch.empty(count, dtype=torch.long, device=angle.device)
+        for group_index, members in enumerate(groups):
+            for seat, member in enumerate(members):
+                row[member] = renumber[mapped[group_index]]
+                slot[member] = seat
+        row, slot = order_by_area(row, slot, area, color, goal)
+        if structure_issues(row, slot, major, minor, angle, color, goal):
+            continue
+        found.append((row, slot))
+        if len(found) >= limit:
+            break
+    return found
+
+
+def apply_row_repair(output, objects, goal):
+    """Replace a row the region cannot hold. A row the decoder accepted stays put."""
+    if 'geometry_status' not in output or 'row_logits' not in output:
+        return output
+    if all(not str(name).startswith('infeasible') for name in output['geometry_status']):
+        return output
+    row = output['row'].clone()
+    slot = output['slot'].clone()
+    xy = output['xy'].clone()
+    angle = output['angle'].clone()
+    status = list(output['geometry_status'])
+    notes = []
+    changed = False
+    for index, name in enumerate(status):
+        if not str(name).startswith('infeasible'):
+            notes.append('kept')
+            continue
+        count = int(objects.valid[index].sum())
+        found = False
+        proposals = repair_rows(
+            output['row_logits'][index, :count], angle[index, :count],
+            objects.size[index, :count, 0], objects.size[index, :count, 1],
+            objects.color[index, :count].argmax(-1), goal[index])
+        for new_row, new_slot in proposals:
+            trial_row, trial_slot = row.clone(), slot.clone()
+            trial_row[index, :count] = new_row
+            trial_slot[index, :count] = new_slot
+            candidate = apply_geometry(dict(output, row=trial_row, slot=trial_slot, xy=xy, angle=angle), objects, goal)
+            if str(candidate['geometry_status'][index]).startswith('infeasible'):
+                continue
+            xy[index] = candidate['xy'][index]
+            angle[index] = candidate['angle'][index]
+            row[index] = candidate['row'][index]
+            slot[index] = candidate['slot'][index]
+            status[index] = candidate['geometry_status'][index]
+            notes.append('replaced')
+            found = True
+            changed = True
+            break
+        if not found:
+            notes.append('unresolved')
+    if not changed and 'unresolved' not in notes:
+        return output
+    replaced = dict(output)
+    replaced['xy'] = xy
+    replaced['angle'] = angle
+    replaced['row'] = row
+    replaced['slot'] = slot
+    replaced['geometry_status'] = status
+    replaced['row_repair'] = notes
     return replaced
 
 

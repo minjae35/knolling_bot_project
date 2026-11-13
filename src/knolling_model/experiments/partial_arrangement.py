@@ -13,7 +13,7 @@ import torch
 from shapely.geometry import Polygon
 
 from knolling_dataset.schema import COLORS
-from knolling_model.experiments.constraint_decode import select_layout
+from knolling_model.experiments.constraint_decode import repair_rows, select_layout
 from knolling_model.experiments.geometry_decoder import _instruction, align_goal_axis, apply_geometry
 from knolling_model.recovery.contracts import Objects
 
@@ -111,6 +111,21 @@ def _clear(movers, held):
     return True
 
 
+def group_is_clear(xy, angle, size, moving, goal):
+    """True when the moved group is inside the region and clear of fixed objects."""
+    if xy.ndim != 3 or xy.shape[0] != 1 or moving.ndim != 1:
+        raise ValueError('obstacle clearance expects one scene')
+    held = [index for index in range(xy.shape[1]) if index not in set(int(item) for item in moving.tolist())]
+    _gap, _grouped, limits = _instruction(goal[0] if goal.ndim == 2 else goal)
+    movers = [_polygon(
+        (float(xy[0, index, 0]), float(xy[0, index, 1])), angle[0, index], size[0, index, 0], size[0, index, 1])
+        for index in moving.tolist()]
+    if not _fits(movers, limits):
+        return False
+    obstacles = [_polygon(xy[0, index], angle[0, index], size[0, index, 0], size[0, index, 1]) for index in held]
+    return _clear(movers, obstacles)
+
+
 def clear_held_objects(xy, angle, size, moving, goal):
     """Translate the moved group off fixed objects. Fixed poses are not edited."""
     if xy.ndim != 3 or xy.shape[0] != 1 or moving.ndim != 1:
@@ -171,7 +186,34 @@ def _place_selected(relation, row_model, objects, index, goal, chosen, keep_angl
         hidden, subset.valid, goal, subset.size[..., 0], subset.size[..., 1],
         None, None, True, colors=subset.color)
     output = select_layout(row_model, hidden, subset, goal, output)
-    output = apply_geometry(output, subset, align_goal_axis(goal, [text]) if text else goal)
+    geometry_goal = align_goal_axis(goal, [text]) if text else goal
+    output = apply_geometry(output, subset, geometry_goal)
+    if str(output['geometry_status'][0]).startswith('infeasible'):
+        count = int(subset.valid[0].sum())
+        note = 'unresolved'
+        for new_row, new_slot in repair_rows(
+                output['row_logits'][0, :count], output['angle'][0, :count],
+                subset.size[0, :count, 0], subset.size[0, :count, 1],
+                subset.color[0, :count].argmax(-1), geometry_goal[0]):
+            trial_row, trial_slot = output['row'].clone(), output['slot'].clone()
+            trial_row[0, :count] = new_row
+            trial_slot[0, :count] = new_slot
+            candidate = apply_geometry(dict(output, row=trial_row, slot=trial_slot), subset, geometry_goal)
+            if str(candidate['geometry_status'][0]).startswith('infeasible'):
+                continue
+            preview_xy = objects.xy[index:index + 1].clone()
+            preview_xy[0, chosen] = candidate['xy'][0]
+            preview_angle = (objects.angle if keep_angle is None else keep_angle)[index:index + 1].clone()
+            preview_angle[0, chosen] = candidate['angle'][0]
+            cleared = clear_held_objects(
+                preview_xy, preview_angle, objects.size[index:index + 1], chosen, goal)
+            if not group_is_clear(cleared, preview_angle, objects.size[index:index + 1], chosen, goal):
+                continue
+            output = dict(candidate, row_repair=['replaced'])
+            note = 'replaced'
+            break
+        else:
+            output = dict(output, row_repair=[note])
     placed = _source_pose(objects, index, 'partial', keep_angle)
     placed['xy'][0, chosen] = output['xy'][0]
     placed['angle'][0, chosen] = output['angle'][0]
