@@ -1,6 +1,6 @@
 # Dataset
 
-The training distribution is `artifacts/generalization_20000/dataset`.
+The generated corpus is `artifacts/generalization_20000/dataset`. The 20,000 scenes are the generation scale. Which slices the training stages actually read is in [dataset-contract.md](dataset-contract.md#training-data-usage).
 
 | | |
 | --- | --- |
@@ -25,7 +25,7 @@ Assets are procedural. The schema field `license` defaults to `CC0-1.0` for thos
 
 Blender is an external program. This release used 5.1.0, Cycles, CPU, and 32 samples. It is not vendored. Cross-machine PNG bytes are not guaranteed.
 
-Workspace geometry, the difference between this teacher and the earlier 100-scene pilot, and the difference between dataset acceptance and prediction scoring are in [dataset-contract.md](dataset-contract.md). Sentence conventions for the v1.3 balanced labels are in [english-instruction-defaults.md](english-instruction-defaults.md). Those balanced labels are not the teacher of this 20,000-scene set.
+Workspace geometry, the difference between this teacher and the earlier 100-scene pilot, and the difference between dataset acceptance and prediction scoring are in [dataset-contract.md](dataset-contract.md). The v1.3 balanced-label conventions, and wording that was proposed but not adopted, are in [v1.3-english-conventions.md](v1.3-english-conventions.md). Those balanced labels are not the teacher of this corpus.
 
 ## Official holdout
 

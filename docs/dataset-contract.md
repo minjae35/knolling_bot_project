@@ -38,7 +38,7 @@ Two teachers exist from that stage.
 
 The legacy teacher groups colors independently, uses one to four objects per row, and searches at most 20,000 candidates. Exhausting the templates or the budget is a generation failure. A disagreement with the independent validator stops generation.
 
-`balanced_rows_v1.3` allows one through N selected objects per row, ranks full arrangements by shape and partial arrangements by translation, and recenters new full blocks. English wording for those labels is in [english-instruction-defaults.md](english-instruction-defaults.md). The published v2 sets do not use this policy.
+`balanced_rows_v1.3` allows one through N selected objects per row, ranks full arrangements by shape and partial arrangements by translation, and recenters new full blocks. English wording for those labels is in [v1.3-english-conventions.md](v1.3-english-conventions.md). The published v2 sets do not use this policy.
 
 The 100-scene run checks the generator. It is not a performance result.
 

@@ -45,7 +45,7 @@ The sentence also sets the region, a 15, 20, or 30 mm gap, color grouping, size 
 
 ## Data
 
-The training distribution is `artifacts/generalization_20000/dataset`: 4,000 families and 20,000 scenes, split 16,000 / 2,000 / 2,000. The 640-scene holdout, `artifacts/v2_independent_eval`, is a separate sealed set. It is not the 2,000-scene test split. Neither dataset is in this repository. The split, the English templates, and the file hashes are in [docs/dataset.md](docs/dataset.md) and [docs/v2.0.0.md](docs/v2.0.0.md).
+The generated corpus is `artifacts/generalization_20000/dataset`: 4,000 families and 20,000 scenes, split 16,000 / 2,000 / 2,000. That total is the generation scale. Training stages use smaller manifests drawn from the train and validation splits, and they do not use the 2,000-scene test split. The 640-scene holdout, `artifacts/v2_independent_eval`, is a separate sealed set. Neither dataset is in this repository. The split, the stage manifests, and the file hashes are in [docs/dataset.md](docs/dataset.md), [docs/dataset-contract.md](docs/dataset-contract.md), and [docs/v2.0.0.md](docs/v2.0.0.md).
 
 ## Installation and inference
 
@@ -77,10 +77,13 @@ The holdout was scored once. This repository records that measurement and does n
 ## Documentation
 
 - [Architecture](docs/architecture.md)
-- [Dataset](docs/dataset.md)
+- [Dataset](docs/dataset.md) — the 20,000-scene corpus and the 640-scene holdout
+- [Dataset contract](docs/dataset-contract.md) — geometry, the 100-scene pilot, and the training manifests
+- [v1.3 English conventions](docs/v1.3-english-conventions.md) — earlier labels and wording that was not adopted
 - [Evaluation](docs/evaluation.md)
 - [Reproducibility](docs/reproducibility.md)
 - [v2.0.0 release note](docs/v2.0.0.md)
+- [v2.0.0-rc1 record](docs/v2.0.0-rc1.md)
 - [Limitations](docs/limitations.md)
 - [Third-party notices](docs/third-party-notices.md)
 

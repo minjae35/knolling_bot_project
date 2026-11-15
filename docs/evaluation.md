@@ -20,7 +20,7 @@ This score is target-pose accuracy on synthetic RGB. It is not a robot-arm execu
 
 ## Official result
 
-The number below is the 640-scene holdout, scored once, at `v1.0.0` and `v2.0.0-rc1`. It is not the older 2,000-scene test, and it is not a validation split. Later commits on `main` did not repeat this measurement.
+The number below is the 640-scene holdout, scored once, at `v1.0.0` and `v2.0.0-rc1`. It is not the older 2,000-scene test, and it is not a validation split. The measurement was not repeated. The release-candidate breakdown, including timing and the remaining error counts, is in [v2.0.0-rc1.md](v2.0.0-rc1.md).
 
 | System | Full | Partial | No-op | Overall |
 | --- | ---: | ---: | ---: | ---: |
