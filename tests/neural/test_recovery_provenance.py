@@ -15,7 +15,9 @@ import torch
 def test_grounding_transfer_contracts_and_explicit_changes(tmp_path, split):
     source=read_config('configs/recovery_v4_gpu_grounding.json')
     target=read_config('configs/recovery_v4_integrated_review.json')
-    commit=subprocess.check_output(['git','rev-parse','7ac097a'],text=True).strip()
+    # Teacher contract includes the aspect-ratio tolerance from b3a3d6b.
+    # Model, loss, and evaluator contracts are unchanged since 7ac097a.
+    commit=subprocess.check_output(['git','rev-parse','b3a3d6b'],text=True).strip()
     contracts=contract_hashes()
     assert contracts==contract_hashes(commit)
     metrics=dict(schema='recovery_metrics_v4',architecture='recovery_v4_goal_joint',stage='grounding',

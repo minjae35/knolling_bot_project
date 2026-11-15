@@ -49,7 +49,7 @@
   },
   "data_v3": {
     "path": "artifacts/recovery_v3_verification_r1/annotations.json",
-    "sha256": "b42ee5b9e99afeeb37036a63f4e180b791719212faa68be226f7745beb051e7c"
+    "sha256": "1ab4d846d632d4e5c61fc14c9e0f43150536e67239ee039874bc350c4806811c"
   },
   "evaluation_schema": "recovery_metrics_v4",
   "precision": {
