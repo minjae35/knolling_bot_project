@@ -6,9 +6,9 @@ import pytest
 import torch
 
 from knolling_dataset.schema import digest
-from knolling_model.recovery import integrated
-from knolling_model.recovery.driver import save_exclusive
-from knolling_model.recovery.readout import HeadFitter
+from knolling_model.arrangement import integrated
+from knolling_model.arrangement.driver import save_exclusive
+from knolling_model.arrangement.readout import HeadFitter
 from test_recovery_integrated import setup, make, equal, metrics
 from test_recovery_readout import DEVICES, Fixture
 
@@ -160,7 +160,7 @@ def test_cache_preparation_journal_recovers_before_first_candidate(tmp_path, mon
 
 
 def test_timing_report_failure_does_not_discard_terminal_result(tmp_path, monkeypatch):
-    from knolling_model.recovery import driver
+    from knolling_model.arrangement import driver
     c, m, parent = solver_config(tmp_path, 'cpu')
     def fail(*args, **kwargs): raise OSError('diagnostic disk error')
     monkeypatch.setattr(driver, 'save_json_exclusive', fail)

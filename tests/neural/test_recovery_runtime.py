@@ -5,10 +5,10 @@ import pytest
 import torch
 
 from knolling_model.data import Collator, S0Dataset
-from knolling_model.recovery.batches import stage_batches
-from knolling_model.recovery.counterfactuals import RecoverySuite
-from knolling_model.recovery.driver import read_config
-from knolling_model.recovery.runtime import CachedDataset, FrozenTextCache, ProgressLog, precision_context, warm_text_cache
+from knolling_model.arrangement.batches import stage_batches
+from knolling_model.arrangement.counterfactuals import RecoverySuite
+from knolling_model.arrangement.driver import read_config
+from knolling_model.arrangement.runtime import CachedDataset, FrozenTextCache, ProgressLog, precision_context, warm_text_cache
 
 
 def test_frozen_text_cache_respects_tokens_and_padding():
@@ -80,8 +80,8 @@ def test_progress_records_measured_loss_and_evaluations(tmp_path):
 @pytest.mark.skipif(os.environ.get('RUN_RECOVERY_CUDA_TESTS')!='1', reason='explicit GPU verification only')
 def test_bf16_arrangement_and_fp32_perception_batch_smoke():
     from knolling_model.runner import seed_everything
-    from knolling_model.recovery.model import load_recovery
-    from knolling_model.recovery.stages import configure_stage, stage_loss
+    from knolling_model.arrangement.model import load_recovery
+    from knolling_model.arrangement.stages import configure_stage, stage_loss
     seed_everything(1203,2)
     c=read_config('configs/recovery_gpu_initial.json')
     dataset=RecoverySuite(S0Dataset(c['dataset'],c['selection']),c['counterfactuals']['path'],c['counterfactuals']['sha256'])
@@ -108,7 +108,7 @@ def test_bf16_arrangement_and_fp32_perception_batch_smoke():
             assert out['layout']['xy'].dtype==torch.float32
             model.eval()
             with torch.no_grad(),precision_context(c,stage):
-                from knolling_model.recovery.contracts import oracle_objects
+                from knolling_model.arrangement.contracts import oracle_objects
                 deployed=model.layout(oracle_objects(truth),model.encode_text(inputs['input_ids'],inputs['attention_mask']),inputs['attention_mask'])
             torch.testing.assert_close(deployed['xy'],out['layout']['xy'],atol=1e-5,rtol=1e-5)
         print(stage,'batch',len(truth),'peak_MiB',torch.cuda.max_memory_allocated()/2**20)

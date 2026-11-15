@@ -8,9 +8,9 @@ import torch
 
 from knolling_dataset.builder import file_hash
 from knolling_dataset.schema import digest
-from knolling_model.recovery.driver import load_checkpoint
-from knolling_model.recovery.storage import load_artifact
-from knolling_model.recovery.extensions import EXTENSION_SCHEMA, assess_progress
+from knolling_model.arrangement.driver import load_checkpoint
+from knolling_model.arrangement.storage import load_artifact
+from knolling_model.arrangement.extensions import EXTENSION_SCHEMA, assess_progress
 from test_recovery_driver import config, engine, ScalarFixture
 
 

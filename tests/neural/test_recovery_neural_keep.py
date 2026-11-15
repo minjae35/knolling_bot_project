@@ -1,11 +1,11 @@
 from copy import deepcopy
 from dataclasses import fields
 import torch
-from knolling_model.recovery.neural_keep import attach, loss, labels, adopt, POLICY
-from knolling_model.recovery.relative_task import configure, restore, SCHEMA
-from knolling_model.recovery.contracts import Objects, oracle_objects
-from knolling_model.recovery.storage import CheckpointStore, load_artifact
-from knolling_model.recovery.driver import rng_state, restore_rng
+from knolling_model.arrangement.neural_keep import attach, loss, labels, adopt, POLICY
+from knolling_model.arrangement.relative_task import configure, restore, SCHEMA
+from knolling_model.arrangement.contracts import Objects, oracle_objects
+from knolling_model.arrangement.storage import CheckpointStore, load_artifact
+from knolling_model.arrangement.driver import rng_state, restore_rng
 from test_recovery_relative_task import setup
 from test_recovery_readout import batch_for, Fixture
 from test_recovery_integrated import equal

@@ -1,4 +1,1 @@
-"""Review-stage neural recovery components; no training is launched on import.
-
-Legacy S0 code, checkpoints and dataset contracts are deliberately independent.
-"""
+"""Import path kept so existing perception checkpoints resolve the same modules."""

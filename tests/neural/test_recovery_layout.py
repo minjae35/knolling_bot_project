@@ -4,8 +4,8 @@ import pytest
 import torch
 
 from knolling_model.coordinates import angle_delta
-from knolling_model.recovery.contracts import oracle_objects
-from knolling_model.recovery.layout import AutoregressiveLayout, PeriodicBins, layout_loss
+from knolling_model.arrangement.contracts import oracle_objects
+from knolling_model.arrangement.layout import AutoregressiveLayout, PeriodicBins, layout_loss
 from test_recovery_perception import truth
 
 

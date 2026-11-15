@@ -46,7 +46,7 @@ def main():
     for case in MICRO_CASES:
         folder = output/case
         # Each subprocess enforces the full receipt/code/config/data contract.
-        subprocess.run([sys.executable, '-m', 'knolling_model.recovery.driver', '--config', args.config,
+        subprocess.run([sys.executable, '-m', 'knolling_model.arrangement.driver', '--config', args.config,
                         '--stage', 'micro_pose', '--micro-case', case, '--parent-checkpoint', args.grounding_checkpoint,
                         '--approval', args.approval, '--output', str(folder)], check=True)
         result = json.loads((folder/'result.json').read_text())

@@ -36,7 +36,7 @@ def main():
     import run_phase1_pairwise_affine as runner
     import run_relation_stable as stable
     from knolling_model.experiments.size_refinement import poses_from_detection
-    from knolling_model.recovery.data import recovery_supervision
+    from knolling_model.arrangement.data import recovery_supervision
     from score_end_to_end import blank, judge_scene, load_adopted
 
     data = args.data.resolve()

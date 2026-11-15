@@ -6,12 +6,12 @@ import threading
 import pytest
 import torch
 
-from knolling_model.recovery import alternating as alt
-from knolling_model.recovery.driver import StageEngine, read_config, rng_state, save_exclusive, authorize
-from knolling_model.recovery.integrated import load_integrated
-from knolling_model.recovery.readout import HeadFitter, collect_readout
-from knolling_model.recovery.svd_readout import SVDXYFitter, SVDNumericalStall
-from knolling_model.recovery.stages import configure_stage, stage_loss
+from knolling_model.arrangement import alternating as alt
+from knolling_model.arrangement.driver import StageEngine, read_config, rng_state, save_exclusive, authorize
+from knolling_model.arrangement.integrated import load_integrated
+from knolling_model.arrangement.readout import HeadFitter, collect_readout
+from knolling_model.arrangement.svd_readout import SVDXYFitter, SVDNumericalStall
+from knolling_model.arrangement.stages import configure_stage, stage_loss
 from test_recovery_readout import Fixture, batch_for
 from test_recovery_integrated import equal
 from test_recovery_svd import fixture as svd_fixture
@@ -184,7 +184,7 @@ def test_time_and_source_config_locked():
 
 
 def test_actual_pose_feature_gradient_numerical_and_forward_path():
-    from knolling_model.recovery.contracts import oracle_objects
+    from knolling_model.arrangement.contracts import oracle_objects
     torch.set_num_threads(2);torch.manual_seed(32);m=Fixture();b=batch_for(m)
     configure_stage(m,'oracle_layout');opt=alt.FeatureAdam(m,1e-4,1e-4)
     terms,out=stage_loss(m,b.inputs,b.supervision);loss=sum(terms.values())

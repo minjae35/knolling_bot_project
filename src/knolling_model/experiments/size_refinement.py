@@ -15,8 +15,8 @@ from knolling_model.experiments.constraint_decode import (
 from knolling_model.experiments.geometry_decoder import align_goal_instruction, apply_geometry
 from knolling_model.experiments.partial_arrangement import (
     arrange_held, command_is_full, text_requests_every_object)
-from knolling_model.recovery.contracts import pack_sources
-from knolling_model.recovery.selection import select_queries
+from knolling_model.arrangement.contracts import pack_sources
+from knolling_model.arrangement.selection import select_queries
 
 
 class ObjectSizeRefinement(nn.Module):

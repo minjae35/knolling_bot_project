@@ -11,9 +11,9 @@ import torch
 from torch import nn
 
 from knolling_dataset.builder import file_hash
-from knolling_model.recovery.driver import StageEngine,read_config,load_checkpoint,save_exclusive
-from knolling_model.recovery.evaluation_v4 import MICRO_CASES
-from knolling_model.recovery.goal_joint_layout import ARCHITECTURE
+from knolling_model.arrangement.driver import StageEngine,read_config,load_checkpoint,save_exclusive
+from knolling_model.arrangement.evaluation_v4 import MICRO_CASES
+from knolling_model.arrangement.goal_joint_layout import ARCHITECTURE
 from test_recovery_driver import batches
 from test_recovery_dataset_v3 import suite_v3
 
@@ -73,7 +73,7 @@ def test_disabled_cli_and_strict_goal_configuration(tmp_path):
     c=read_config('configs/recovery_v4_execution.json')
     for stage in ('grounding','micro_pose','oracle_layout'):
         out=tmp_path/stage
-        p=subprocess.run([sys.executable,'-m','knolling_model.recovery.driver','--config','configs/recovery_v4_execution.json',
+        p=subprocess.run([sys.executable,'-m','knolling_model.arrangement.driver','--config','configs/recovery_v4_execution.json',
             '--stage',stage,'--output',str(out),'--approval','nonexistent'],capture_output=True,text=True)
         assert p.returncode!=0 and 'training disabled' in p.stderr and not out.exists()
     for field in ('goal_contract','data_v3','micro_pose'):
@@ -167,9 +167,9 @@ def test_v4_joint_timeout_final_evaluation_rollback(tmp_path,device):
 
 
 def test_uniform_exposure_and_fixed_micro_subset(suite_v3):
-    from knolling_model.recovery.goal_labels import GoalDataset
-    from knolling_model.recovery.batches import stage_batches
-    from knolling_model.recovery.micro import MicroDataset
+    from knolling_model.arrangement.goal_labels import GoalDataset
+    from knolling_model.arrangement.batches import stage_batches
+    from knolling_model.arrangement.micro import MicroDataset
     ds=GoalDataset(suite_v3)
     for stage in ('grounding','oracle_layout','predicted_layout'):
         batches_=list(stage_batches(ds,lambda x:x,stage,seed=1203,epoch=0,batch_size=8,uniform=True))
@@ -182,15 +182,15 @@ def test_uniform_exposure_and_fixed_micro_subset(suite_v3):
 
 def test_micro_coordinator_disabled_before_files(tmp_path):
     output=tmp_path/'never'
-    p=subprocess.run([sys.executable,'-m','knolling_model.recovery.micro','--grounding-checkpoint','absent',
+    p=subprocess.run([sys.executable,'-m','knolling_model.arrangement.micro','--grounding-checkpoint','absent',
                       '--approval','absent','--output',str(output)],capture_output=True,text=True)
     assert p.returncode!=0 and 'training disabled' in p.stderr and not output.exists()
 
 
 @pytest.mark.parametrize('paused',[False,True])
 def test_micro_coordinator_independent_roots_and_stop(tmp_path,monkeypatch,paused):
-    import knolling_model.recovery.driver as driver
-    import knolling_model.recovery.micro as micro
+    import knolling_model.arrangement.driver as driver
+    import knolling_model.arrangement.micro as micro
     c=config();c['allow_training']=True
     monkeypatch.setattr(driver,'read_config',lambda _:c)
     calls=[]

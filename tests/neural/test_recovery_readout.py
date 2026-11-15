@@ -7,10 +7,10 @@ import pytest
 import torch
 from torch import nn
 
-from knolling_model.recovery.readout import (HeadFitter, PoseAdam, ReadoutData, SLICES,
+from knolling_model.arrangement.readout import (HeadFitter, PoseAdam, ReadoutData, SLICES,
                                            collect_readout, feature_hash)
-from knolling_model.recovery.stages import stage_loss, configure_stage
-from knolling_model.recovery.goal_joint_layout import ARCHITECTURE
+from knolling_model.arrangement.stages import stage_loss, configure_stage
+from knolling_model.arrangement.goal_joint_layout import ARCHITECTURE
 from test_recovery_goal_v4 import fixture
 
 DEVICES = ['cpu', pytest.param('cuda', marks=pytest.mark.skipif(
@@ -114,19 +114,19 @@ def test_split_adam_matches_fused_then_preserves_only_appropriate_fine_state(dev
             assert int(state['step'])==2 and not state['exp_avg'].count_nonzero()
             torch.testing.assert_close(state['exp_avg_sq'],old['optimizer']['state'][idx]['exp_avg_sq'],atol=0,rtol=0)
     assert adam.optimizer.param_groups[0]['lr']==1e-6
-    with adam.forward_context():train=m.layout(__import__('knolling_model.recovery.contracts',fromlist=['oracle_objects']).oracle_objects(b.supervision),b.inputs['input_ids'],b.inputs['attention_mask'])
-    actual=m.layout(__import__('knolling_model.recovery.contracts',fromlist=['oracle_objects']).oracle_objects(b.supervision),b.inputs['input_ids'],b.inputs['attention_mask'])
+    with adam.forward_context():train=m.layout(__import__('knolling_model.arrangement.contracts',fromlist=['oracle_objects']).oracle_objects(b.supervision),b.inputs['input_ids'],b.inputs['attention_mask'])
+    actual=m.layout(__import__('knolling_model.arrangement.contracts',fromlist=['oracle_objects']).oracle_objects(b.supervision),b.inputs['input_ids'],b.inputs['attention_mask'])
     for key in ('xy','angle_logits','angle_residual'):torch.testing.assert_close(train[key],actual[key],atol=0,rtol=0)
 
 
 @pytest.mark.skipif(os.environ.get('RUN_RECOVERY_CUDA_TESTS')!='1',reason='explicit real cached-model CUDA check')
 def test_real_cached_model_gradients_and_readout_inference_no_optimizer_steps():
-    from knolling_model.recovery.model import load_recovery
-    from knolling_model.recovery.driver import read_config
-    from knolling_model.recovery.dataset_v3 import RecoveryDatasetV3
-    from knolling_model.recovery.goal_labels import GoalDataset
-    from knolling_model.recovery.runtime import FrozenTextCache
-    from knolling_model.recovery.contracts import oracle_objects
+    from knolling_model.arrangement.model import load_recovery
+    from knolling_model.arrangement.driver import read_config
+    from knolling_model.arrangement.dataset_v3 import RecoveryDatasetV3
+    from knolling_model.arrangement.goal_labels import GoalDataset
+    from knolling_model.arrangement.runtime import FrozenTextCache
+    from knolling_model.arrangement.contracts import oracle_objects
     from knolling_model.data import S0Dataset,Collator
     c=read_config('configs/recovery_v4_integrated_review.json')
     ds=GoalDataset(RecoveryDatasetV3(S0Dataset(c['dataset'],c['selection']),c['data_v3']['path'],c['data_v3']['sha256']))

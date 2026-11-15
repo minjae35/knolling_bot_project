@@ -1,8 +1,8 @@
 import pytest
 import torch
 
-from knolling_model.recovery.contracts import oracle_objects
-from knolling_model.recovery.noise import perturb_sources
+from knolling_model.arrangement.contracts import oracle_objects
+from knolling_model.arrangement.noise import perturb_sources
 from test_recovery_perception import truth
 
 

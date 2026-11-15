@@ -3,8 +3,8 @@ import os
 import pytest
 import torch
 
-from knolling_model.recovery.driver import read_config,save_exclusive
-from knolling_model.recovery.goal_joint_layout import GoalJointLayout
+from knolling_model.arrangement.driver import read_config,save_exclusive
+from knolling_model.arrangement.goal_joint_layout import GoalJointLayout
 from test_recovery_goal_v4 import fixture
 
 
@@ -18,20 +18,20 @@ def test_v4_state_roundtrip_and_legacy_rejection(tmp_path):
     for k in ('xy','angle_logits','angle_residual'):
         torch.testing.assert_close(out[k],again[k],atol=0,rtol=0)
     torch.testing.assert_close(out['goal']['vector'],again['goal']['vector'],atol=0,rtol=0)
-    from knolling_model.recovery.joint_layout import JointPoseDecoder
-    from knolling_model.recovery.layout import AutoregressiveLayout
+    from knolling_model.arrangement.joint_layout import JointPoseDecoder
+    from knolling_model.arrangement.layout import AutoregressiveLayout
     for legacy in (JointPoseDecoder(dimension=32),AutoregressiveLayout(dimension=32)):
         with pytest.raises(RuntimeError):restored.load_state_dict(legacy.state_dict(),strict=True)
 
 
 @pytest.mark.skipif(os.environ.get('RUN_RECOVERY_CUDA_TESTS')!='1',reason='explicit CUDA real cached-model verification')
 def test_cached_r18_minilm_v4_forward_backward_fp32_bf16_no_updates():
-    from knolling_model.recovery.model import load_recovery
-    from knolling_model.recovery.stages import configure_stage,stage_loss
-    from knolling_model.recovery.dataset_v3 import RecoveryDatasetV3
-    from knolling_model.recovery.goal_labels import GoalDataset
+    from knolling_model.arrangement.model import load_recovery
+    from knolling_model.arrangement.stages import configure_stage,stage_loss
+    from knolling_model.arrangement.dataset_v3 import RecoveryDatasetV3
+    from knolling_model.arrangement.goal_labels import GoalDataset
     from knolling_model.data import S0Dataset,Collator
-    from knolling_model.recovery.runtime import FrozenTextCache
+    from knolling_model.arrangement.runtime import FrozenTextCache
     c=read_config('configs/recovery_v4_execution.json')
     ds=GoalDataset(RecoveryDatasetV3(S0Dataset(c['dataset'],c['selection']),c['data_v3']['path'],c['data_v3']['sha256']))
     m,tok=load_recovery('configs/recovery_v4_review.json');m.to('cuda');m.encode_text=FrozenTextCache(m.encode_text)

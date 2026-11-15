@@ -16,10 +16,10 @@ from knolling_model.experiments.expanded_data import ExpandedDataset
 from knolling_model.experiments.full_arrangement import arrangement_errors, collate, is_full
 from knolling_model.experiments.integration import load_integrated
 from knolling_model.experiments.row_layout import NeuralRowPlacement, assignment_loss, order_loss, placement_loss
-from knolling_model.recovery.contracts import Objects
-from knolling_model.recovery.data import recovery_supervision
-from knolling_model.recovery.evaluation import _oracle_view
-from knolling_model.recovery.evaluation_v3 import semantic_errors_v3
+from knolling_model.arrangement.contracts import Objects
+from knolling_model.arrangement.data import recovery_supervision
+from knolling_model.arrangement.evaluation import _oracle_view
+from knolling_model.arrangement.evaluation_v3 import semantic_errors_v3
 import run_phase1_pairwise_affine as runner
 import run_relation_capacity as cap
 import run_relation_stable as stable

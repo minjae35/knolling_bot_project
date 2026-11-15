@@ -3,8 +3,8 @@ from dataclasses import fields
 from pathlib import Path
 import torch
 from test_phase1_single_row import Reference, example
-from knolling_model.recovery.contracts import Objects
-from knolling_model.recovery.storage import CheckpointStore, load_artifact, tensor_digest
+from knolling_model.arrangement.contracts import Objects
+from knolling_model.arrangement.storage import CheckpointStore, load_artifact, tensor_digest
 from knolling_model.experiments.neural_sequential import ScenePoseDecoder, SequentialPose, position_loss
 from knolling_model.experiments.size_conditioned_offset import (
     EXTRA, FEATURE_SCALE, SizeConditionedDecoder, widen_decoder)

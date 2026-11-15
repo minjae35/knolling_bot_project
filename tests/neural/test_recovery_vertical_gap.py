@@ -1,9 +1,9 @@
 from copy import deepcopy
 from types import SimpleNamespace
 import torch
-from knolling_model.recovery.vertical_gap import loss, GAP_SCALE
-from knolling_model.recovery.relative_task import configure, restore, SCHEMA
-from knolling_model.recovery.storage import CheckpointStore, load_artifact
+from knolling_model.arrangement.vertical_gap import loss, GAP_SCALE
+from knolling_model.arrangement.relative_task import configure, restore, SCHEMA
+from knolling_model.arrangement.storage import CheckpointStore, load_artifact
 from test_recovery_relative_task import setup
 from test_recovery_integrated import equal
 

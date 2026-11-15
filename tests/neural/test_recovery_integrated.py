@@ -6,11 +6,11 @@ import pytest
 import torch
 
 from knolling_dataset.schema import digest
-from knolling_model.recovery.storage import load_artifact
-from knolling_model.recovery.batches import StageBatch
-from knolling_model.recovery.driver import StageEngine, CHECKPOINT_SCHEMA, read_config, save_exclusive, load_checkpoint
-from knolling_model.recovery.integrated import PHASES, load_integrated, retained
-from knolling_model.recovery.evaluation_v4 import MICRO_CASES
+from knolling_model.arrangement.storage import load_artifact
+from knolling_model.arrangement.batches import StageBatch
+from knolling_model.arrangement.driver import StageEngine, CHECKPOINT_SCHEMA, read_config, save_exclusive, load_checkpoint
+from knolling_model.arrangement.integrated import PHASES, load_integrated, retained
+from knolling_model.arrangement.evaluation_v4 import MICRO_CASES
 from test_recovery_readout import Fixture, batch_for, DEVICES
 
 
@@ -158,21 +158,21 @@ def test_initial_gate_stops_without_optimizer_step(tmp_path):
 
 def test_atomic_result_and_disabled_integrated_cli(tmp_path):
     import json,subprocess,sys
-    from knolling_model.recovery.driver import save_json_exclusive
+    from knolling_model.arrangement.driver import save_json_exclusive
     path=tmp_path/'result.json';save_json_exclusive(path,{'status':'passed'})
     with pytest.raises(FileExistsError):save_json_exclusive(path,{'status':'failed'})
     assert json.loads(path.read_text())=={'status':'passed'}
     with pytest.raises(ValueError):save_json_exclusive(tmp_path/'bad.json',{'loss':float('nan')})
     assert not (tmp_path/'bad.json').exists() and not list(tmp_path.glob('.report-*'))
     out=tmp_path/'forbidden'
-    run=subprocess.run([sys.executable,'-m','knolling_model.recovery.driver','--config',
+    run=subprocess.run([sys.executable,'-m','knolling_model.arrangement.driver','--config',
         'configs/recovery_v4_integrated_review.json','--stage','micro_pose','--micro-case','axis',
         '--output',str(out),'--approval','missing'],capture_output=True,text=True)
     assert run.returncode!=0 and 'training disabled' in run.stderr and not out.exists()
 
 
 def test_deadline_inside_line_search_restores_accepted_weights(tmp_path,monkeypatch):
-    from knolling_model.recovery.readout import HeadFitter
+    from knolling_model.arrangement.readout import HeadFitter
     c,m,parent=setup(tmp_path);now=[0.];original=HeadFitter.loss;expired=[False]
     def deadline(self):
         value=original(self);now[0]=121.;expired[0]=True;return value

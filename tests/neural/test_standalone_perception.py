@@ -15,7 +15,7 @@ from knolling_model.perception.metrics import summarize
 from knolling_model.perception.model import ObjectPerception, decode
 from knolling_model.perception.pipeline import gpu_guard, train
 from knolling_model.perception.representation import ObjectFrame
-from knolling_model.recovery.contracts import detector_labels
+from knolling_model.arrangement.contracts import detector_labels
 from knolling_dataset.builder import file_hash
 from test_recovery_perception import tiny_detector, truth
 

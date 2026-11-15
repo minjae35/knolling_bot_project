@@ -10,7 +10,7 @@ import torch
 from torch import nn
 
 from knolling_dataset.schema import digest
-from knolling_model.recovery.driver import (StageEngine, authorize, load_checkpoint,
+from knolling_model.arrangement.driver import (StageEngine, authorize, load_checkpoint,
     read_config, save_exclusive, CONFIG_SCHEMA)
 
 
@@ -105,7 +105,7 @@ def test_previous_gate_full_set_regression_and_selection_failure_rollback(tmp_pa
         torch.testing.assert_close(value,reference[name],rtol=0,atol=0)
     with pytest.raises(ValueError,match='previous stage'):
         engine(tmp_path,'no-parent').run('predicted_layout')
-    from knolling_model.recovery.selection import SourceSelectionError
+    from knolling_model.arrangement.selection import SourceSelectionError
     failed=engine(tmp_path,'selection-failure',c=c)
     def bad(*args,**kwargs):
         raise SourceSelectionError('missing foreground object')
@@ -234,7 +234,7 @@ def test_default_config_and_stale_receipts_cannot_train():
 
 def test_default_cli_stops_before_loading_receipt_or_creating_output(tmp_path):
     output=tmp_path/'must-not-exist'
-    result=subprocess.run([sys.executable,'-m','knolling_model.recovery.driver',
+    result=subprocess.run([sys.executable,'-m','knolling_model.arrangement.driver',
         '--stage','oracle_layout','--output',str(output),'--approval',str(tmp_path/'absent.json')],
         capture_output=True,text=True)
     assert result.returncode != 0 and 'training disabled' in result.stderr

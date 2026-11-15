@@ -2,7 +2,7 @@ import pytest
 import torch
 from torch.nn import functional as F
 
-from knolling_model.recovery.perception import RecoveryPerception
+from knolling_model.arrangement.perception import RecoveryPerception
 
 
 def tiny_detector():

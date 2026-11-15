@@ -14,10 +14,10 @@ import torch
 def test_real_r18_minilm_cuda_paths_gradients_and_memory(s0_dataset):
     from knolling_model.runner import seed_everything
     from knolling_model.data import Collator
-    from knolling_model.recovery.data import RecoveryDataset
-    from knolling_model.recovery.model import load_recovery
-    from knolling_model.recovery.stages import configure_stage, stage_loss
-    from knolling_model.recovery.selection import SourceSelectionError
+    from knolling_model.arrangement.data import RecoveryDataset
+    from knolling_model.arrangement.model import load_recovery
+    from knolling_model.arrangement.stages import configure_stage, stage_loss
+    from knolling_model.arrangement.selection import SourceSelectionError
     from test_recovery_stages import selected_fixture
     seed_everything(1203, 2)
     assert torch.cuda.is_available()

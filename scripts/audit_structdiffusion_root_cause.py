@@ -18,10 +18,10 @@ from knolling_dataset.teacher_v3 import solve,validate_layout
 from knolling_model.experiments.comparison import setup,percept_config,write,config as protect
 from knolling_model.experiments.expanded_data import ExpandedDataset
 from knolling_model.experiments.structdiffusion_xy import build,pack_context
-from knolling_model.recovery.contracts import oracle_objects
-from knolling_model.recovery.data import recovery_supervision
-from knolling_model.recovery.storage import load_artifact,tensor_digest
-from knolling_model.recovery.alternating import alternating_evaluation
+from knolling_model.arrangement.contracts import oracle_objects
+from knolling_model.arrangement.data import recovery_supervision
+from knolling_model.arrangement.storage import load_artifact,tensor_digest
+from knolling_model.arrangement.alternating import alternating_evaluation
 
 
 class DiagnosticNoise(nn.Module):

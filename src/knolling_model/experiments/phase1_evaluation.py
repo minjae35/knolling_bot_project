@@ -5,7 +5,7 @@ reported separately, not required for a valid translated single-row layout.
 """
 from knolling_dataset.validator import inferred_rows
 from knolling_model.diagnostics import positioned_objects
-from knolling_model.recovery.evaluation_v3 import semantic_errors_v3
+from knolling_model.arrangement.evaluation_v3 import semantic_errors_v3
 
 
 def semantic_errors_phase1(objects, record):

@@ -13,7 +13,7 @@ from shapely.geometry import Polygon
 from knolling_dataset.schema import Pose, scene_from_dict
 from knolling_dataset.validator import polygon
 from knolling_model.losses import match_source
-from knolling_model.recovery.selection import select_queries
+from knolling_model.arrangement.selection import select_queries
 
 
 def associate_source_assets(record, visual, output, objects, threshold=.5):

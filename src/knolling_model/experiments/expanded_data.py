@@ -20,8 +20,8 @@ from knolling_dataset.schema import digest,scene_from_dict,instruction_from_dict
 from knolling_dataset.teacher_v3 import solve,validate_layout,provenance,POLICY
 from knolling_dataset.rendering import make_job,render_batch,validate_render
 from knolling_dataset.builder import file_hash,write_json
-from knolling_model.recovery.dataset_v3 import supervision_metadata,verify_contrast
-from knolling_model.recovery.data import recovery_supervision
+from knolling_model.arrangement.dataset_v3 import supervision_metadata,verify_contrast
+from knolling_model.arrangement.data import recovery_supervision
 from knolling_model.experiments.dataset_compatibility import verify_expanded_teacher
 
 SEED=120912

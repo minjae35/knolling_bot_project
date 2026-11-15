@@ -1,9 +1,9 @@
 """CPU checks for the learnable pairwise X path. No dataset and no solver."""
 import torch
 from torch import nn
-from knolling_model.recovery.contracts import Objects
-from knolling_model.recovery.goal_joint_layout import GoalSetBlock
-from knolling_model.recovery.layout import PeriodicBins
+from knolling_model.arrangement.contracts import Objects
+from knolling_model.arrangement.goal_joint_layout import GoalSetBlock
+from knolling_model.arrangement.layout import PeriodicBins
 from knolling_model.experiments.pairwise_affine import (
     PairwiseAffineResidual, SequentialPose, position_loss)
 

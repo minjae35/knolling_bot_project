@@ -2,8 +2,8 @@ import torch
 from torch import nn
 
 from knolling_model.data import Batch
-from knolling_model.recovery.evaluation import evaluate_recovery
-from knolling_model.recovery.model import CapacityError
+from knolling_model.arrangement.evaluation import evaluate_recovery
+from knolling_model.arrangement.model import CapacityError
 
 
 class OverflowFixture(nn.Module):

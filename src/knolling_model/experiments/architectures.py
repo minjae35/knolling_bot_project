@@ -7,7 +7,7 @@ from copy import deepcopy
 import torch
 from torch import nn
 from torch.nn import functional as F
-from knolling_model.recovery.goal_joint_layout import GoalSetBlock
+from knolling_model.arrangement.goal_joint_layout import GoalSetBlock
 from knolling_model.perception.model import ObjectPerception
 
 

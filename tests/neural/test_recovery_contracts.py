@@ -3,8 +3,8 @@ from dataclasses import asdict
 import pytest
 import torch
 
-from knolling_model.recovery.contracts import detector_labels, oracle_objects, pack_sources
-from knolling_model.recovery.data import (assert_family_disjoint, balanced_instruction_indices,
+from knolling_model.arrangement.contracts import detector_labels, oracle_objects, pack_sources
+from knolling_model.arrangement.data import (assert_family_disjoint, balanced_instruction_indices,
     counterfactual_pair, recovery_supervision, selection_counterfactual_pair, unique_source_indices)
 
 

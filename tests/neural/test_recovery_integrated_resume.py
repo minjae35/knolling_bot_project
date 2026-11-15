@@ -4,9 +4,9 @@ from copy import deepcopy
 import pytest
 import torch
 
-from knolling_model.recovery.driver import save_exclusive
-from knolling_model.recovery.integrated import HEADS, load_integrated
-from knolling_model.recovery.readout import HeadFitter
+from knolling_model.arrangement.driver import save_exclusive
+from knolling_model.arrangement.integrated import HEADS, load_integrated
+from knolling_model.arrangement.readout import HeadFitter
 from test_recovery_integrated import setup, make, metrics, equal
 from test_recovery_readout import Fixture, DEVICES
 

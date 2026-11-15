@@ -5,8 +5,8 @@ import pytest
 import torch
 
 from knolling_model.coordinates import angle_delta
-from knolling_model.recovery.contracts import Objects
-from knolling_model.recovery.joint_layout import JointPoseDecoder, joint_pose_loss
+from knolling_model.arrangement.contracts import Objects
+from knolling_model.arrangement.joint_layout import JointPoseDecoder, joint_pose_loss
 
 
 def fixture(n=4, batch=1):
@@ -94,8 +94,8 @@ def test_loss_matches_formula_and_scene_normalization():
 def test_stage_wiring_and_train_inference_equality():
     from test_recovery_stages import TextFixture, inputs, selected_fixture
     from test_recovery_perception import tiny_detector
-    from knolling_model.recovery.model import RecoveryModel
-    from knolling_model.recovery.stages import configure_stage,stage_loss
+    from knolling_model.arrangement.model import RecoveryModel
+    from knolling_model.arrangement.stages import configure_stage,stage_loss
     model=RecoveryModel(TextFixture(),tiny_detector(),architecture='recovery_v3_joint',dimension=32,layers=1,num_denoising=4)
     batch=inputs();configure_stage(model,'predicted_layout');truth=selected_fixture(model,batch)
     terms,training=stage_loss(model,batch,[truth])

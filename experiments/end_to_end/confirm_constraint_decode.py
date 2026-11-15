@@ -10,9 +10,9 @@ from knolling_model.evaluation import evaluate_batch
 from knolling_model.experiments.expanded_data import ExpandedDataset
 from knolling_model.experiments.inference import accepted_success
 from knolling_model.experiments.size_refinement import poses_from_detection
-from knolling_model.recovery.data import recovery_supervision
-from knolling_model.recovery.evaluation_v3 import semantic_errors_v3
-from knolling_model.recovery.model import legacy_evaluation_view
+from knolling_model.arrangement.data import recovery_supervision
+from knolling_model.arrangement.evaluation_v3 import semantic_errors_v3
+from knolling_model.arrangement.model import legacy_evaluation_view
 from dev_splits import fresh_split, heldout_validation
 from score_end_to_end import load_adopted
 

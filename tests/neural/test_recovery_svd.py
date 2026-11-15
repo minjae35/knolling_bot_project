@@ -6,10 +6,10 @@ import torch
 from torch import nn
 
 from knolling_dataset.schema import digest
-from knolling_model.recovery.readout import ReadoutData, make_head_fitter
-from knolling_model.recovery.svd_readout import SVDXYFitter
-from knolling_model.recovery.driver import read_config, save_exclusive
-from knolling_model.recovery.integrated import load_integrated, validate_config
+from knolling_model.arrangement.readout import ReadoutData, make_head_fitter
+from knolling_model.arrangement.svd_readout import SVDXYFitter
+from knolling_model.arrangement.driver import read_config, save_exclusive
+from knolling_model.arrangement.integrated import load_integrated, validate_config
 from test_recovery_readout import DEVICES, Fixture
 from test_recovery_integrated import setup, make, equal, metrics
 
@@ -124,7 +124,7 @@ class Crash(BaseException):pass
 @pytest.mark.parametrize('outcome',['pass','regression','continue'])
 @pytest.mark.parametrize('boundary',['prepared','accepted'])
 def test_svd_journal_resume_and_rollback(tmp_path,monkeypatch,device,outcome,boundary):
-    from knolling_model.recovery.integrated import IntegratedEngine
+    from knolling_model.arrangement.integrated import IntegratedEngine
     c,m,parent=svd_setup(tmp_path,device)
     active={};original=IntegratedEngine.journal
     def runner(name,model,crash=False):
@@ -162,7 +162,7 @@ def test_svd_journal_resume_and_rollback(tmp_path,monkeypatch,device,outcome,bou
 
 
 def test_fp32_stall_restores_head_and_solver(monkeypatch):
-    from knolling_model.recovery.svd_readout import SVDNumericalStall
+    from knolling_model.arrangement.svd_readout import SVDNumericalStall
     m,d=fixture('cpu',True);f=SVDXYFitter(m,d);f.step(lambda:None)
     before=deepcopy(m.state_dict());state=deepcopy(f.state_dict())
     baseline=float(f.deployed_loss(f.weight,f.bias));calls=[]
@@ -188,8 +188,8 @@ def test_nonfinite_deployment_still_fails(monkeypatch,bad):
 
 @pytest.mark.parametrize('outcome',['pass','regression','continue'])
 def test_stall_journal_resumes_decision_without_solver_retry(tmp_path,monkeypatch,outcome):
-    from knolling_model.recovery.integrated import IntegratedEngine
-    from knolling_model.recovery.svd_readout import SVDNumericalStall
+    from knolling_model.arrangement.integrated import IntegratedEngine
+    from knolling_model.arrangement.svd_readout import SVDNumericalStall
     c,m,parent=svd_setup(tmp_path,'cpu');active={};original=IntegratedEngine.journal
     def step(self,*args):raise SVDNumericalStall({'fixture':True})
     monkeypatch.setattr(SVDXYFitter,'step',step)

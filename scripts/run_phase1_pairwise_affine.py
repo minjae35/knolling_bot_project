@@ -34,12 +34,12 @@ from knolling_model.experiments.pairwise_affine import (
     ARCHITECTURE, build, load_sequential_init, position_loss, teacher_order)
 from knolling_model.experiments.phase1_evaluation import phase1_gate, semantic_errors_phase1
 from knolling_model.experiments.size_diversity import OracleSizeVariants, require
-from knolling_model.recovery.contracts import Objects, oracle_objects
-from knolling_model.recovery.data import recovery_supervision
-from knolling_model.recovery.driver import restore_rng, rng_state
-from knolling_model.recovery.evaluation import _oracle_view
-from knolling_model.recovery.model import legacy_evaluation_view
-from knolling_model.recovery.storage import CheckpointStore, load_artifact
+from knolling_model.arrangement.contracts import Objects, oracle_objects
+from knolling_model.arrangement.data import recovery_supervision
+from knolling_model.arrangement.driver import restore_rng, rng_state
+from knolling_model.arrangement.evaluation import _oracle_view
+from knolling_model.arrangement.model import legacy_evaluation_view
+from knolling_model.arrangement.storage import CheckpointStore, load_artifact
 
 SPEC = json.loads(Path(os.environ.get('KNOLLING_RUN_SPEC', 'configs/phase1_pairwise_affine.json')).read_text())
 ROOT = Path(SPEC['output'])

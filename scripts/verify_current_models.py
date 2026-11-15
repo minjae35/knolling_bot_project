@@ -7,11 +7,11 @@ import torch
 from knolling_model.current import load_current
 from knolling_model.runner import seed_everything
 from knolling_model.data import S0Dataset, Collator
-from knolling_model.recovery.dataset_v3 import RecoveryDatasetV3
-from knolling_model.recovery.goal_labels import GoalDataset
-from knolling_model.recovery.alternating import evaluate_alternating
-from knolling_model.recovery.storage import load_artifact, tensor_digest
-from knolling_model.recovery.runtime import warm_text_cache
+from knolling_model.arrangement.dataset_v3 import RecoveryDatasetV3
+from knolling_model.arrangement.goal_labels import GoalDataset
+from knolling_model.arrangement.alternating import evaluate_alternating
+from knolling_model.arrangement.storage import load_artifact, tensor_digest
+from knolling_model.arrangement.runtime import warm_text_cache
 from knolling_model.perception import checkpoint
 from knolling_model.perception.metrics import evaluate as evaluate_perception
 from knolling_model.perception.pipeline import catalog

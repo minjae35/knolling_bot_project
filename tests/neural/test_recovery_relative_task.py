@@ -1,11 +1,11 @@
 from copy import deepcopy
 import torch
 import pytest
-from knolling_model.recovery.relative_task import configure, losses, pair_indices, restore, SCHEMA
-from knolling_model.recovery.contracts import oracle_objects
-from knolling_model.recovery.stages import aligned_targets
-from knolling_model.recovery.storage import CheckpointStore,load_artifact
-from knolling_model.recovery.driver import rng_state,restore_rng
+from knolling_model.arrangement.relative_task import configure, losses, pair_indices, restore, SCHEMA
+from knolling_model.arrangement.contracts import oracle_objects
+from knolling_model.arrangement.stages import aligned_targets
+from knolling_model.arrangement.storage import CheckpointStore,load_artifact
+from knolling_model.arrangement.driver import rng_state,restore_rng
 from test_recovery_readout import Fixture,batch_for
 from test_recovery_integrated import equal
 

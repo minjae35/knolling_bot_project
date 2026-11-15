@@ -5,11 +5,11 @@ import os
 import pytest
 import torch
 
-from knolling_model.recovery.goal_joint_layout import GoalJointLayout, ARCHITECTURE
-from knolling_model.recovery.goal_encoder import goal_loss
-from knolling_model.recovery.goal_labels import GoalDataset, goal_labels, VOCAB
-from knolling_model.recovery.joint_layout import joint_pose_loss
-from knolling_model.recovery.contracts import Objects
+from knolling_model.arrangement.goal_joint_layout import GoalJointLayout, ARCHITECTURE
+from knolling_model.arrangement.goal_encoder import goal_loss
+from knolling_model.arrangement.goal_labels import GoalDataset, goal_labels, VOCAB
+from knolling_model.arrangement.joint_layout import joint_pose_loss
+from knolling_model.arrangement.contracts import Objects
 from test_recovery_joint_v3 import fixture as old_fixture
 from test_recovery_dataset_v3 import suite_v3
 
@@ -109,8 +109,8 @@ def test_all_keep_goal_loss_finite_and_all_slots_have_gradients():
 def test_stage_gradients_gt_isolation_and_inference_identity(device):
     from test_recovery_stages import TextFixture,inputs,selected_fixture
     from test_recovery_perception import tiny_detector,truth
-    from knolling_model.recovery.model import RecoveryModel
-    from knolling_model.recovery.stages import configure_stage,stage_loss,parameter_groups
+    from knolling_model.arrangement.model import RecoveryModel
+    from knolling_model.arrangement.stages import configure_stage,stage_loss,parameter_groups
     m=RecoveryModel(TextFixture(),tiny_detector(),architecture=ARCHITECTURE,dimension=32,layers=2,num_denoising=4).to(device)
     x={k:v.to(device) for k,v in inputs().items()}
     before={k:v.detach().clone() for k,v in m.state_dict().items()}

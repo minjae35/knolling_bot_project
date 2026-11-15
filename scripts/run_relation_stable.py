@@ -28,11 +28,11 @@ from knolling_model.evaluation import evaluate_batch
 from knolling_model.experiments.integration import load_integrated
 from knolling_model.experiments.phase1_evaluation import semantic_errors_phase1
 from knolling_model.experiments.relation_pose import NeuralRelationPose, relation_loss
-from knolling_model.recovery.contracts import Objects, pack_sources
-from knolling_model.recovery.data import recovery_supervision
-from knolling_model.recovery.evaluation import _oracle_view
-from knolling_model.recovery.model import legacy_evaluation_view
-from knolling_model.recovery.selection import select_queries
+from knolling_model.arrangement.contracts import Objects, pack_sources
+from knolling_model.arrangement.data import recovery_supervision
+from knolling_model.arrangement.evaluation import _oracle_view
+from knolling_model.arrangement.model import legacy_evaluation_view
+from knolling_model.arrangement.selection import select_queries
 import run_phase1_pairwise_affine as runner
 from run_relation_probe import choose, scene_success
 

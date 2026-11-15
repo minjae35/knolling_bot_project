@@ -10,8 +10,8 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 from knolling_dataset.builder import file_hash
-from knolling_model.recovery.runtime import FrozenTextCache
-from knolling_model.recovery.storage import load_artifact
+from knolling_model.arrangement.runtime import FrozenTextCache
+from knolling_model.arrangement.storage import load_artifact
 from .integration import load_integrated
 
 ARCHITECTURE = 'pairwise_affine_residual_v1'

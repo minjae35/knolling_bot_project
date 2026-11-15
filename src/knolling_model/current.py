@@ -12,11 +12,11 @@ from knolling_dataset.builder import file_hash
 from .perception import checkpoint as perception_checkpoint
 from .perception.adapter import to_arrangement
 from .perception.model import build_model
-from .recovery.alternating import alternating_evaluation
-from .recovery.model import load_recovery
-from .recovery.relative_task import restore
-from .recovery.runtime import FrozenTextCache
-from .recovery.storage import load_artifact
+from .arrangement.alternating import alternating_evaluation
+from .arrangement.model import load_recovery
+from .arrangement.relative_task import restore
+from .arrangement.runtime import FrozenTextCache
+from .arrangement.storage import load_artifact
 
 
 class CurrentSystem:

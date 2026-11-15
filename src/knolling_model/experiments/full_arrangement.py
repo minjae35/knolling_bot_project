@@ -10,7 +10,7 @@ import torch
 from knolling_dataset.schema import scene_from_dict
 from knolling_dataset.validator import geometry, inferred_rows, polygon
 from knolling_model.diagnostics import positioned_objects
-from knolling_model.recovery.evaluation_v3 import semantic_errors_v3
+from knolling_model.arrangement.evaluation_v3 import semantic_errors_v3
 
 MAX_OBJECTS = 8
 

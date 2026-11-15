@@ -31,7 +31,7 @@ from knolling_model.experiments.expanded_data import ExpandedDataset
 from knolling_model.experiments.full_arrangement import is_full
 from knolling_model.experiments.partial_arrangement import HELD_BELOW
 from knolling_model.experiments.size_refinement import poses_from_detection
-from knolling_model.recovery.data import recovery_supervision
+from knolling_model.arrangement.data import recovery_supervision
 from dev_splits import families, fresh_split
 from score_end_to_end import DATA, blank, judge_scene, load_adopted
 

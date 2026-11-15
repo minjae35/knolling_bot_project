@@ -15,7 +15,7 @@ from shapely.geometry import Polygon
 from knolling_dataset.schema import COLORS
 from knolling_model.experiments.constraint_decode import repair_rows, select_layout
 from knolling_model.experiments.geometry_decoder import _instruction, align_goal_axis, apply_geometry
-from knolling_model.recovery.contracts import Objects
+from knolling_model.arrangement.contracts import Objects
 
 CLEARANCE_M = 0.010
 _STEP_M = 0.005

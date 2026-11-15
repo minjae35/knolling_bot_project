@@ -7,8 +7,8 @@ from pathlib import Path
 import subprocess
 import sys
 
-from knolling_model.recovery.driver import read_config
-from knolling_model.recovery.stages import STAGES
+from knolling_model.arrangement.driver import read_config
+from knolling_model.arrangement.stages import STAGES
 
 
 def write(path, value):
@@ -55,7 +55,7 @@ def run_stages(config_path, approval, output, *, register=False, execute=subproc
             register_terminal_run(output, sum(config['stages'][s]['max_updates'] for s in requested))
         for stage in requested:
             destination = output/stage
-            command = [sys.executable, '-u', '-m', 'knolling_model.recovery.driver',
+            command = [sys.executable, '-u', '-m', 'knolling_model.arrangement.driver',
                        '--config', str(config_path), '--approval', str(approval),
                        '--stage', stage, '--output', str(destination)]
             if parent:

@@ -2,8 +2,8 @@ from copy import deepcopy
 import pytest
 import torch
 
-from knolling_model.recovery.evaluation_v3 import evaluate_v3,gate,semantic_errors_v3
-from knolling_model.recovery.stages import stage_gate
+from knolling_model.arrangement.evaluation_v3 import evaluate_v3,gate,semantic_errors_v3
+from knolling_model.arrangement.stages import stage_gate
 from test_recovery_metrics import ExactFixture,fixture_batches
 from test_recovery_dataset_v3 import suite_v3
 

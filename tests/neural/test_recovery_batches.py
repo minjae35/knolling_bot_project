@@ -1,7 +1,7 @@
 import pytest
 
-from knolling_model.recovery.batches import stage_batches
-from knolling_model.recovery.data import RecoveryDataset
+from knolling_model.arrangement.batches import stage_batches
+from knolling_model.arrangement.data import RecoveryDataset
 
 
 def test_perception_and_joint_replay_cover_unique_sources(s0_dataset):

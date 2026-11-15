@@ -5,10 +5,10 @@ import pytest
 import torch
 from torch import nn
 
-from knolling_model.recovery.goal_labels import goal_labels, VOCAB
-from knolling_model.recovery.evaluation_v4 import evaluate_v4,gate,MICRO_CASES
-from knolling_model.recovery.data import recovery_supervision
-from knolling_model.recovery.contracts import oracle_objects
+from knolling_model.arrangement.goal_labels import goal_labels, VOCAB
+from knolling_model.arrangement.evaluation_v4 import evaluate_v4,gate,MICRO_CASES
+from knolling_model.arrangement.data import recovery_supervision
+from knolling_model.arrangement.contracts import oracle_objects
 from test_recovery_metrics import ExactFixture,fixture_batches
 from test_recovery_dataset_v3 import suite_v3
 
@@ -117,7 +117,7 @@ def test_nonfinite_goal_cannot_pass_or_emit_nan_metrics(suite_v3):
 
 
 def test_grounding_breakdown_distinguishes_accuracy_and_confidence(suite_v3,tmp_path):
-    from knolling_model.recovery.runtime import ProgressLog
+    from knolling_model.arrangement.runtime import ProgressLog
     records=suite_v3.records;model=ExactV4Fixture(records)
     model.layout.goal_encoder.confidence=1.
     out,_=evaluate_v4(model,fixture_batches(records),stage='grounding',

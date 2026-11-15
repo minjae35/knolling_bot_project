@@ -5,7 +5,7 @@ import pytest
 
 from knolling_dataset.schema import digest
 from knolling_dataset.teacher_v3 import provenance,POLICY
-from knolling_model.recovery.family_manifest import (coverage,validate_manifest,source_hash,
+from knolling_model.arrangement.family_manifest import (coverage,validate_manifest,source_hash,
     FACTORS,PARTITIONS,SCHEMA,FamilyDataset,evaluate_family_pilot)
 from test_recovery_dataset_v3 import suite_v3
 from test_recovery_evaluation_v4 import ExactV4Fixture,fixture_batches
@@ -38,7 +38,7 @@ def synthetic_manifest():
 def test_pilot_partition_counts_hashes_coverage_fail_closed(monkeypatch):
     # Isolate manifest logic; real pure-pair validation is tested on the existing
     # Teacher bundle in test_recovery_dataset_v3, not bypassed by FamilyDataset.
-    monkeypatch.setattr('knolling_model.recovery.family_manifest.verify_contrast',lambda *args:None)
+    monkeypatch.setattr('knolling_model.arrangement.family_manifest.verify_contrast',lambda *args:None)
     m,records,pairs=synthetic_manifest();validate_manifest(m,records,pairs)
     for change in ('split','missing_pair','counts','source_duplicate','rgb_duplicate','cross_pair','duplicate_id'):
         a,b,c=deepcopy((m,records,pairs))

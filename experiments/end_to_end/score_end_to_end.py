@@ -19,10 +19,10 @@ from knolling_model.experiments.integration import load_integrated
 from knolling_model.experiments.row_layout import NeuralRowPlacement
 from knolling_model.experiments.size_refinement import (
     ObjectSizeRefinement, horizontal_extent, poses_from_detection)
-from knolling_model.recovery.data import recovery_supervision
-from knolling_model.recovery.evaluation_v3 import semantic_errors_v3
-from knolling_model.recovery.model import legacy_evaluation_view
-from knolling_model.recovery.selection import select_queries
+from knolling_model.arrangement.data import recovery_supervision
+from knolling_model.arrangement.evaluation_v3 import semantic_errors_v3
+from knolling_model.arrangement.model import legacy_evaluation_view
+from knolling_model.arrangement.selection import select_queries
 import run_relation_capacity as cap
 import run_relation_stable as stable
 

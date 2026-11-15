@@ -4,9 +4,9 @@ import pytest
 import torch
 from torch import nn
 
-from knolling_model.recovery.data import RecoveryDataset
-from knolling_model.recovery.model import RecoveryModel, CapacityError, legacy_evaluation_view
-from knolling_model.recovery.stages import (configure_stage, parameter_groups, read_review_config,
+from knolling_model.arrangement.data import RecoveryDataset
+from knolling_model.arrangement.model import RecoveryModel, CapacityError, legacy_evaluation_view
+from knolling_model.arrangement.stages import (configure_stage, parameter_groups, read_review_config,
                                           stage_gate, stage_loss)
 from test_recovery_perception import tiny_detector, truth
 

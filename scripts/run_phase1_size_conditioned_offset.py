@@ -17,9 +17,9 @@ from knolling_dataset.builder import file_hash
 from knolling_model.data import supervision
 from knolling_model.experiments.neural_sequential import teacher_order
 from knolling_model.experiments.size_conditioned_offset import EXTRA, widen_decoder
-from knolling_model.recovery.contracts import Objects
-from knolling_model.recovery.driver import restore_rng
-from knolling_model.recovery.storage import CheckpointStore, load_artifact
+from knolling_model.arrangement.contracts import Objects
+from knolling_model.arrangement.driver import restore_rng
+from knolling_model.arrangement.storage import CheckpointStore, load_artifact
 from verify_phase1_single_row import arguments
 
 ROOT = Path('artifacts/phase1_size_conditioned_offset')

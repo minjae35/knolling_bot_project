@@ -9,9 +9,9 @@ import torch
 
 from knolling_dataset.schema import digest
 from knolling_dataset.builder import file_hash
-from knolling_model.recovery.driver import read_config, load_checkpoint, load_grounding_transfer
-from knolling_model.recovery.pose_precision import PosePrecision, POLICY
-from knolling_model.recovery.stages import parameter_groups
+from knolling_model.arrangement.driver import read_config, load_checkpoint, load_grounding_transfer
+from knolling_model.arrangement.pose_precision import PosePrecision, POLICY
+from knolling_model.arrangement.stages import parameter_groups
 from test_recovery_driver_v4 import ScalarV4, config, configure, engine
 
 

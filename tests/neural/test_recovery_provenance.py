@@ -5,9 +5,9 @@ import pytest
 
 from knolling_dataset.builder import file_hash
 from knolling_dataset.schema import digest
-from knolling_model.recovery.driver import read_config,save_exclusive,load_grounding_transfer,load_checkpoint
-from knolling_model.recovery.provenance import contract_hashes,load_evidence_transfer
-from knolling_model.recovery.storage import CheckpointStore
+from knolling_model.arrangement.driver import read_config,save_exclusive,load_grounding_transfer,load_checkpoint
+from knolling_model.arrangement.provenance import contract_hashes,load_evidence_transfer
+from knolling_model.arrangement.storage import CheckpointStore
 import torch
 
 

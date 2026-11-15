@@ -12,7 +12,7 @@ import torch
 from knolling_model.experiments.full_arrangement import arrangement_errors, collate
 from knolling_model.experiments.integration import load_integrated
 from knolling_model.experiments.expanded_data import ExpandedDataset
-from knolling_model.recovery.data import recovery_supervision
+from knolling_model.arrangement.data import recovery_supervision
 import run_phase1_pairwise_affine as runner
 import run_relation_capacity as cap
 import run_relation_stable as stable

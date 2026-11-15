@@ -28,12 +28,20 @@ def restore_rng(state):
         torch.cuda.set_rng_state_all(state['cuda'])
 
 
+# Checkpoint receipts still name the package recovery. The bytes live in arrangement.
+PROVENANCE_ALIASES = {
+    'recovery/perception.py': 'arrangement/perception.py',
+    'recovery/contracts.py': 'arrangement/contracts.py',
+    'recovery/data.py': 'arrangement/data.py',
+}
+
+
 def code_provenance():
     root = Path(__file__).resolve().parents[1]
-    files = [*sorted((root/'perception').glob('*.py')), root/'rtdetr.py', root/'model.py',
-             root/'deterministic_sampling.py', root/'coordinates.py',
-             root/'recovery/perception.py', root/'recovery/contracts.py', root/'recovery/data.py']
-    return {str(p.relative_to(root)): file_hash(p) for p in files}
+    names = [p.relative_to(root).as_posix() for p in sorted((root/'perception').glob('*.py'))]
+    names += ['rtdetr.py', 'model.py', 'deterministic_sampling.py', 'coordinates.py',
+              'recovery/perception.py', 'recovery/contracts.py', 'recovery/data.py']
+    return {name: file_hash(root/PROVENANCE_ALIASES.get(name, name)) for name in names}
 
 
 def model_provenance():
@@ -46,7 +54,7 @@ def model_provenance():
     from knolling_model.coordinates import angle_delta, wrap_pi
     root = Path(__file__).resolve().parents[1]
     files = ['perception/model.py', 'rtdetr.py', 'deterministic_sampling.py', 'recovery/perception.py']
-    result = {p: file_hash(root/p) for p in files}
+    result = {p: file_hash(root/PROVENANCE_ALIASES.get(p, p)) for p in files}
     for value in (SourceHeads, PhysicalSourceHeads, mlp, angle_delta, wrap_pi):
         result[value.__name__] = hashlib.sha256(inspect.getsource(value).encode()).hexdigest()
     return result

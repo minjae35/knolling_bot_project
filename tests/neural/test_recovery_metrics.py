@@ -2,9 +2,9 @@ import torch
 from torch import nn
 
 from knolling_model.data import Batch
-from knolling_model.recovery.data import recovery_supervision
-from knolling_model.recovery.evaluation import evaluate_recovery, correspondences
-from knolling_model.recovery.stages import stage_gate
+from knolling_model.arrangement.data import recovery_supervision
+from knolling_model.arrangement.evaluation import evaluate_recovery, correspondences
+from knolling_model.arrangement.stages import stage_gate
 from test_recovery_counterfactuals import recovery_suite
 
 

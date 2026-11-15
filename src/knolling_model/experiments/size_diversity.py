@@ -14,8 +14,8 @@ from knolling_dataset.builder import file_hash
 from knolling_dataset.schema import scene_from_dict, instruction_from_dict, digest
 from knolling_dataset.teacher_v3 import solve, validate_layout, provenance, POLICY
 from knolling_dataset.validator import validate_source, inferred_rows, polygon
-from knolling_model.recovery.data import recovery_supervision
-from knolling_model.recovery.dataset_v3 import supervision_metadata, verify_contrast
+from knolling_model.arrangement.data import recovery_supervision
+from knolling_model.arrangement.dataset_v3 import supervision_metadata, verify_contrast
 
 SCHEMA = 'phase1_oracle_size_variants_v1'
 

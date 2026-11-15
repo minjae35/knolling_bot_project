@@ -15,7 +15,7 @@ A scene passes only when every check passes. The official v2 numbers use
 
 Gaps are measured on the rotated bounding rectangle, not on the chamfer or
 capsule silhouette. A count mismatch fails the scene immediately. The code is
-`semantic_errors_v3` in `src/knolling_model/recovery/evaluation_v3.py` and
+`semantic_errors_v3` in `src/knolling_model/arrangement/evaluation_v3.py` and
 `geometry(..., 0.010, 0.010)` in `src/knolling_model/evaluation.py`.
 
 This score is target-pose accuracy on synthetic RGB. It is not a robot-arm

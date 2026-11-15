@@ -5,8 +5,8 @@ import torch
 import test_recovery_alternating as legacy
 from test_recovery_readout import DEVICES
 from test_recovery_integrated import equal
-from knolling_model.recovery import alternating as alt
-from knolling_model.recovery.integrated import load_integrated
+from knolling_model.arrangement import alternating as alt
+from knolling_model.arrangement.integrated import load_integrated
 
 
 def xy_build(tmp_path, monkeypatch, device, outcome):
@@ -66,7 +66,7 @@ def test_xy_only_reaches_feature_and_resumes_exactly(tmp_path, monkeypatch, devi
 
 
 def test_xy_policy_is_separate_and_not_training_approved():
-    from knolling_model.recovery.driver import read_config, authorize
+    from knolling_model.arrangement.driver import read_config, authorize
     c = read_config('configs/recovery_v4_xy_diagnostic_review.json')
     alt.validate_config(c)
     assert c['alternating_pose'] == alt.XY_POLICY and not c['allow_training']
@@ -93,7 +93,7 @@ def test_xy_only_deadline_preserves_anchor(tmp_path, monkeypatch, device):
 @pytest.mark.parametrize('device', DEVICES)
 def test_reload_evaluation_normalizes_flags_and_restores_state(tmp_path, device):
     from test_recovery_readout import Fixture, batch_for
-    from knolling_model.recovery.stages import configure_stage
+    from knolling_model.arrangement.stages import configure_stage
     torch.set_num_threads(2); torch.manual_seed(14)
     m = Fixture().to(device); b = batch_for(m, device)
     b.supervision[1] = {k:v[:2] if isinstance(v,torch.Tensor) and v.ndim else v for k,v in b.supervision[1].items()}
@@ -130,7 +130,7 @@ def test_xy_rounding_stall_still_reaches_feature(tmp_path, monkeypatch, device):
     assert end['status'] == 'passed' and end['updates'] == 1
     s = load_integrated(end['checkpoint'], c, 'fixture', 'test')
     assert all(x['diagnostic']['reason'] == 'fp32_numerical_stall' for x in s['integrated']['calibrations'])
-    from knolling_model.recovery.driver import validate_checkpoint
+    from knolling_model.arrangement.driver import validate_checkpoint
     bad = deepcopy(s); bad['purpose'] = 'production'
     with pytest.raises(ValueError, match='purpose'):
         validate_checkpoint(bad, c, 'fixture', 'test')

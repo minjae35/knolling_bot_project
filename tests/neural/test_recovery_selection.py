@@ -4,8 +4,8 @@ import pytest
 import torch
 from transformers import RTDetrConfig
 
-from knolling_model.recovery.contracts import detector_labels
-from knolling_model.recovery.selection import select_queries, match_selected, SourceSelectionError
+from knolling_model.arrangement.contracts import detector_labels
+from knolling_model.arrangement.selection import select_queries, match_selected, SourceSelectionError
 from test_recovery_perception import truth
 
 

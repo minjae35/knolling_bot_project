@@ -8,8 +8,8 @@ from torch import nn
 
 from knolling_model.current import CurrentSystem, load_current
 from knolling_model.perception.adapter import oracle_frame
-from knolling_model.recovery.neural_keep import attach
-from knolling_model.recovery.relative_task import configure
+from knolling_model.arrangement.neural_keep import attach
+from knolling_model.arrangement.relative_task import configure
 from test_recovery_relative_task import setup
 from test_recovery_readout import batch_for
 from test_recovery_integrated import equal

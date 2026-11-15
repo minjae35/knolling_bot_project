@@ -15,19 +15,19 @@ from knolling_dataset.builder import file_hash
 from knolling_dataset.schema import digest
 from knolling_model.runner import seed_everything
 from knolling_model.data import S0Dataset, Collator
-from knolling_model.recovery.dataset_v3 import RecoveryDatasetV3
-from knolling_model.recovery.goal_labels import GoalDataset
-from knolling_model.recovery.model import load_recovery
-from knolling_model.recovery.runtime import FrozenTextCache, warm_text_cache
-from knolling_model.recovery.contracts import oracle_objects
-from knolling_model.recovery.stages import aligned_targets
-from knolling_model.recovery.driver import cpu_copy, rng_state, save_json_exclusive, load_checkpoint
-from knolling_model.recovery.storage import CheckpointStore, common_store, load_artifact, tensor_digest
-from knolling_model.recovery.split_pose import load_model_state
-from knolling_model.recovery.relative_task import SCHEMA, configure, pair_indices, losses, best_key, restore
-from knolling_model.recovery.alternating import evaluate_alternating
-from knolling_model.recovery.vertical_gap import POLICY as GAP_POLICY, supervision as gap_supervision, loss as gap_loss
-from knolling_model.recovery.neural_keep import (POLICY as KEEP_POLICY, attach as attach_keep,
+from knolling_model.arrangement.dataset_v3 import RecoveryDatasetV3
+from knolling_model.arrangement.goal_labels import GoalDataset
+from knolling_model.arrangement.model import load_recovery
+from knolling_model.arrangement.runtime import FrozenTextCache, warm_text_cache
+from knolling_model.arrangement.contracts import oracle_objects
+from knolling_model.arrangement.stages import aligned_targets
+from knolling_model.arrangement.driver import cpu_copy, rng_state, save_json_exclusive, load_checkpoint
+from knolling_model.arrangement.storage import CheckpointStore, common_store, load_artifact, tensor_digest
+from knolling_model.arrangement.split_pose import load_model_state
+from knolling_model.arrangement.relative_task import SCHEMA, configure, pair_indices, losses, best_key, restore
+from knolling_model.arrangement.alternating import evaluate_alternating
+from knolling_model.arrangement.vertical_gap import POLICY as GAP_POLICY, supervision as gap_supervision, loss as gap_loss
+from knolling_model.arrangement.neural_keep import (POLICY as KEEP_POLICY, attach as attach_keep,
     labels as keep_labels, loss as keep_loss, metrics as keep_metrics, adopt as keep_adopt)
 from run_recovery_stages import register_terminal_run
 

@@ -38,7 +38,7 @@ def _visual(centers):
 
 
 def _packed(centers, poses):
-    from knolling_model.recovery.contracts import Objects
+    from knolling_model.arrangement.contracts import Objects
     count = len(centers)
     return dict(
         xy=torch.tensor(poses, dtype=torch.float32)[None],

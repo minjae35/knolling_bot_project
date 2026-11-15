@@ -13,8 +13,8 @@ import time
 import torch
 
 from knolling_dataset.builder import file_hash
-from knolling_model.recovery.driver import load_checkpoint, save_exclusive
-from knolling_model.recovery.storage import CheckpointStore, common_store, load_artifact
+from knolling_model.arrangement.driver import load_checkpoint, save_exclusive
+from knolling_model.arrangement.storage import CheckpointStore, common_store, load_artifact
 
 
 def equal(a, b):
@@ -65,11 +65,11 @@ def main():
     results['shared_files'] = [{'path': str(f), 'bytes': f.stat().st_size, 'sha256': file_hash(f)}
                                for f in sorted(store.root.glob('*.pt'))]
     if args.cuda:
-        from knolling_model.recovery.model import load_recovery
-        from knolling_model.recovery.stages import configure_stage, stage_loss
-        from knolling_model.recovery.runtime import FrozenTextCache
-        from knolling_model.recovery.dataset_v3 import RecoveryDatasetV3
-        from knolling_model.recovery.goal_labels import GoalDataset
+        from knolling_model.arrangement.model import load_recovery
+        from knolling_model.arrangement.stages import configure_stage, stage_loss
+        from knolling_model.arrangement.runtime import FrozenTextCache
+        from knolling_model.arrangement.dataset_v3 import RecoveryDatasetV3
+        from knolling_model.arrangement.goal_labels import GoalDataset
         from knolling_model.data import S0Dataset, Collator
         model, tokenizer = load_recovery('configs/recovery_v4_review.json')
         config = raw['config']

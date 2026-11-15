@@ -17,10 +17,10 @@ from knolling_model.experiments.row_layout import NeuralRowPlacement
 from knolling_model.experiments.size_refinement import (
     ObjectSizeRefinement, horizontal_extent, install_refined_size, matched_queries,
     poses_from_detection)
-from knolling_model.recovery.data import recovery_supervision, unique_source_indices
-from knolling_model.recovery.model import legacy_evaluation_view
-from knolling_model.recovery.evaluation_v3 import semantic_errors_v3
-from knolling_model.recovery.selection import select_queries
+from knolling_model.arrangement.data import recovery_supervision, unique_source_indices
+from knolling_model.arrangement.model import legacy_evaluation_view
+from knolling_model.arrangement.evaluation_v3 import semantic_errors_v3
+from knolling_model.arrangement.selection import select_queries
 import run_phase1_pairwise_affine as runner
 import run_relation_capacity as cap
 import run_relation_stable as stable

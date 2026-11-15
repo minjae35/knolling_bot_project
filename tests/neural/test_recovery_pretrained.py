@@ -9,9 +9,9 @@ import torch
                     reason='opt-in cached real-model CPU smoke test')
 def test_cached_r18_minilm_cpu_shapes_and_backward(s0_dataset):
     from knolling_model.data import Collator
-    from knolling_model.recovery.data import RecoveryDataset
-    from knolling_model.recovery.model import load_recovery
-    from knolling_model.recovery.stages import configure_stage, stage_loss
+    from knolling_model.arrangement.data import RecoveryDataset
+    from knolling_model.arrangement.model import load_recovery
+    from knolling_model.arrangement.stages import configure_stage, stage_loss
     assert os.environ.get('CUDA_VISIBLE_DEVICES') == ''
     torch.manual_seed(1203)
     model, tokenizer = load_recovery()

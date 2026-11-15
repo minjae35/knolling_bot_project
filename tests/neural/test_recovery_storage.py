@@ -6,7 +6,7 @@ import shutil
 import pytest
 import torch
 
-from knolling_model.recovery import driver, storage
+from knolling_model.arrangement import driver, storage
 from test_recovery_integrated import equal
 from test_recovery_readout import DEVICES
 

@@ -15,7 +15,7 @@ from knolling_model.perception.metrics import distribution, evaluate
 from knolling_model.perception.model import build_model
 from knolling_model.perception.pipeline import catalog, setup, write_json
 from knolling_model.perception.representation import ObjectFrame
-from knolling_model.recovery.contracts import detector_labels
+from knolling_model.arrangement.contracts import detector_labels
 
 
 def adapter_check(values):

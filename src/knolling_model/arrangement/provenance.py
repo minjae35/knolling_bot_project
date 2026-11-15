@@ -48,8 +48,12 @@ def contract_hashes(commit=None):
         trees=[]
         for file in files:
             path='src/'+file
-            source=(subprocess.check_output(['git','show',f'{commit}:{path}'],cwd=ROOT,text=True)
-                    if commit else (ROOT/path).read_text())
+            if commit:
+                source=subprocess.check_output(['git','show',f'{commit}:{path}'],cwd=ROOT,text=True)
+            else:
+                relocated=path.replace('knolling_model/recovery/','knolling_model/arrangement/',1)
+                disk=ROOT/relocated if relocated!=path and (ROOT/relocated).exists() else ROOT/path
+                source=disk.read_text()
             tree=ast.parse(source)
             if file.endswith('/evaluation_v4.py'):tree=ContractAST().visit(tree)
             trees.append([path,ast.dump(tree,include_attributes=False)])

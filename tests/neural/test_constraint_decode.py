@@ -4,7 +4,7 @@ import torch
 from knolling_model.experiments.constraint_decode import (
     ACTIONABLE, apply_color_separation, apply_row_repair, order_by_area, repair_rows,
     separate_color_rows, structure_issues)
-from knolling_model.recovery.contracts import Objects
+from knolling_model.arrangement.contracts import Objects
 
 
 def _goal(group='color', sort='asc'):

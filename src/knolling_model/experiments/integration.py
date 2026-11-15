@@ -14,9 +14,9 @@ from knolling_dataset.builder import file_hash
 from knolling_model.current import load_current
 from knolling_model.perception.adapter import to_arrangement
 from knolling_model.perception.model import decode
-from knolling_model.recovery.alternating import alternating_evaluation
-from knolling_model.recovery.model import CapacityError
-from knolling_model.recovery.storage import load_artifact
+from knolling_model.arrangement.alternating import alternating_evaluation
+from knolling_model.arrangement.model import CapacityError
+from knolling_model.arrangement.storage import load_artifact
 from .architectures import AppearancePerception, StructurePose
 
 

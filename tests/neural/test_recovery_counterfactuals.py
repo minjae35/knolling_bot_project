@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from knolling_model.recovery.counterfactuals import build_bundle, RecoverySuite, verify_pair, input_target_contract
+from knolling_model.arrangement.counterfactuals import build_bundle, RecoverySuite, verify_pair, input_target_contract
 
 
 @pytest.fixture

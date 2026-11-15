@@ -8,7 +8,7 @@ from knolling_dataset.validator import polygon
 from knolling_model.experiments.geometry_decoder import (
     REGION_INSET, _instruction, align_goal_axis, align_goal_instruction, apply_geometry,
     decode_scene, extent_offsets)
-from knolling_model.recovery.contracts import Objects
+from knolling_model.arrangement.contracts import Objects
 
 
 def _goal(region='full', gap=0, group='none'):

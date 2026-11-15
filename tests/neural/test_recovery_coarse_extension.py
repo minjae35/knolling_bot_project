@@ -7,10 +7,10 @@ import torch
 
 from knolling_dataset.builder import file_hash
 from knolling_dataset.schema import digest
-from knolling_model.recovery.driver import read_config, save_exclusive
-from knolling_model.recovery.storage import load_artifact
-from knolling_model.recovery.integrated import load_integrated
-from knolling_model.recovery.coarse_extension import load_extension, validate_policy, record_progress
+from knolling_model.arrangement.driver import read_config, save_exclusive
+from knolling_model.arrangement.storage import load_artifact
+from knolling_model.arrangement.integrated import load_integrated
+from knolling_model.arrangement.coarse_extension import load_extension, validate_policy, record_progress
 from test_recovery_integrated import setup, make, metrics, equal
 from test_recovery_readout import Fixture, DEVICES
 
@@ -20,7 +20,7 @@ class Crash(BaseException): pass
 
 @pytest.fixture
 def source(tmp_path, monkeypatch):
-    from knolling_model.recovery import driver, integrated, coarse_extension
+    from knolling_model.arrangement import driver, integrated, coarse_extension
     c,m,parent=setup(tmp_path)
     c['integrated_pose']['xy_solver']='svd_huber_v1'
     raw=load_artifact(parent);raw['config']=deepcopy(c);raw['config_sha256']=digest(c)
@@ -99,7 +99,7 @@ def test_extension_resume_keeps_adam_rng_and_next_batch(tmp_path,source):
 
 
 def test_monitor_stops_at_second_weak_interval_even_after_crash(tmp_path,source,monkeypatch):
-    from knolling_model.recovery import coarse_extension
+    from knolling_model.arrangement import coarse_extension
     c,path,receipt,_=source
     monkeypatch.setattr(coarse_extension,'readout_diagnostic',lambda *a:dict(xy_svd_rms_mm=20.,losses={},angle_bin_accuracy=.5))
     checkpoints=[]

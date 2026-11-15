@@ -24,8 +24,8 @@ from knolling_model.diagnostics import positioned_objects
 from knolling_model.experiments.integration import load_integrated
 from knolling_model.experiments.phase1_evaluation import semantic_errors_phase1
 from knolling_model.experiments.relation_pose import NeuralRelationPose, relation_loss
-from knolling_model.recovery.contracts import Objects
-from knolling_model.recovery.data import recovery_supervision
+from knolling_model.arrangement.contracts import Objects
+from knolling_model.arrangement.data import recovery_supervision
 import run_phase1_pairwise_affine as runner
 from run_phase1_pairwise_affine import teacher_order
 

@@ -1,12 +1,12 @@
 from copy import deepcopy
 import pytest
 import torch
-from knolling_model.recovery.split_pose import SplitJointPose, load_model_state, SCHEMA, PREFIX
-from knolling_model.recovery.alternating import FeatureAdam, alternating_evaluation, trial_measurements
-from knolling_model.recovery.storage import CheckpointStore,load_artifact,tensor_digest
-from knolling_model.recovery.driver import rng_state,restore_rng
-from knolling_model.recovery.stages import configure_stage,stage_loss
-from knolling_model.recovery.contracts import oracle_objects
+from knolling_model.arrangement.split_pose import SplitJointPose, load_model_state, SCHEMA, PREFIX
+from knolling_model.arrangement.alternating import FeatureAdam, alternating_evaluation, trial_measurements
+from knolling_model.arrangement.storage import CheckpointStore,load_artifact,tensor_digest
+from knolling_model.arrangement.driver import rng_state,restore_rng
+from knolling_model.arrangement.stages import configure_stage,stage_loss
+from knolling_model.arrangement.contracts import oracle_objects
 from test_recovery_readout import Fixture,batch_for
 from test_recovery_integrated import equal
 

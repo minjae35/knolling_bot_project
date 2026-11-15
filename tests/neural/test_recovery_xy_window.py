@@ -2,10 +2,10 @@
 from copy import deepcopy
 import pytest
 import torch
-from knolling_model.recovery import alternating as alt
-from knolling_model.recovery.integrated import load_integrated
-from knolling_model.recovery.svd_readout import SVDXYFitter
-from knolling_model.recovery.driver import read_config, authorize
+from knolling_model.arrangement import alternating as alt
+from knolling_model.arrangement.integrated import load_integrated
+from knolling_model.arrangement.svd_readout import SVDXYFitter
+from knolling_model.arrangement.driver import read_config, authorize
 from test_recovery_integrated import equal
 from test_recovery_xy_diagnostic import xy_build
 from test_recovery_alternating import Crash, diagnostic

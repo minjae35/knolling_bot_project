@@ -10,9 +10,9 @@ from pathlib import Path
 import torch
 from knolling_model.experiments.integration import load_integrated
 from knolling_model.experiments.relation_pose import relation_loss
-from knolling_model.recovery.contracts import pack_sources
-from knolling_model.recovery.data import recovery_supervision
-from knolling_model.recovery.selection import SourceSelectionError, match_selected, select_queries
+from knolling_model.arrangement.contracts import pack_sources
+from knolling_model.arrangement.data import recovery_supervision
+from knolling_model.arrangement.selection import SourceSelectionError, match_selected, select_queries
 import run_phase1_pairwise_affine as runner
 import run_relation_capacity as cap
 import run_relation_stable as stable
