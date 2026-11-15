@@ -1,10 +1,10 @@
 # v2.0.0-rc1
 
-The release candidate tag `v2.0.0-rc1` is `d96c40e` on `dev/knolling-v2`. Its inference behavior matches `5efca4b`. `main` and `v1.0.0` stay at `26dca53`. The scores below were measured at that tag and do not select a checkpoint or threshold.
+The tag `v2.0.0-rc1` points at commit `d96c40e`. At that commit, inference matches `5efca4b`. The `v1.0.0` tag points at `26dca53` and still does. `main` has since moved; the later tag and the current tree are described in [v2.0.0.md](v2.0.0.md). The scores below were measured at the release candidate. They did not select a checkpoint or a threshold.
 
 ## Frozen inference
 
-Foreground threshold is `0.5`. Capacity is 8. The evaluator is unchanged: keep 1 mm and 1°, axis 2°, gap 2 mm, row 2 mm, clearance and boundary 10 mm. Geometry band `BAND_M` is 2 mm. Row repair and color separation each try at most 8 selector-ranked candidates. Duplicate detections inside 10 mm are dropped. `HELD_BELOW` stays 0.45.
+The foreground threshold is 0.5. Capacity is 8. The evaluator is unchanged: keep 1 mm and 1°, axis 2°, gap 2 mm, row 2 mm, clearance and boundary 10 mm. The geometry band `BAND_M` is 2 mm. Row repair and color separation each try at most 8 selector-ranked candidates. Duplicate detections inside 10 mm are dropped. `HELD_BELOW` stays 0.45.
 
 Checkpoints, loaded by `load_adopted`:
 
@@ -21,18 +21,9 @@ Checkpoints, loaded by `load_adopted`:
 
 ## Sealed holdout
 
-`artifacts/v2_independent_eval` has 128 `v2hold_` families and 640 samples. It was not used for training, thresholds, or decoding choices. Scene families, RGB hashes, and asset families do not overlap the 20,000-scene train, validation, or test splits. Its objects come from the development asset pool, which that dataset never renders. Do not use this holdout, or the official test split, to change the model. Another development set and another final test are required for any further work.
+`artifacts/v2_independent_eval` has 128 `v2hold_` families and 640 samples. It was not used for training, thresholds, or decoding choices. Scene families, RGB hashes, and asset families do not overlap the 20,000-scene train, validation, or test splits. Its objects come from the development asset pool, which that dataset never renders. The holdout and the official test split are closed. Another development set and another final test are required for any further training.
 
-Score v2 once:
-
-```bash
-python experiments/end_to_end/score_holdout.py \
-  --code-root . \
-  --data artifacts/v2_independent_eval \
-  --output /tmp/v2_holdout.jsonl
-```
-
-The one-shot scores below are a report, not a tuning target. v1 was `v1.0.0` and v2 was `v2.0.0-rc1`, on these 640 samples only.
+The scoring command is in [evaluation.md](evaluation.md). v1 in the table is `v1.0.0` and v2 is `v2.0.0-rc1`, on these 640 samples only.
 
 | | full | partial | no-op | overall |
 | --- | --- | --- | --- | --- |

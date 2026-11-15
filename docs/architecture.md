@@ -1,12 +1,8 @@
 # Architecture
 
-v2.0.0 maps one overhead RGB image and one English sentence to a target pose
-for each detected object. Inference does not read a ground-truth pose, a
-teacher row, or a teacher order.
+v2.0.0 maps one overhead RGB image and one English sentence to a target pose for each detected object. Inference does not read a ground-truth pose, a teacher row, or a teacher order.
 
-The image is 576×384. The model sees it as a float tensor `[B, 3, 384, 576]`
-with values in `[0, 1]`. Poses are metres and radians in a 0.60 m × 0.40 m
-workspace. At most eight objects are arranged.
+The image is 576 × 384. The model sees it as a float tensor `[B, 3, 384, 576]` with values in `[0, 1]`. Poses are metres and radians in a 0.60 m × 0.40 m workspace. At most eight objects are arranged.
 
 ## Data flow
 
@@ -32,10 +28,11 @@ partial / no-op ──► move the named color, or keep every object
                     held objects stay on the detected pose
 ```
 
-A layout that already satisfies the gap, region, and row constraints is not
-rewritten. If no legal alternative exists, the original prediction is kept.
+A layout that already satisfies the gap, region, and row constraints is not rewritten. If no legal alternative exists, the original prediction is kept.
 
 ## Modules
+
+The implementation of the arrangement model is `src/knolling_model/arrangement/`. Perception checkpoints still name the historical `knolling_model.recovery` modules. Thin modules under `src/knolling_model/recovery/` re-export the moved code so those checkpoints load.
 
 | Piece | Code | Role |
 | --- | --- | --- |
@@ -49,26 +46,10 @@ rewritten. If no legal alternative exists, the original prediction is kept.
 | Partial and no-op | `src/knolling_model/experiments/partial_arrangement.py` | named color, or keep all |
 | Entry point | `poses_from_detection` in `size_refinement.py` | the three modes |
 
-`experiments/end_to_end/score_end_to_end.py` defines `load_adopted`. That
-loader is the inference entry. The foreground threshold is 0.5.
+`experiments/end_to_end/score_end_to_end.py` defines `load_adopted`. That loader is the inference entry. The foreground threshold is 0.5.
 
-`experiments/end_to_end/demo.py` renders one full arrangement. It refuses
-partial and no-op. Those two modes go through `poses_from_detection`.
+`load_adopted` builds on `load_integrated`. That loader reads `configs/structural_integration.json` and calls `load_current`, which reads `configs/current_models.json`. The arrangement entry there points at `configs/recovery_v4_review.json` and the neural-keep checkpoint. The structural manifest then overlays the perception and arrangement bases. On top of that, `load_adopted` loads the relation head from `artifacts/phase1_relation_continue/checkpoint-best.pt` and the size head from `artifacts/experiments/joint_stage/checkpoint-best.pt`. The row module is initialized from the same joint checkpoint, then the selector placement and context weights in `artifacts/experiments/selector_full/checkpoint-best.pt` are loaded over it. Importing the scorer also reads `configs/phase1_pairwise_affine.json` and `configs/phase1_relation_pose.json`, because those files configure the relation runtime it imports. `configs/pretrained_rtdetr.json` selects the RT-DETR and MiniLM snapshots.
 
-## What is still in the tree, and why
+`experiments/end_to_end/demo.py` renders one full arrangement. It refuses partial and no-op. Those two modes go through `poses_from_detection`.
 
-`src/`, `scripts/`, and `configs/` also contain the recovery and phase-1
-training stack. v2 still imports parts of it while loading weights:
-
-- `configs/structural_integration.json` names the perception and arrangement bases.
-- `configs/current_models.json` and `configs/recovery_v4_review.json` are read
-  before those bases are overlaid.
-- `configs/pretrained_rtdetr.json` selects the RT-DETR and MiniLM snapshots.
-- Importing the scorer also reads `configs/phase1_relation_pose.json` and
-  `configs/phase1_pairwise_affine.json`.
-
-Those files stay where they are so the checkpoints still load. Moving them
-would change the import path. Earlier experiment notes are on
-`archive/e2e-failed-experiments`, not in this branch.
-
-Weight paths and SHA-256 hashes are in [v2.0.0.md](v2.0.0.md).
+Weight paths and SHA-256 hashes are in [v2.0.0.md](v2.0.0.md). The package move landed on `main` after the `v2.0.0` tag. The tag commit and the current tree are distinguished in that note. Earlier experiment notes are on the branch `archive/e2e-failed-experiments`. The `archive/` directory in a working tree is local and is not part of this branch.

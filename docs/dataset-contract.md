@@ -1,132 +1,63 @@
-# Dataset contracts and implementation order
+# Dataset contract
 
-The geometry rules below still describe the workspace. The closing paragraphs
-about a 100-family cap, and the sentence that no training has been run, are
-the original pilot. The 20,000-scene set and the v2 holdout are in
-[dataset.md](dataset.md).
+The same workspace and asset rules underlie the 100-scene pilot and the sets used for v2. The teachers and the acceptance tolerances do not. Prediction scoring is a third standard, recorded in [evaluation.md](evaluation.md).
 
-Active v1 language policy: **English only**, with `language_policy="english_only_v1"`
-and `instruction_contract="english_rows_v1"`. `pilot_v1_3_en` is the active artifact;
-original v1.2/v1.3 datasets and bilingual fixtures are archived regression evidence.
-The schema still reads legacy `ko` values, but the active audit rejects them.
+## Workspace
 
-| Module | Entry point | Input → output | Dependencies |
-|---|---|---|---|
-| M0 | `schema.py` | Immutable assets, poses, scenes, instructions; JSON conversions | Standard library |
-| M5 | `validate_source`, `validate_layout` | Source + target + instruction → errors, geometry metrics | M0, independent Shapely geometry |
-| M1 | `build_registry`, `make_asset` | Seed, integer mm dimensions → asset pools / footprints | M0 |
-| M2 | `generate_scene` | Pool, seed, split, count, mode → source Scene | M0, conservative SAT sampling |
-| M3 | `generate_instruction` | Scene + seed + mode/options → text and semantic constraints | M0 |
-| M4 | `solve` | Scene + Instruction → status, target, row/relation labels | M0, placement geometry, independent M5 final check |
-| M6 | `render_batch`, `validate_render` | JSON jobs → RGB, masks, metadata; independent projection report | Blender bpy; host Pillow/NumPy/Shapely |
-| M7 | `prepare_annotations`, `build_dataset` | Count/seed/output → accepted annotations, manifest, renders, QC | M1–M6 |
-| M8 | `audit_records`, `audit_dataset` | Records or output root → leakage/integrity report, split indexes | M0, M5, M6; never trusts stored success flags |
+Lengths are metres and angles are radians, measured counterclockwise from +x. The table is 0.600 × 0.400 m with its origin at the bottom left. The image is 576 × 384. The conversions are `u = x / 0.6`, `v = y / 0.4`, `px = 576u − 0.5`, and `py = 384(1 − v) − 0.5`. `source_envelope_xyxy_uv` stores world-frame bottom-left bounds, so its vertical axis is not the image axis.
 
-M0 and M5 were implemented before the Teacher. All geometry is in **meters** and
-angles in **radians**. There is no model loss or predicted size in this phase.
-Annotation centers `uv` are dimensionless, `px` are pixel centers (top-left pixel
-center 0,0), and `xyxy_px` mask boxes have exclusive maximum bounds.
+Collision and boundary checks use the oriented major/minor rectangle. The mesh footprint is stored separately and is what the mask projection uses. The rectangle is the conservative envelope: a chamfer or capsule occupies less of the table than the rectangle the metric uses.
 
-Workspace: 0.600 × 0.400 m. Origin: bottom left. +x right, +y up, angle CCW from
-+x, major-axis direction modulo pi. Image: 576 × 384. Conversion:
-`u=x/0.6`, `v=y/0.4`, `px=576*u-0.5`, `py=384*(1-v)-0.5`.
-`source_envelope_xyxy_uv` uses world-frame bottom-left uv bounds, not image y.
-Envelope = oriented major/minor bounding rectangle. Mesh footprint is stored
-separately and used for true mask projection. All collision and boundary labels
-use the conservative envelope, not the smaller chamfer/capsule footprint.
+Requested regions, in metres `(xmin, ymin, xmax, ymax)`:
 
-## Geometry and semantics
+| Region | Bounds |
+| --- | --- |
+| full | (0.02, 0.02, 0.58, 0.38) |
+| left | (0.02, 0.02, 0.28, 0.38) |
+| right | (0.32, 0.02, 0.58, 0.38) |
 
-- 2–8 fully visible objects; box/chamfer/capsule, aspect ratio >= 1.3.
-- a=40–80 mm, b=25–50 mm, h=5–20 mm, dimensions on a 1 mm grid.
-- Source: >=5 mm pair clearance, >=10 mm boundary margin. Partial and explicit
-  keep-all generation deliberately use a stricter 12 mm clearance/margin.
-- Every accepted target: >=10 mm pair clearance and >=10 mm boundary margin;
-  numerical geometry tolerance 0.1 mm. No intersection area >1e-12 m².
-- Locked objects retain exact poses. Movement label: displacement >3 mm OR
-  major-axis angular error >3°. No-op locks all objects, has exact source-target
-  equality, false movement labels and empty row/relation supervision.
-- Keep-all source must already satisfy final geometry. Failure is provably
-  infeasible. Repeated no-op must also satisfy the requested layout predicates.
-- Full/left/right requested regions: [0.02,0.02,0.58,0.38],
-  [0.02,0.02,0.28,0.38], [0.32,0.02,0.58,0.38] m.
-- Rows run left-to-right then top-to-bottom. Sort by a*b ascending/descending;
-  validator allows at most 5% size-order inversion tolerance. Alignment <=5°.
-- Infer rows from target coordinates, with max y span 10 mm. Horizontal/vertical
-  edge gaps must be requested 15/20/30 mm ±5 mm (+0.1 mm numerical tolerance).
-  Separate color bands use 2× the requested vertical gap. Every row is color-pure
-  and each color occupies one consecutive run of rows. Color order itself is free.
-- Partial semantic predicates apply to selected objects; all-scene safety and
-  immutable locks apply to every object. Unselected objects need not form rows.
+Assets are procedural boxes, chamfers, and capsules. The major side is 40–80 mm, the minor side 25–50 mm, and the height 5–20 mm, on a 1 mm grid, with aspect ratio at least 1.3. Colors are red, green, and blue. A scene contains 2–8 objects. Requested gaps are 15, 20, or 30 mm. Rows run left to right and then top to bottom. A row break is a vertical gap above 10 mm. Color grouping requires each row to be a single color and each color to occupy one contiguous run of rows; the gap between different-color bands is twice the requested gap. Size order uses the bounding-rectangle area and allows at most a 5% inversion.
 
-The legacy Teacher groups colors independently, chunks each group with K=1..4, centers each
-row, and tries fewest rows, bounding area, width, then lexicographic positions.
-Within a group, ties use dimensions, color and observable source coordinates.
-Partial templates translate on a 5 mm lattice, nearest region center first,
-then upper before lower and left before right. Search budget is 20,000 candidates.
-Exhausting templates or budget is `generation_failure`, never `infeasible`.
-An independent validator disagreement raises an error and stops generation.
+An accepted target keeps at least 10 mm between envelopes and at least 10 mm from the table boundary. The numerical tolerance on that geometry is 0.1 mm, and intersection area above 1e−12 m² is a collision. Locked objects copy the source pose exactly. The movement label is true when the displacement exceeds 3 mm or the major-axis change exceeds 3°. That label threshold is not the 1 mm / 1° keep tolerance used when a prediction is scored.
 
-The active balanced Teacher uses K=1..N_selected, sequential and balanced partitions,
-J_shape for Full and global J_move-first lattice ranking for Partial. This Teacher
-and its targets are unchanged by the English-only conversion.
+Object identifiers belong to the source instances and are copied onto the targets. There is no target-side reassignment. Render metadata numbers instances from 1 in source order; annotations keep both identifiers. Target poses, dimensions, and the selected and locked sets are stored as labels. Detection boxes are auxiliary labels. Inference does not read them, and it does not read the target pose.
 
-## Identity, data flow and splits
+## Published v2 sets
 
-Object IDs belong to observed source instances and are copied into targets.
-There is no target Hungarian matching or reassignment. Instance ID i+1 maps to
-the ith source object in render metadata; annotations keep both IDs. Target
-poses, current poses, dimensions and semantic selection/lock sets are serialized.
-Detection boxes and normalized centers are auxiliary labels, not model inputs.
-The dataset package is independent of neural training. The separate
-`knolling_model` package now implements the S0 model, matching/loss, evaluator
-and launcher. No training or robot execution has been performed.
+`artifacts/generalization_20000/dataset` and `artifacts/v2_independent_eval` are described in [dataset.md](dataset.md). Both name the teacher `continuous_rows_v3`. Its stored configuration is axis 2°, gap tolerance 2 mm, and row-center tolerance 2 mm, with continuous envelope translation. `teacher_v3.validate_layout` applies those values. `validator.validate_layout` still defaults to axis 5° and a 5.1 mm gap, which is 5 mm plus the 0.1 mm geometry tolerance. The 100-scene pilot used that default. These two published sets do not.
 
-The active bounded grammar emits English text from structured semantic fields.
-Selection references all objects, a visible color, or an unambiguous leftmost
-object. Raw IDs never appear in model-input text. Colors, directions, requested
-gaps, region, size-order convention and lock behavior are stated explicitly.
-`preference_text` is reserved and empty; preferences here are expressed directly
-in the instruction. Free-form parsing, dialogue history and unsupported arbitrary
-instructions are outside this pilot. Unsupported/ambiguous status interfaces
-have tests; the rendered pilot contains feasible positive samples only.
+The 20,000-scene generator is `expanded_data.generate`. It draws each source with `generate_scene(..., mode="partial")`, so the source sampler asks for 12 mm pair clearance and a 12 mm table margin. A full-mode call of the same sampler would use 5 mm pair clearance and the same 12 mm margin. Each family then receives five English instructions from `english_instruction`, under the contract `english_rows_v1`: horizontal full, vertical-axis full, one-color partial, keep-all, and one contrasting full instruction. The asset registry for this generator is `build_registry(120913, 64)`, sixty-four families in each asset split. The scene split is fixed by `partition` before rendering.
 
-The English conversion changes only instruction text/language; it never calls
-Blender or recomputes target layouts. Parent annotations are hash-verified archival
-evidence, excluded from active split indexes. Every active split is checked against
-the manifest, and every instruction must match the English semantic renderer.
-Original bilingual grammar remains available only through explicit legacy APIs.
-User-facing examples and language evaluation are English; multilingual support is
-optional future work. Neural architecture and the current text encoder stay fixed.
+The holdout contract records the same registry seed, development assets only, and schema `v2_independent_eval_v1`. The program that built those 128 families is not in this repository. Neither published set is produced by the 100-scene command below.
 
-Scene families are assigned before rendering. Paraphrases/counterfactual tasks
-must retain their family. The current pilot has two semantically distinct tasks
-for 30% of families; it does not claim broad paraphrase generalization. Geometry
-families normalize the planar footprint by the major length and ignore color,
-uniform scale **and height**. Thus a changed height cannot move an otherwise
-identical top-down shape into another split. Shape classes span splits, geometry
-families do not. Every pool has 32 families. Registry generation is fixed seed;
-no external mesh license, download or preexisting code is involved.
+## Earlier 100-scene pilot
 
-Audit independently checks scene/asset families, normalized geometry aliases,
-identical physical scenes under new IDs, relation labels, unit conversions,
-manifest counts and file hashes. RGB/mask checks reproject actual polygons using
-pixel centers; per-object IoU >=0.98, centroid <=1 px, interior color agreement
->=99%, white clipping <=1%. A re-audit removes stale COMPLETE before starting.
+The pilot command is `build_dataset`. It accepts 10 to 100 scenes, in multiples of 10, and the language migration refuses more than 100 source families. The active English artifact of that pilot is `pilot_v1_3_en`, with `language_policy="english_only_v1"` and `instruction_contract="english_rows_v1"`. The schema still parses legacy `ko` text. The English audit rejects it. Parent v1.2 and v1.3 trees are archival. The conversion rewrites instruction text and does not call Blender or recompute a target.
 
-## Reproducibility and limitations
+Two teachers exist from that stage.
 
-Python dependencies are pinned in requirements-lock.txt. Blender is 5.1.0,
-Cycles CPU 32 samples, fixed per-family seed. Dataset sampling is deterministic
-without changing global RNG. Exact geometry/annotation hashes and repeated
-PNG bytes are tested. PNG render-time stamps are stripped without changing RGB.
-Cross-platform/cross-Blender bitwise reproducibility is not promised.
+The legacy teacher groups colors independently, uses one to four objects per row, and searches at most 20,000 candidates. Exhausting the templates or the budget is a generation failure. A disagreement with the independent validator stops generation.
 
-Teacher acceptance/rejection statistics count every primary proposal and list
-failure categories. Rejections are not mislabeled as negative training examples.
-The 100-scene run is a quality pilot, not a performance benchmark. Partial cases
-lock a subset of safe scattered objects; multi-turn sequences are not generated.
-Before scaling: human QC, richer language/asset distribution, resumable rendering,
-streamed jobs and throughput/storage planning. The current batch is intentionally
-small, synchronous and all-or-fail; it does not resume partial runs automatically.
-The CLI enforces a 100-family cap until a larger run is explicitly authorized.
+`balanced_rows_v1.3` allows one through N selected objects per row, ranks full arrangements by shape and partial arrangements by translation, and recenters new full blocks. English wording for those labels is in [english-instruction-defaults.md](english-instruction-defaults.md). The published v2 sets do not use this policy. They use `continuous_rows_v3`.
+
+At the time of that pilot, the 100-scene run was a quality check, and the model package had not yet been trained. v2 was later trained on the 20,000-scene set. The pilot figures are not a performance result. No robot has executed either set.
+
+## Package map
+
+The dataset package does not train a network. The model code lives in `knolling_model`.
+
+| Module | Entry | Role |
+| --- | --- | --- |
+| M0 | `schema.py` | Assets, poses, scenes, instructions |
+| M1 | `build_registry`, `make_asset` | Seeded asset pools |
+| M2 | `generate_scene` | Source scene |
+| M3 | `generate_instruction` | Structured instruction, then English text |
+| M4 | `solve` | Target layout and row labels |
+| M5 | `validate_source`, `validate_layout` | Independent geometry check |
+| M6 | `render_batch`, `validate_render` | Blender RGB and masks |
+| M7 | `prepare_annotations`, `build_dataset` | Pilot batch |
+| M8 | `audit_records`, `audit_dataset` | Leakage and integrity audit |
+
+M5 never trusts a stored success flag. The audit recomputes family aliases, relation labels, unit conversions, manifest counts, and file hashes. Render checks reproject polygons through pixel centers: per-object IoU at least 0.98, centroid error at most 1 px, interior color agreement at least 99%, and white clipping at most 1%.
+
+Python dependencies for the dataset tools are pinned in `requirements-lock.txt`. Rendering used Blender 5.1.0, Cycles on CPU, 32 samples, and a fixed per-family seed. Sampling uses a local RNG. PNG timestamps are stripped. Another machine or another Blender build is not expected to reproduce the PNG bytes.
