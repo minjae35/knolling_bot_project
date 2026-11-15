@@ -72,7 +72,7 @@ There are no conflicting targets for an identical RGB/string pair in this pilot.
 The ordinary words still allow several valid layouts; Teacher-coordinate
 agreement and task success remain separate metrics.
 
-[English arrangement conventions](english-instruction-defaults.md) documents
+[English arrangement conventions](../../docs/english-instruction-defaults.md) documents
 those existing defaults and three shorter wording proposals. These proposals are
 **not activated** and do not replace active annotations. Removing “row band” or
 changing “bounding-rectangle area” to “size” without such a contract would create

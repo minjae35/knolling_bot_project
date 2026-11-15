@@ -4,7 +4,7 @@
 
 - Branch: `feat/neural-recovery`. Baseline before the fixes: `9b141c3`.
 - This note updates the earlier implementation report. That report is in Git at `9b141c3`.
-- Run config: [`recovery_execution.json`](../configs/recovery_execution.json). The default is `review_only` and `allow_training=false`.
+- Run config: [`recovery_execution.json`](../../configs/recovery_execution.json). The default is `review_only` and `allow_training=false`.
 - Every Python check used the conda environment `knolling` (`/venv/knolling`). No extra packages were installed.
 
 ## 1. Review findings and the actual fixes
@@ -16,7 +16,7 @@
 | Stage functions existed, but there was no run, stop, or checkpoint operation | A driver that runs one stage per call, requires the previous gate, limits updates and time, and implements checkpoint, resume, and rollback | On a scalar fixture, continued and resumed runs match weights, Adam state, and cursor; skipping a stage is refused; nonfinite, selection, and regression rollbacks |
 | Counterfactuals only had an instruction builder; no new teacher or loader was connected | 64 checked target records were generated and joined to the original 32 through `RecoverySuite`. Teacher replay, hash, family/split, and English meaning are checked | All 32 pairs distinguish both command directions and pass geometry; 64 teacher targets reproduce; the regenerated bundle SHA matches |
 
-Code: [`selection.py`](../src/knolling_model/recovery/selection.py), [`evaluation.py`](../src/knolling_model/recovery/evaluation.py), [`stages.py`](../src/knolling_model/recovery/stages.py), [`driver.py`](../src/knolling_model/recovery/driver.py), [`counterfactuals.py`](../src/knolling_model/recovery/counterfactuals.py).
+Code: [`selection.py`](../../src/knolling_model/recovery/selection.py), [`evaluation.py`](../../src/knolling_model/recovery/evaluation.py), [`stages.py`](../../src/knolling_model/recovery/stages.py), [`driver.py`](../../src/knolling_model/recovery/driver.py), [`counterfactuals.py`](../../src/knolling_model/recovery/counterfactuals.py).
 
 ## 2. Architecture that stayed, and the ground-truth boundary
 

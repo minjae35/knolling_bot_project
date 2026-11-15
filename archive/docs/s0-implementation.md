@@ -73,7 +73,7 @@ from the residual step factors.
 
 ## Fixed S0 selection
 
-[s0_samples.json](../configs/s0_samples.json) pins all 32 IDs and the manifest:
+[s0_samples.json](../../configs/s0_samples.json) pins all 32 IDs and the manifest:
 
 ```text
 8000428a04522f50cf37567d85d442ac94d1f8a87121747d4243e33974320d06
@@ -99,7 +99,7 @@ Validation/Development/Test samples are not used to tune this memorization run.
 
 ## Training and checkpoints
 
-[s0.json](../configs/s0.json) sets seed 1203, FP32, dropout=0, no augmentation,
+[s0.json](../../configs/s0.json) sets seed 1203, FP32, dropout=0, no augmentation,
 fixed learning rates, maximum 2,000 optimizer updates, gradient clip norm 1.0
 and weight decay 1e-4. Pretrained `backbone.body` parameters use LR 1e-5.
 New FPN/position embeddings, decoder/heads and text projection use 1e-4. All
@@ -131,7 +131,7 @@ Checkpoints contain trainable model parameters, visual buffers, Adam state,
 RNG states, the next epoch/group cursor, configuration, source-code hash, Git
 revision/dirty status, input manifest/selection hashes, loss scales and token
 settings. Frozen text weights are omitted and reloaded from the pinned revision
-in [pretrained.json](../configs/pretrained.json). Keep that cache available.
+in [pretrained.json](../../configs/pretrained.json). Keep that cache available.
 The resolved dependency freeze and device information are saved with the run.
 Resume rejects changes to source code, configuration, dataset selection,
 pretrained pins, language/Teacher policy or loss/token settings. It writes into a

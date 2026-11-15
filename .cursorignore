@@ -1,3 +1,0 @@
-# Large local data stays out of the editor index.
-# Dataset directories under artifacts/ are symlinks to /workspace/datasets.
-artifacts/

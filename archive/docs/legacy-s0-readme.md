@@ -5,11 +5,11 @@ v1.3 dataset specification, preserving the validated v1.2 pipeline. Dataset
 modules M0–M8 and the original S0 neural implementation are available. Historical
 S0 runs did not pass the full acceptance gate. A separate neural recovery path
 is now implemented for review; **its GPU training has not started**. See the
-[recovery implementation, CPU test results and independent review checklist](docs/recovery-implementation-review.md).
+[recovery implementation, CPU test results and independent review checklist](recovery-implementation-review.md).
 The original implementation remains documented in the
-[S0 implementation, verification and exact launch commands](docs/s0-implementation.md).
-See the [vast.ai S0 setup and readiness runbook](docs/vast-ai-s0.md) and
-[dataset storage audit and verified backups](docs/dataset-storage-audit.md).
+[S0 implementation, verification and exact launch commands](s0-implementation.md).
+See the [vast.ai S0 setup and readiness runbook](vast-ai-s0.md) and
+[dataset storage audit and verified backups](dataset-storage-audit.md).
 Dataset transfer/storage changes remain pending approval; this repository does
 not provision GPU instances.
 
@@ -18,8 +18,8 @@ not provision GPU instances.
 `pilot_v1_3` remain archived regression artifacts. Multilingual support is
 optional future work; the English dataset conversion preserved the original
 Neural Architecture/text-encoder choice.
-See the [English conversion and validation report](docs/english-only-report.md).
-The [final quality review](docs/final-dataset-quality-review.md) recommends retaining
+See the [English conversion and validation report](english-only-report.md).
+The [final quality review](final-dataset-quality-review.md) recommends retaining
 the dataset for S0. The user has since confirmed the review is complete and
 authorized S0 preparation; historical dataset review sidecars remain unchanged.
 All-sample visual comparisons and
@@ -138,12 +138,12 @@ For arrangements, the template names the selected objects and region, long-axis
 direction, bounding-rectangle area order, row/color grouping and exact horizontal
 and vertical row-band gaps. Partial instructions explicitly keep other objects fixed.
 
-See [module and validation contracts](docs/dataset-contract.md) and
-[implementation decisions](docs/implementation-decisions.md).
+See [module and validation contracts](../../docs/dataset-contract.md) and
+[implementation decisions](implementation-decisions.md).
 The v1.3 policy and migration choices are in
-[v1.3 implementation decisions](docs/v1.3-implementation.md).
+[v1.3 implementation decisions](v1.3-implementation.md).
 The completed migration counts, verification and remaining quality gaps are in
-[the v1.3 pilot report](docs/v1.3-pilot-report.md).
+[the v1.3 pilot report](v1.3-pilot-report.md).
 
 The completed 100-scene pilot's results, milestone commits and limitations are
-documented in [the pilot report](docs/pilot-report.md).
+documented in [the pilot report](pilot-report.md).
