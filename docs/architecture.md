@@ -32,7 +32,7 @@ A layout that already satisfies the gap, region, and row constraints is not rewr
 
 ## Modules
 
-The implementation of the arrangement model is `src/knolling_model/arrangement/`. Perception checkpoints still name the historical `knolling_model.recovery` modules. Thin modules under `src/knolling_model/recovery/` re-export the moved code so those checkpoints load.
+The arrangement model is implemented in `src/knolling_model/arrangement/`. Perception checkpoints record the module names `knolling_model.recovery.perception`, `knolling_model.recovery.contracts`, and `knolling_model.recovery.data`. The files under `src/knolling_model/recovery/` re-export the corresponding modules from `arrangement`, so those checkpoints still resolve and their stored file hashes still match.
 
 | Piece | Code | Role |
 | --- | --- | --- |
@@ -52,4 +52,4 @@ The implementation of the arrangement model is `src/knolling_model/arrangement/`
 
 `experiments/end_to_end/demo.py` renders one full arrangement. It refuses partial and no-op. Those two modes go through `poses_from_detection`.
 
-Weight paths and SHA-256 hashes are in [v2.0.0.md](v2.0.0.md). The package move landed on `main` after the `v2.0.0` tag. The tag commit and the current tree are distinguished in that note. Earlier experiment notes are on the branch `archive/e2e-failed-experiments`. The `archive/` directory in a working tree is local and is not part of this branch.
+Weight paths and SHA-256 hashes are in [v2.0.0.md](v2.0.0.md).

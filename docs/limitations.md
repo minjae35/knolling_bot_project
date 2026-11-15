@@ -8,8 +8,8 @@ Detection can still drop or duplicate an object. The system stops at eight objec
 
 The 640-scene holdout and the official 2,000-scene test are closed. Further training needs a new development set and a separate unused final test.
 
-Weights and both datasets are not in git. A clone of the repository cannot reload the model until those files are placed at the paths in [v2.0.0.md](v2.0.0.md). This note does not record a checksum-verified copy of the weights outside the machine that holds them. The instance disk is not a persistent volume.
+The checkpoints and both datasets are not part of the git repository, and the repository does not distribute them. Reloading the published system requires every file listed in [v2.0.0.md](v2.0.0.md), including the blob directories named by those checkpoints. Without those files the source tree alone cannot reproduce the 540/640 measurement.
 
-Cross-machine image bytes are not guaranteed. Blender is external, and the dataset note does not promise bitwise PNG matches on another version.
+Rendered PNG bytes depend on an external Blender installation. Another machine or another Blender version can change the image bytes while leaving the scene records unchanged.
 
-Dataset acceptance and prediction scoring use different tolerances. The 100-scene pilot and the published 20,000-scene set do not use the same teacher. Both distinctions are in [dataset-contract.md](dataset-contract.md).
+The 20,000-scene figure is the size of the generated corpus, not the number of scenes used in any one training stage. Dataset acceptance and prediction scoring also use different tolerances. Both distinctions are in [dataset-contract.md](dataset-contract.md).
