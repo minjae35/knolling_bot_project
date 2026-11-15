@@ -24,6 +24,7 @@ service-account*.json
 artifacts/
 datasets/
 AGENTS.md
+.cursor/
 .cursorignore
 *.blend
 *.blend1
