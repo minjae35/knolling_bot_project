@@ -45,7 +45,7 @@ The sentence also sets the region, a 15, 20, or 30 mm gap, color grouping, size 
 
 ## Data
 
-The generated corpus is `artifacts/generalization_20000/dataset`: 4,000 families and 20,000 scenes, split 16,000 / 2,000 / 2,000. That total is the generation scale. Training stages use smaller manifests drawn from the train and validation splits, and they do not use the 2,000-scene test split. The 640-scene holdout, `artifacts/v2_independent_eval`, is a separate sealed set. Neither dataset is in this repository. The split, the stage manifests, and the file hashes are in [docs/dataset.md](docs/dataset.md), [docs/dataset-contract.md](docs/dataset-contract.md), and [docs/v2.0.0.md](docs/v2.0.0.md).
+The generated corpus is `artifacts/generalization_20000/dataset`: 4,000 scene families and 20,000 scenes, split 16,000 / 2,000 / 2,000. That total is the generation scale. Training stages use smaller manifests drawn from the train and validation splits, and they do not use the 2,000-scene test split. The 640-scene holdout, `artifacts/v2_independent_eval`, is a separate sealed set. Neither dataset is in this repository. The split, the stage manifests, and the file hashes are in [docs/dataset.md](docs/dataset.md), [docs/dataset-contract.md](docs/dataset-contract.md), and [docs/v2.0.0.md](docs/v2.0.0.md).
 
 ## Installation and inference
 
