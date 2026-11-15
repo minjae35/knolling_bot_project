@@ -68,6 +68,7 @@ training stack. v2 still imports parts of it while loading weights:
   `configs/phase1_pairwise_affine.json`.
 
 Those files stay where they are so the checkpoints still load. Moving them
-would change the import path. Historical write-ups are under `archive/docs/`.
+would change the import path. Earlier experiment notes are on
+`archive/e2e-failed-experiments`, not in this branch.
 
 Weight paths and SHA-256 hashes are in [v2.0.0.md](v2.0.0.md).

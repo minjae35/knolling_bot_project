@@ -80,8 +80,7 @@ poses, current poses, dimensions and semantic selection/lock sets are serialized
 Detection boxes and normalized centers are auxiliary labels, not model inputs.
 The dataset package is independent of neural training. The separate
 `knolling_model` package now implements the S0 model, matching/loss, evaluator
-and launcher; see [S0 implementation](../archive/docs/s0-implementation.md). No training or robot
-execution has been performed.
+and launcher. No training or robot execution has been performed.
 
 The active bounded grammar emits English text from structured semantic fields.
 Selection references all objects, a visible color, or an unambiguous leftmost
