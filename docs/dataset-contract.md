@@ -38,9 +38,13 @@ Two teachers exist from that stage.
 
 The legacy teacher groups colors independently, uses one to four objects per row, and searches at most 20,000 candidates. Exhausting the templates or the budget is a generation failure. A disagreement with the independent validator stops generation.
 
-`balanced_rows_v1.3` allows one through N selected objects per row, ranks full arrangements by shape and partial arrangements by translation, and recenters new full blocks. English wording for those labels is in [english-instruction-defaults.md](english-instruction-defaults.md). The published v2 sets do not use this policy. They use `continuous_rows_v3`.
+`balanced_rows_v1.3` allows one through N selected objects per row, ranks full arrangements by shape and partial arrangements by translation, and recenters new full blocks. English wording for those labels is in [english-instruction-defaults.md](english-instruction-defaults.md). The published v2 sets do not use this policy.
 
-The 100-scene run checks the generator. It is not a performance result. The later corpus contains 20,000 scenes, split into 16,000 train, 2,000 validation, and 2,000 test. That total is the generation scale. The official 2,000-scene test and the 640-scene holdout are excluded from training and from checkpoint selection.
+The 100-scene run checks the generator. It is not a performance result.
+
+## Training data usage
+
+The published corpus contains 20,000 scenes, split into 16,000 train, 2,000 validation, and 2,000 test. That total is the generation scale. The official 2,000-scene test and the 640-scene holdout are excluded from training and from checkpoint selection.
 
 The published system is not one training run over those 20,000 scenes. The sequential and relation stages read a 791-scene training manifest and a 94-scene validation manifest drawn from this corpus. That scope is recorded in `configs/neural_sequential_phase1.json` and enforced by `scripts/run_phase1_pairwise_affine.py`. The joint row and size stage, `experiments/end_to_end/joint_stage.py`, reads the train split only. It holds out one fifth of those families, by integer division, for development, and takes its updates from the remaining fit families. It does not open the official test split.
 
