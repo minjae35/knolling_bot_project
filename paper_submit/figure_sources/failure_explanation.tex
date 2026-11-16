@@ -1,0 +1,89 @@
+\documentclass[border=0bp]{standalone}
+\usepackage[T1]{fontenc}
+\usepackage{times,amsmath,amssymb,graphicx,xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,calc,positioning,patterns}
+\pdfinfoomitdate=1
+\pdftrailerid{}
+\definecolor{ink}{HTML}{202020}
+\definecolor{muted}{HTML}{626262}
+\definecolor{hairline}{HTML}{B9B9B9}
+\definecolor{accent}{HTML}{284E67}
+\definecolor{signal}{HTML}{A33D36}
+\definecolor{objectred}{HTML}{D45B59}
+\definecolor{objectgreen}{HTML}{55A870}
+\definecolor{objectblue}{HTML}{507BC2}
+\definecolor{teal}{HTML}{087E81}
+\definecolor{ochre}{HTML}{B27A46}
+\definecolor{violet}{HTML}{7563A6}
+\tikzset{
+ every node/.style={font=\fontsize{10}{12}\selectfont,inner sep=0bp,outer sep=0bp,text=ink},
+ flow/.style={draw=ink,line width=.45bp,-{Latex[length=3bp,width=2bp]}},
+ auxflow/.style={draw=muted,line width=.35bp,-{Latex[length=3bp,width=2bp]}},
+ measure/.style={draw=ink,line width=.4bp,{Latex[length=2.4bp,width=1.6bp]}-{Latex[length=2.4bp,width=1.6bp]}},
+ envelope/.style={draw=muted,line width=.35bp,dash pattern=on 2bp off 1.5bp,fill=none},
+ frame/.style={draw=hairline,line width=.35bp,fill=none},
+ leader/.style={draw=muted,line width=.35bp},
+ module/.style={draw=ink,line width=.45bp,fill=white,minimum height=30bp,align=center,inner xsep=3bp,inner ysep=3bp},
+}
+\begin{document}
+\begin{tikzpicture}[x=1bp,y=-1bp,line cap=butt,line join=miter]
+\node[anchor=west,font=\fontsize{11}{13}\selectfont] at (7.50000,11.00000) {\textbf{a}\quad Row-gap violation};
+\node[anchor=west,font=\fontsize{11}{13}\selectfont] at (7.50000,149.75000) {\textbf{b}\quad Envelope-based clearance};
+\begin{scope}
+\clip (7.5,44.0) rectangle (154.5,122.75);
+\node[anchor=north west] at (-53.75,-4.382328810627435) {\includegraphics[width=261.33333333333337bp,height=174.22222222222223bp]{renders/smoke_full_overhead.png}};
+\end{scope}
+\begin{scope}
+\clip (7.5,180.75) rectangle (154.5,271.8529411764706);
+\node[anchor=north west] at (-39.91935483870968,126.14161146475362) {\includegraphics[width=303.48387096774195bp,height=202.32258064516128bp]{renders/smoke_partial_overhead.png}};
+\end{scope}
+\node[anchor=north west] at (178.5,44.0) {\includegraphics[width=210.0bp,height=78.75bp]{renders/detail_row_gap.png}};
+\node[anchor=north west] at (178.5,180.75) {\includegraphics[width=210.0bp,height=91.1029411764706bp]{renders/detail_clearance.png}};
+\draw[draw=accent!55!white,line width=.3bp] (138.1666667,74.5621156) -- (156.5000000,74.5621156) -- (178.5000000,44.0000000);
+\draw[draw=accent!55!white,line width=.3bp] (138.1666667,117.4371156) -- (156.5000000,117.4371156) -- (178.5000000,122.7500000);
+\draw[draw=white,line width=1.15bp] (23.8333333,74.5621156) -- (138.1666667,74.5621156) -- (138.1666667,117.4371156) -- (23.8333333,117.4371156) -- (23.8333333,74.5621156);
+\draw[draw=accent,line width=.45bp] (23.8333333,74.5621156) -- (138.1666667,74.5621156) -- (138.1666667,117.4371156) -- (23.8333333,117.4371156) -- (23.8333333,74.5621156);
+\draw[draw=accent,line width=.45bp] (178.5000000,44.0000000) -- (388.5000000,44.0000000) -- (388.5000000,122.7500000) -- (178.5000000,122.7500000) -- (178.5000000,44.0000000);
+\node[anchor=west,text=accent,font=\fontsize{10}{12}\selectfont] at (178.50000,29.00000) {Detail\enspace $1.84\times$};
+\draw[draw=accent!55!white,line width=.3bp] (116.5645161,208.2933192) -- (156.5000000,208.2933192) -- (178.5000000,180.7500000);
+\draw[draw=accent!55!white,line width=.3bp] (116.5645161,245.3222566) -- (156.5000000,245.3222566) -- (178.5000000,271.8529412);
+\draw[draw=white,line width=1.15bp] (31.2096774,208.2933192) -- (116.5645161,208.2933192) -- (116.5645161,245.3222566) -- (31.2096774,245.3222566) -- (31.2096774,208.2933192);
+\draw[draw=accent,line width=.45bp] (31.2096774,208.2933192) -- (116.5645161,208.2933192) -- (116.5645161,245.3222566) -- (31.2096774,245.3222566) -- (31.2096774,208.2933192);
+\draw[draw=accent,line width=.45bp] (178.5000000,180.7500000) -- (388.5000000,180.7500000) -- (388.5000000,271.8529412) -- (178.5000000,271.8529412) -- (178.5000000,180.7500000);
+\node[anchor=west,text=accent,font=\fontsize{10}{12}\selectfont] at (178.50000,165.75000) {Detail\enspace $2.46\times$};
+\node[anchor=west,text=muted,font=\fontsize{10}{12}\selectfont] at (7.50000,29.00000) {Full prediction};
+\node[anchor=west,text=muted,font=\fontsize{10}{12}\selectfont] at (7.50000,165.75000) {Partial prediction};
+\draw[draw=white,line width=1.5bp] (214.5000000,81.5809704) -- (250.5000000,81.5809704);
+\draw[draw=ink,line width=.4bp,dash pattern=on 2bp off 1.5bp] (214.5000000,81.5809704) -- (250.5000000,81.5809704);
+\draw[draw=white,line width=1.5bp] (244.5000000,94.8239999) -- (278.2500000,94.8239999);
+\draw[draw=ink,line width=.4bp,dash pattern=on 2bp off 1.5bp] (244.5000000,94.8239999) -- (278.2500000,94.8239999);
+\draw[draw=white,line width=1.5bp] (247.5000000,81.5809704) -- (247.5000000,94.8239999);
+\draw[draw=signal,line width=.6bp] (247.5000000,81.5809704) -- (247.5000000,94.8239999);
+\draw[draw=white,line width=1.5bp] (245.5000000,81.5809704) -- (249.5000000,81.5809704);
+\draw[draw=signal,line width=.6bp] (245.5000000,81.5809704) -- (249.5000000,81.5809704);
+\draw[draw=white,line width=1.5bp] (245.5000000,94.8239999) -- (249.5000000,94.8239999);
+\draw[draw=signal,line width=.6bp] (245.5000000,94.8239999) -- (249.5000000,94.8239999);
+\node[anchor=east,text=signal,fill=white,inner sep=1.2bp,font=\fontsize{10}{12}\selectfont] at (240.75000,88.20249) {$17.657\,\mathrm{mm}$};
+\node[anchor=west,text=signal,font=\fontsize{10}{12}\selectfont] at (178.50000,133.75000) {Allowed 13--17 mm; excess $0.657$ mm};
+\draw[draw=white,line width=1.2bp,dash pattern=on 2bp off 1.5bp] (304.1318212,260.4061969) -- (376.4651543,260.4000660) -- (376.4613967,216.0667329) -- (304.1280636,216.0728637) -- (304.1318212,260.4061969);
+\draw[draw=ink,line width=.4bp,dash pattern=on 2bp off 1.5bp] (304.1318212,260.4061969) -- (376.4651543,260.4000660) -- (376.4613967,216.0667329) -- (304.1280636,216.0728637) -- (304.1318212,260.4061969);
+\draw[draw=white,line width=1.2bp,dash pattern=on 2bp off 1.5bp] (195.5906238,235.7122222) -- (286.4542133,251.1557501) -- (294.2737211,205.1488694) -- (203.4101316,189.7053415) -- (195.5906238,235.7122222);
+\draw[draw=ink,line width=.4bp,dash pattern=on 2bp off 1.5bp] (195.5906238,235.7122222) -- (286.4542133,251.1557501) -- (294.2737211,205.1488694) -- (203.4101316,189.7053415) -- (195.5906238,235.7122222);
+\draw[draw=white,line width=1.5bp] (304.1280636,216.0728637) -- (292.7458431,214.1382974);
+\draw[draw=signal,line width=.75bp] (304.1280636,216.0728637) -- (292.7458431,214.1382974);
+\draw[draw=signal,fill=white,line width=.45bp] (304.1280636,216.0728637) circle[radius=1bp];
+\draw[draw=signal,fill=white,line width=.45bp] (292.7458431,214.1382974) circle[radius=1bp];
+\node[anchor=center,text=signal,fill=white,inner sep=1bp,font=\fontsize{10}{12}\selectfont] at (298.43695,206.10558) {$\mathrm{env}$};
+\draw[draw=white,line width=1.5bp] (304.5555022,233.9149920) -- (289.8104697,231.4088692);
+\draw[draw=teal!85!black,line width=.75bp] (304.5555022,233.9149920) -- (289.8104697,231.4088692);
+\draw[draw=teal!85!black,fill=white,line width=.45bp] (304.5555022,233.9149920) circle[radius=1bp];
+\draw[draw=teal!85!black,fill=white,line width=.45bp] (289.8104697,231.4088692) circle[radius=1bp];
+\node[anchor=center,text=teal!85!black,fill=white,inner sep=1bp,font=\fontsize{10}{12}\selectfont] at (297.18299,242.16193) {$\mathrm{fp}$};
+\node[anchor=west,text=signal,font=\fontsize{10}{12}\selectfont] at (178.50000,282.85294) {Envelope $9.8961<9.9$ mm};
+\node[anchor=east,text=teal!85!black,font=\fontsize{10}{12}\selectfont] at (388.50000,282.85294) {Footprint 12.820 mm};
+
+\pgfresetboundingbox
+\path[use as bounding box] (0,0) rectangle (396,294);
+\end{tikzpicture}
+\end{document}

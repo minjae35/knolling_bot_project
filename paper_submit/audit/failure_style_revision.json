@@ -1,0 +1,76 @@
+{
+  "design": "Compact geometric diagnostic plate: two 192 \u00d7 128 pt real Blender crops, thin true-envelope guides, symbolic dimension labels, and one numerical inequality per panel. No KPI cards, repeated measured values, or differently magnified rulers.",
+  "physical_size_pt": [
+    396,
+    185
+  ],
+  "previous_export_sha256": {
+    "failure_explanation.pdf": "1b16a3cca596bad6b13b6747ca417f58924165cb970442773eb8d7c7491f3e80",
+    "failure_explanation.svg": "ecba6987990ff7db3ec6931c9c4f57550a9e1aaf0a76a07e41a226d5ccb725be",
+    "failure_explanation.png": "8e4b92f17fb3cf25e32478a9b457071bb3d587644b1cb572dfa91f8d1e72d437"
+  },
+  "export_sha256": {
+    "failure_explanation.pdf": "cf24758aaf2f0064fb7d1759730b124077ba59aba899dac58a80a45a3e0f825e",
+    "failure_explanation.svg": "9e41bd0fc47909fff140c5b89bcc58c70c3eb76ed87540aa969479c6d7862c7c",
+    "failure_explanation.png": "e2e558a81b7b905202183a43a3c18a900b85e906135d8854843a12b15b3f15a4"
+  },
+  "generator_sha256": "2a51a019035f4621e0791320f9845368bc65e0d2a74063361af8299a098105a6",
+  "annotations_sha256": "09c2e9cf7374848971dc8218981e81d108b589db688880c09be23fef41689cb1",
+  "crop_world_xy_limits_m": {
+    "full": [
+      0.13,
+      0.49,
+      0.08,
+      0.32
+    ],
+    "partial": [
+      0.13,
+      0.31,
+      0.145,
+      0.265
+    ]
+  },
+  "source_sha256": {
+    "audit/evidence/v2_validation_smoke.json": "f1f248df95b72e0deffa45edcae9d246e172cab2da79ff51ba880f07c3398405",
+    "audit/evidence/v2_smoke_source_records.json": "ddb02bfd4addb5cf17552391e68141ae570bd2316fc9e6757ca074c6e2f5d1d8",
+    "renders/smoke_full_overhead.png": "5fb97482844e29b5d887499ae468f1432923b3b0eb0af7d77c8bf1242584b3f0",
+    "renders/smoke_partial_overhead.png": "a4dd32056b64787220a462849c1cbc725fbcc6c2f04c5005faa40c761cc8380b"
+  },
+  "frozen_figure6_before": {
+    "figures/qualitative_modes.pdf": true,
+    "figures/qualitative_modes.svg": true,
+    "figures/qualitative_modes.png": true,
+    "renders/smoke_before.png": true,
+    "renders/smoke_before.blend": true,
+    "renders/smoke_full.png": true,
+    "renders/smoke_full.blend": true,
+    "renders/smoke_partial.png": true,
+    "renders/smoke_partial.blend": true,
+    "renders/smoke_no_op.png": true,
+    "renders/smoke_no_op.blend": true
+  },
+  "frozen_figure6_after": {
+    "figures/qualitative_modes.pdf": true,
+    "figures/qualitative_modes.svg": true,
+    "figures/qualitative_modes.png": true,
+    "renders/smoke_before.png": true,
+    "renders/smoke_before.blend": true,
+    "renders/smoke_full.png": true,
+    "renders/smoke_full.blend": true,
+    "renders/smoke_partial.png": true,
+    "renders/smoke_partial.blend": true,
+    "renders/smoke_no_op.png": true,
+    "renders/smoke_no_op.blend": true
+  },
+  "pose_or_camera_changes": false,
+  "additional_inference": false,
+  "annotation_bytes_unchanged": true,
+  "text_bounds": "PASS",
+  "measurements": {
+    "row_gap_mm": 17.65737269579154,
+    "upper_gap_limit_mm": 17,
+    "clearance_mm": 9.896102832824814,
+    "effective_minimum_mm": 9.9,
+    "clearance_deficit_um": 3.897167175185956
+  }
+}

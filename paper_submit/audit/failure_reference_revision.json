@@ -1,0 +1,216 @@
+{
+  "revision": "Larger panels and 10\u201311 pt labels, still within the appendix page",
+  "physical_size_pt": [
+    396,
+    294
+  ],
+  "design": "The 312 bp image group is centered with equal 42 bp outer margins and a 40 bp gutter. Each overview matches its detail top and bottom edge through vertical reframing at unchanged image scale. The full crop is centered on all objects, the partial crop on the scored pair; an unrelated previously clipped corner fragment lies outside the new partial crop. Both image labels share a header baseline; metrics stay within the detail column. Matched slate-blue crop frames, fine leaders and calibrated magnification are retained.",
+  "zoom_correspondence": {
+    "full": {
+      "linear_magnification": 1.8367346938775508,
+      "display_label": "1.84x",
+      "roi_print_bounds_bp": [
+        23.83333333333334,
+        74.56211563381702,
+        138.16666666666669,
+        117.43711563381703
+      ],
+      "detail_print_bounds_bp": [
+        178.5,
+        44.0,
+        388.5,
+        122.75
+      ],
+      "leader_paths_bp": [
+        [
+          [
+            138.16666666666669,
+            74.56211563381702
+          ],
+          [
+            156.5,
+            74.56211563381702
+          ],
+          [
+            178.5,
+            44.0
+          ]
+        ],
+        [
+          [
+            138.16666666666669,
+            117.43711563381703
+          ],
+          [
+            156.5,
+            117.43711563381703
+          ],
+          [
+            178.5,
+            122.75
+          ]
+        ]
+      ]
+    },
+    "partial": {
+      "linear_magnification": 2.4603174603174605,
+      "display_label": "2.46x",
+      "roi_print_bounds_bp": [
+        31.20967741935484,
+        208.29331924463978,
+        116.56451612903224,
+        245.32225662604395
+      ],
+      "detail_print_bounds_bp": [
+        178.5,
+        180.75,
+        388.5,
+        271.8529411764706
+      ],
+      "leader_paths_bp": [
+        [
+          [
+            116.56451612903224,
+            208.29331924463978
+          ],
+          [
+            156.5,
+            208.29331924463978
+          ],
+          [
+            178.5,
+            180.75
+          ]
+        ],
+        [
+          [
+            116.56451612903224,
+            245.32225662604395
+          ],
+          [
+            156.5,
+            245.32225662604395
+          ],
+          [
+            178.5,
+            271.8529411764706
+          ]
+        ]
+      ]
+    }
+  },
+  "source_sha256": {
+    "audit/evidence/v2_validation_smoke.json": "f1f248df95b72e0deffa45edcae9d246e172cab2da79ff51ba880f07c3398405",
+    "audit/evidence/v2_smoke_source_records.json": "ddb02bfd4addb5cf17552391e68141ae570bd2316fc9e6757ca074c6e2f5d1d8",
+    "renders/smoke_full_overhead.png": "5fb97482844e29b5d887499ae468f1432923b3b0eb0af7d77c8bf1242584b3f0",
+    "renders/smoke_partial_overhead.png": "a4dd32056b64787220a462849c1cbc725fbcc6c2f04c5005faa40c761cc8380b"
+  },
+  "annotations_sha256": "09c2e9cf7374848971dc8218981e81d108b589db688880c09be23fef41689cb1",
+  "footprint_analysis_sha256": "ee78f3b30f3b6a433d86e5c7f48541cb2fe1f01571adfafbf68cc96180073b76",
+  "detail_render_manifest": "audit/detail_render_provenance.json",
+  "detail_images": {
+    "detail_row_gap": "09b9dba1eda87941f15ec3a24d9bfdffe3910dac080b30f16276948fc810911c",
+    "detail_clearance": "e3493e865ff5f4cd5e385e18ec6ada9504973b8b83b92358b3271cee88a51ab2"
+  },
+  "closeup_layout": {
+    "width_bp": 210.0,
+    "previous_width_bp": 160,
+    "original_width_bp": 272,
+    "linear_scale_ratio": 0.7720588235294118,
+    "object_area_ratio": 0.5960748269896194,
+    "left_bp": 178.5,
+    "row_tops_bp": {
+      "full": 44.0,
+      "partial": 180.75
+    },
+    "row_heights_bp": {
+      "full": 78.75,
+      "partial": 91.1029411764706
+    },
+    "figure_height_bp": 294,
+    "previous_figure_height_bp": 240,
+    "context_width_bp": 147.0,
+    "outer_margins_bp": [
+      7.5,
+      7.5
+    ],
+    "gutter_bp": 24.0,
+    "label_pt": 10,
+    "panel_title_pt": 11,
+    "source_images_and_detail_world_crops_unchanged": true,
+    "overview_vertical_reframing_without_rescaling": true
+  },
+  "generator_sha256": "5159daa1e134b450f33deb4057aff8a28d2833aca43fa02b81901644e9d41e16",
+  "export_sha256": {
+    "failure_explanation.pdf": "815099940a1657cdbf0b03ad698f7b40fccb2ea3c6f43c702605512c1a5b88b6",
+    "failure_explanation.svg": "69734215cae9d41868d74a4e20c534ff18bda480682fc50fc846fda54ae4fe8c",
+    "failure_explanation.png": "6df330ea11af5ae29d600f3e71900f9156de60cd69badb7379ba4fa3c11b2ec8"
+  },
+  "crop_world_xy_limits_m": {
+    "full_context": [
+      0.13,
+      0.49,
+      0.10198885461342946,
+      0.2948459974705723
+    ],
+    "full_detail": [
+      0.17,
+      0.45,
+      0.115,
+      0.22
+    ],
+    "partial_context": [
+      0.08,
+      0.39,
+      0.1060509373426377,
+      0.2981727860821335
+    ],
+    "partial_detail": [
+      0.13,
+      0.31,
+      0.162,
+      0.24008823529411766
+    ]
+  },
+  "partial_distances_mm": {
+    "footprint": 12.819849733952113,
+    "envelope": 9.896102832824814,
+    "effective_minimum": 9.9
+  },
+  "full_gap_mm": 17.65737269579154,
+  "full_gap_allowed_mm": [
+    13,
+    17
+  ],
+  "text_bounds": "PASS",
+  "annotation_bytes_unchanged": true,
+  "figure6_before": {
+    "figures/qualitative_modes.pdf": true,
+    "figures/qualitative_modes.svg": true,
+    "figures/qualitative_modes.png": true,
+    "renders/smoke_before.png": true,
+    "renders/smoke_before.blend": true,
+    "renders/smoke_full.png": true,
+    "renders/smoke_full.blend": true,
+    "renders/smoke_partial.png": true,
+    "renders/smoke_partial.blend": true,
+    "renders/smoke_no_op.png": true,
+    "renders/smoke_no_op.blend": true
+  },
+  "figure6_after": {
+    "figures/qualitative_modes.pdf": true,
+    "figures/qualitative_modes.svg": true,
+    "figures/qualitative_modes.png": true,
+    "renders/smoke_before.png": true,
+    "renders/smoke_before.blend": true,
+    "renders/smoke_full.png": true,
+    "renders/smoke_full.blend": true,
+    "renders/smoke_partial.png": true,
+    "renders/smoke_partial.blend": true,
+    "renders/smoke_no_op.png": true,
+    "renders/smoke_no_op.blend": true
+  },
+  "new_inference": false,
+  "original_poses_or_render_files_modified": false,
+  "editable_source": "figure_sources/failure_explanation.tex"
+}

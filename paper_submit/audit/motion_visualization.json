@@ -1,0 +1,512 @@
+{
+  "sample_id": "expanded_717287879ce16878c5558650_4",
+  "source_sha256": {
+    "audit/evidence/full8b_choice.json": "82dbadde9ce7c199add36fb549a2c984bc044126bf104fc26276cfcc78c21638",
+    "audit/blender_provenance.json": "8d561054158149fc24cd12bd5405a0748c19d2329d08daa585e2e5fa5b8b2ebd",
+    "audit/blender_pose_checks.json": "b1963506f2df6e6203c358a62f4d9559a6e47f4a926a75c447e65d5712e5eaec",
+    "audit/motion_annotations.json": "73c8885c89210b07d2cad619c252f6bef429f969e077d4dda05949c59b370325",
+    "renders/full_before.png": "acfb75aa2d6433d26e2d169f6da391fb3ec57fb8af2b546e5b5a2432d348dfba",
+    "renders/full_after.png": "2043bd00a5181e604dda1dd8426d6eb8919dd7d6641d0dfc41b2ed52dabe2c86"
+  },
+  "physical_size_bp": [
+    396,
+    318
+  ],
+  "source_pose_semantics": "Recorded synthetic source pose, not detector-estimated pose.",
+  "target_pose_semantics": "Frozen saved model prediction, not dataset teacher target.",
+  "identity_semantics": "Source-asset correspondence retained across actual render views and both measurement plots; not a learned-tracking claim.",
+  "displacement_semantics": "Equal-length 8 bp arrows encode world-xy direction only (+x right,+y up); a common 0..300 mm axis encodes Euclidean endpoint displacement.",
+  "rotation_semantics": "Signed shortest undirected long-axis change in [-90,90) degrees; positive counterclockwise; exact unsnapped predicted angles used.",
+  "not_robot_trajectories": true,
+  "new_inference": false,
+  "model_dataset_checkpoint_or_render_modified": false,
+  "object_rows": [
+    {
+      "object_id": "o01",
+      "row_y_bp": 211.0,
+      "source_pose": {
+        "x_m": 0.36901118997254084,
+        "y_m": 0.206604616685447,
+        "theta_rad": -0.06833965597821878
+      },
+      "predicted_target_pose": {
+        "x_m": 0.35505062341690063,
+        "y_m": 0.20563113689422607,
+        "theta_rad": -0.0009598731994628906
+      },
+      "dx_mm": -13.960566555640208,
+      "dy_mm": -0.9734797912209214,
+      "translation_mm": 13.994466101226422,
+      "delta_theta_deg": 3.860577177730979,
+      "direction_world_unit": [
+        -0.9975776463824338,
+        -0.06956176707131467
+      ],
+      "direction_arrow_start_bp": [
+        26.990310585529734,
+        210.72175293171475
+      ],
+      "direction_arrow_end_bp": [
+        19.009689414470266,
+        211.27824706828525
+      ],
+      "distance_point_bp": [
+        47.084656016778936,
+        211.0
+      ],
+      "rotation_point_bp": [
+        302.6166134204621,
+        211.0
+      ],
+      "display_distance_mm": "14.0",
+      "display_delta_theta_deg": "+3.9"
+    },
+    {
+      "object_id": "o02",
+      "row_y_bp": 222.0,
+      "source_pose": {
+        "x_m": 0.3897840449638609,
+        "y_m": 0.27439994900153264,
+        "theta_rad": -0.20008100567912512
+      },
+      "predicted_target_pose": {
+        "x_m": 0.44170981645584106,
+        "y_m": 0.07717636227607727,
+        "theta_rad": -0.0010254383087158203
+      },
+      "dx_mm": 51.925771491980186,
+      "dy_mm": -197.22358672545536,
+      "translation_mm": 203.9446711877772,
+      "delta_theta_deg": 11.405043898906476,
+      "direction_world_unit": [
+        0.2546071500155587,
+        -0.9670445693766936
+      ],
+      "direction_arrow_start_bp": [
+        21.981571399937764,
+        218.1318217224932
+      ],
+      "direction_arrow_end_bp": [
+        24.018428600062236,
+        225.8681782775068
+      ],
+      "distance_point_bp": [
+        116.09989719822572,
+        222.0
+      ],
+      "rotation_point_bp": [
+        307.7300853092588,
+        222.0
+      ],
+      "display_distance_mm": "203.9",
+      "display_delta_theta_deg": "+11.4"
+    },
+    {
+      "object_id": "o03",
+      "row_y_bp": 233.0,
+      "source_pose": {
+        "x_m": 0.4953254099799315,
+        "y_m": 0.27952729503797746,
+        "theta_rad": 0.7313374994011381
+      },
+      "predicted_target_pose": {
+        "x_m": 0.35972267389297485,
+        "y_m": 0.2802911102771759,
+        "theta_rad": -0.0009223222732543945
+      },
+      "dx_mm": -135.60273608695667,
+      "dy_mm": 0.7638152391984399,
+      "translation_mm": 135.6048872570176,
+      "delta_theta_deg": -41.95539728894497,
+      "direction_world_unit": [
+        -0.9999841364857531,
+        0.005632652735817323
+      ],
+      "direction_arrow_start_bp": [
+        26.99993654594301,
+        233.02253061094328
+      ],
+      "direction_arrow_end_bp": [
+        19.00006345405699,
+        232.97746938905672
+      ],
+      "distance_point_bp": [
+        91.26977570338306,
+        233.0
+      ],
+      "rotation_point_bp": [
+        271.5635640597151,
+        233.0
+      ],
+      "display_distance_mm": "135.6",
+      "display_delta_theta_deg": "-42.0"
+    },
+    {
+      "object_id": "o04",
+      "row_y_bp": 244.0,
+      "source_pose": {
+        "x_m": 0.0753114729825955,
+        "y_m": 0.10051510714626694,
+        "theta_rad": 1.218436058964071
+      },
+      "predicted_target_pose": {
+        "x_m": 0.3570612370967865,
+        "y_m": 0.07717636227607727,
+        "theta_rad": -0.0008820295333862305
+      },
+      "dx_mm": 281.749764114191,
+      "dy_mm": -23.338744870189664,
+      "translation_mm": 282.7147442043271,
+      "delta_theta_deg": -69.86178035486331,
+      "direction_world_unit": [
+        0.9965867358886714,
+        -0.08255227344394178
+      ],
+      "direction_arrow_start_bp": [
+        19.013653056445314,
+        243.66979090622422
+      ],
+      "direction_arrow_end_bp": [
+        26.986346943554686,
+        244.33020909377578
+      ],
+      "distance_point_bp": [
+        144.71969039423885,
+        244.0
+      ],
+      "rotation_point_bp": [
+        252.64923775948154,
+        244.0
+      ],
+      "display_distance_mm": "282.7",
+      "display_delta_theta_deg": "-69.9"
+    },
+    {
+      "object_id": "o05",
+      "row_y_bp": 255.0,
+      "source_pose": {
+        "x_m": 0.24850232671782985,
+        "y_m": 0.1757444778170067,
+        "theta_rad": 1.4736575090844717
+      },
+      "predicted_target_pose": {
+        "x_m": 0.44443780183792114,
+        "y_m": 0.1489078402519226,
+        "theta_rad": -0.0012432336807250977
+      },
+      "dx_mm": 195.9354751200913,
+      "dy_mm": -26.836637565084086,
+      "translation_mm": 197.76479850149164,
+      "delta_theta_deg": -84.50558776115606,
+      "direction_world_unit": [
+        0.9907500050804716,
+        -0.13569976946570536
+      ],
+      "direction_arrow_start_bp": [
+        19.036999979678114,
+        254.4572009221372
+      ],
+      "direction_arrow_end_bp": [
+        26.963000020321886,
+        255.5427990778628
+      ],
+      "distance_point_bp": [
+        113.85454345554197,
+        255.0
+      ],
+      "rotation_point_bp": [
+        242.72399051743866,
+        255.0
+      ],
+      "display_distance_mm": "197.8",
+      "display_delta_theta_deg": "-84.5"
+    },
+    {
+      "object_id": "o06",
+      "row_y_bp": 266.0,
+      "source_pose": {
+        "x_m": 0.2549605204308756,
+        "y_m": 0.08114578891028025,
+        "theta_rad": 1.2195597810532002
+      },
+      "predicted_target_pose": {
+        "x_m": 0.4413864016532898,
+        "y_m": 0.20563113689422607,
+        "theta_rad": -0.001189112663269043
+      },
+      "dx_mm": 186.4258812224142,
+      "dy_mm": 124.48534798394583,
+      "translation_mm": 224.167818948746,
+      "delta_theta_deg": -69.94375945521799,
+      "direction_world_unit": [
+        0.8316353439877061,
+        0.5553221179013581
+      ],
+      "direction_arrow_start_bp": [
+        19.673458624049175,
+        268.2212884716054
+      ],
+      "direction_arrow_end_bp": [
+        26.326541375950825,
+        263.7787115283946
+      ],
+      "distance_point_bp": [
+        123.44764088471105,
+        266.0
+      ],
+      "rotation_point_bp": [
+        252.59367414701893,
+        266.0
+      ],
+      "display_distance_mm": "224.2",
+      "display_delta_theta_deg": "-69.9"
+    },
+    {
+      "object_id": "o07",
+      "row_y_bp": 277.0,
+      "source_pose": {
+        "x_m": 0.16484809141721468,
+        "y_m": 0.18667012839978495,
+        "theta_rad": -0.30722812364751273
+      },
+      "predicted_target_pose": {
+        "x_m": 0.3676576018333435,
+        "y_m": 0.1489078402519226,
+        "theta_rad": -0.0012574195861816406
+      },
+      "dx_mm": 202.80951041612883,
+      "dy_mm": -37.762288147862336,
+      "translation_mm": 206.29514759536167,
+      "delta_theta_deg": 17.530829997360588,
+      "direction_world_unit": [
+        0.9831036395190945,
+        -0.18304981279507024
+      ],
+      "direction_arrow_start_bp": [
+        19.067585441923622,
+        276.2678007488197
+      ],
+      "direction_arrow_end_bp": [
+        26.932414558076378,
+        277.7321992511803
+      ],
+      "distance_point_bp": [
+        116.95390362631474,
+        277.0
+      ],
+      "rotation_point_bp": [
+        311.88200699821107,
+        277.0
+      ],
+      "display_distance_mm": "206.3",
+      "display_delta_theta_deg": "+17.5"
+    },
+    {
+      "object_id": "o08",
+      "row_y_bp": 288.0,
+      "source_pose": {
+        "x_m": 0.43555680612163294,
+        "y_m": 0.06934911197793316,
+        "theta_rad": -1.274303930835518
+      },
+      "predicted_target_pose": {
+        "x_m": 0.4525250196456909,
+        "y_m": 0.2802911102771759,
+        "theta_rad": -0.0011276006698608398
+      },
+      "dx_mm": 16.968213524057973,
+      "dy_mm": 210.94199829924275,
+      "translation_mm": 211.62336098993362,
+      "delta_theta_deg": 72.94763029444678,
+      "direction_world_unit": [
+        0.08018119287343285,
+        0.9967803049365459
+      ],
+      "direction_arrow_start_bp": [
+        22.679275228506267,
+        291.9871212197462
+      ],
+      "direction_arrow_end_bp": [
+        23.320724771493733,
+        284.0128787802538
+      ],
+      "distance_point_bp": [
+        118.88982115967588,
+        288.0
+      ],
+      "rotation_point_bp": [
+        349.44228275512506,
+        288.0
+      ],
+      "display_distance_mm": "211.6",
+      "display_delta_theta_deg": "+72.9"
+    }
+  ],
+  "identity_markers": [
+    {
+      "panel": "source_pose",
+      "object_id": "o01",
+      "center_pt": [
+        114.9287835353255,
+        73.66808485021505
+      ]
+    },
+    {
+      "panel": "source_pose",
+      "object_id": "o02",
+      "center_pt": [
+        120.62648090437328,
+        57.369750627981404
+      ]
+    },
+    {
+      "panel": "source_pose",
+      "object_id": "o03",
+      "center_pt": [
+        149.57496959449549,
+        54.97894453915597
+      ]
+    },
+    {
+      "panel": "source_pose",
+      "object_id": "o04",
+      "center_pt": [
+        34.37114687522619,
+        92.81423583263636
+      ]
+    },
+    {
+      "panel": "source_pose",
+      "object_id": "o05",
+      "center_pt": [
+        81.87492389974761,
+        80.28864067968442
+      ]
+    },
+    {
+      "panel": "source_pose",
+      "object_id": "o06",
+      "center_pt": [
+        83.64631417532587,
+        97.3203598967829
+      ]
+    },
+    {
+      "panel": "source_pose",
+      "object_id": "o07",
+      "center_pt": [
+        58.92976221729317,
+        78.46356276747429
+      ]
+    },
+    {
+      "panel": "source_pose",
+      "object_id": "o08",
+      "center_pt": [
+        133.18129539336218,
+        99.42804226953676
+      ]
+    },
+    {
+      "panel": "target_pose",
+      "object_id": "o01",
+      "center_pt": [
+        300.76743922930797,
+        83.77018786626962
+      ]
+    },
+    {
+      "panel": "target_pose",
+      "object_id": "o02",
+      "center_pt": [
+        352.92040204042087,
+        109.20617790468687
+      ]
+    },
+    {
+      "panel": "target_pose",
+      "object_id": "o03",
+      "center_pt": [
+        300.81792357161896,
+        66.60354804623796
+      ]
+    },
+    {
+      "panel": "target_pose",
+      "object_id": "o04",
+      "center_pt": [
+        300.9083787600157,
+        110.89170575227035
+      ]
+    },
+    {
+      "panel": "target_pose",
+      "object_id": "o05",
+      "center_pt": [
+        351.61730297552526,
+        96.04427723011749
+      ]
+    },
+    {
+      "panel": "target_pose",
+      "object_id": "o06",
+      "center_pt": [
+        353.79471839384945,
+        82.59031837296118
+      ]
+    },
+    {
+      "panel": "target_pose",
+      "object_id": "o07",
+      "center_pt": [
+        303.4089502401181,
+        95.03296052156739
+      ]
+    },
+    {
+      "panel": "target_pose",
+      "object_id": "o08",
+      "center_pt": [
+        357.2616494939976,
+        66.43499526147961
+      ]
+    }
+  ],
+  "distance_axis": {
+    "range_mm": [
+      0,
+      300
+    ],
+    "range_bp": [
+      42.0,
+      151.0
+    ]
+  },
+  "rotation_axis": {
+    "range_deg": [
+      -90,
+      90
+    ],
+    "range_bp": [
+      239.0,
+      361.0
+    ]
+  },
+  "frozen_pose_annotation_bytes_preserved": true,
+  "figure6_before": {
+    "status": "PASS",
+    "unchanged_files": 11,
+    "latex_block_unchanged": true
+  },
+  "figure6_after": {
+    "status": "PASS",
+    "unchanged_files": 11,
+    "latex_block_unchanged": true
+  },
+  "editable_source": "figure_sources/motion_correspondence.tex",
+  "exports_sha256": {
+    "pdf": "ecbc3d6bfeb285828ef39ec5c8d3a2d8df1b5171bf60e99fcad88a4502b07334",
+    "svg": "abb22fe1b71d5fde71cc5a5bfc7b6d08fce6bac7539771e916daf01edc02910e",
+    "png": "521f860b9ec1eab4299227f114061448dfbf809dc2620138a19a871c41fbc042"
+  }
+}

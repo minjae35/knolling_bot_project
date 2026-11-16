@@ -1,0 +1,8 @@
+{
+  "artifacts/generalization_20000/dataset/annotations.json": "3e44cc3b623efa56d86a638d1f7fed51c0b4fd2e397a17ed72274e77d5509a04",
+  "artifacts/generalization_20000/dataset/complete.json": "e8be15aa24db242080eeaa220b94137c05f27b8c9ae6d1c367caec798f51c225",
+  "artifacts/generalization_20000/dataset/contract.json": "c5cd5b000dbaf462ec5c06cd92ba5c4f4a77e7d133fa6d916b9cdd4d4c37fb0b",
+  "artifacts/generalization_20000/dataset/asset_registry.json": "16aa18ebc08c5845b72625484d33e6eaeebc81d6e495ccd01b3c07b528181d7f",
+  "artifacts/v2_independent_eval/manifest.json": "bb24026f107bb40b1567f51fefc29f4f6e253436bfa7751f918ed983d0494863",
+  "artifacts/v2_independent_eval/contract.json": "96891dacba5b2b199751af6505eea34ad2ba92b2ff63d66ee526fa64cde30410"
+}

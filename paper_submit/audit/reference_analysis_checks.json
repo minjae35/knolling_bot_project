@@ -1,0 +1,45 @@
+{
+  "status": "PASS",
+  "method": "Separate scalar geometry and array-based paired-family bootstrap; no figure-generator helpers.",
+  "paired_records": 640,
+  "families": 128,
+  "bootstrap_resamples": 10000,
+  "mode_ci95_pp": {
+    "full": [
+      2.8645833333333335,
+      10.15625
+    ],
+    "partial": [
+      9.523809523809524,
+      22.04724409448819
+    ],
+    "no_op": [
+      1.5625,
+      10.0
+    ],
+    "overall": [
+      4.84375,
+      11.5625
+    ]
+  },
+  "error_categories_checked": 9,
+  "target_objects_checked": 8,
+  "target_rows_checked": 4,
+  "pairwise_geometry_checks": 56,
+  "minimum_clearance_mm": {
+    "full": {
+      "footprint": 14.584372293421957,
+      "envelope": 14.58401577012464
+    },
+    "partial": {
+      "footprint": 12.819849733952113,
+      "envelope": 9.896102832824814
+    }
+  },
+  "target_envelope_x_bounds_m": [
+    0.32102712219018537,
+    0.49054416469483675
+  ],
+  "source_hashes_verified": true,
+  "new_inference": false
+}

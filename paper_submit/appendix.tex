@@ -1,0 +1,228 @@
+\section{Appendix}
+\subsection{Implementation Details}
+\label{app:implementation}
+\paragraph{Coordinates and object representation.}
+Positions are measured in meters from the workspace's bottom-left corner, and angles counterclockwise from $+x$ in radians, modulo $\pi$. Image coordinates follow $p_x=576x/0.6-0.5$, $p_y=384(1-y/0.4)-0.5$. Each object is represented by
+\begin{equation}
+ o_i=[x_i/0.6,\ y_i/0.4,\ a_i/0.6,\ b_i/0.4,\ \cos(2\theta_i),\ \sin(2\theta_i),\ c_i^{(1:3)},\ q_i^{(1:3)}],
+\end{equation}
+where $a_i,b_i$ are the predicted major and minor dimensions, and $c_i,q_i$ are color and shape probabilities. Inference accepts one to eight detections, while evaluated scenes contain two to eight objects.
+
+\begin{table}[H]
+\centering\small
+\caption{Dimensions and operations in the adopted inference pipeline.}
+\begin{tabularx}{\linewidth}{@{}lY@{}}\toprule
+\textbf{Component} & \textbf{Implementation} \\\midrule
+Perception & RT-DETR-R18; 3 decoder layers; 300 width-256 queries; internal $640\times640$ input. \\
+Appearance adapter & $16\times16$ predicted-box crop; CNN $3\to16\to32$; query/crop head $288\to128\to10$. \\
+Size residual & $8\times8$ crop; 16-channel CNN feature + query; MLP $272\to64\to2$; dimension floor $10^{-4}$\,m. \\
+Language & MiniLM tokens $384\to128$; 7 goal queries; four-head text attention; feed-forward $128\to512\to128$. \\
+Goal / selection & Text-only goal: keep (1), axis (2), region (3), gap (3), grouping (2), order (2). Separate selection: object $12\to128$, self-/language attention, head $128\to1$. \\
+Relation / context & MLP $12\to128\to128$; one width-128, four-head set-attention block for structure. \\
+Structure & Row MLP $141\to128\to8$; pointer query $269\to128\to128$, masked dot-product selection. \\
+Pose heads & Row origin $417\to128\to2$; X step $3\to32\to1$; angle $141\to128\to2$, half-atan2 decoding. \\
+Filtering / search & Foreground threshold 0.5; duplicate-center radius 10\,mm; at most eight checked candidates per search. \\\bottomrule
+\end{tabularx}
+\end{table}
+
+For keep probability $k$ and attribute distributions $p_a,p_r,p_\delta,p_c,p_s$, the goal is $g=[k,(1-k)p_a,(1-k)p_r,(1-k)p_\delta,(1-k)p_c,(1-k)p_s]$. The set-context block normalizes tokens $z_i=h_i+W_g g+W_s s_i$ and adds its self-attention output to $h_i$. A null key handles padding. The contextual features guide row and order selection, while the pose heads use the original $h_i$. Rows and pointer prefixes are predicted at inference and teacher-forced during training. Objects in a row share their neural origin's $y$ coordinate, and positive X steps use $\operatorname{softplus}(\operatorname{MLP}([w_{j-1},w_j,\delta]))$.
+
+The ideal axis-aligned spacing is
+\begin{equation}
+ x_{j+1}-x_j=\tfrac12(w_j+w_{j+1})+\delta,\qquad
+ y_r-y_{r+1}=\tfrac12(H_r+H_{r+1})+\delta_r,
+\label{eq:spacing}
+\end{equation}
+where $w_j$ is horizontal extent, $H_r$ is the maximum row height, and $\delta_r=2\delta$ between color bands ($\delta$ otherwise). The decoder uses rotated rectangles and accepts $\pm2$\,mm gap bands around these ideal equalities. The regions $(x_{\min},y_{\min},x_{\max},y_{\max})$ are full $(.02,.02,.58,.38)$, left $(.02,.02,.28,.38)$, and right $(.32,.02,.58,.38)$. A fitting layout may shift 1\,mm inward.
+
+The initial search ranks candidates by row and pointer scores, whereas repair and color-split searches use row scores. Enumeration may consider additional partitions before truncation. Area order is explicitly enforced on the full route and during repair, but not throughout the partial route. If repair is exhausted, the original prediction is retained, so neither feasibility nor global optimality is guaranteed.
+
+\paragraph{Preservation implementation.}
+Partial mode replaces the mover set for an unambiguous named color, then searches block translations on a 5\,mm grid within $\pm120$\,mm around held objects. Held/no-op angles use silhouette PCA on connected components in a local $\pm80$\,mm window, with chroma threshold $25/255$ and at least 40 pixels. The fallback proceeds through the direction head to the detector angle. Centers come from detections. This yields static placements without trajectory planning.
+
+\subsection{Training Evidence and Optimization}
+\label{app:training}
+\begin{table}[H]
+\centering\small
+\caption{Recorded training stages and data use. The counts describe each stage rather than repeated training on the full corpus. The official test set and independent final holdout are excluded.}
+\begin{tabularx}{\linewidth}{@{}lY@{}}\toprule
+\textbf{Stage} & \textbf{Evidence and scope} \\\midrule
+Base integration & Separate perception and arrangement checkpoints at updates 2,400 and 6,000, respectively. \\
+Relation stages & 791 training and 94 validation pairs; seed 1203. The final pipeline reuses only the relation hidden encoder. \\
+Size residual & 3,200 train source families, divided into 2,560 fit / 640 development; batch 8; learning rate $10^{-3}$; selected update 200. \\
+Restricted joint & Official train families split 4/5 fit, 1/5 development; batch 4; AdamW, learning rate $10^{-5}$, weight decay 0; 30 updates, 120 attempted presentations, 6 excluded. \\
+Set selector & 1,792 eligible train families, 5,376 full pairs, 5,085 usable; 249 association and 42 count exclusions; 8 epochs / 1,272 updates; initial learning rate $10^{-4}$; selected epoch 1. \\
+Broad joint pilot & Seed 1203; batch 2; encoder / goal / hidden / row learning rates $10^{-6}/10^{-5}/10^{-5}/10^{-4}$; stopped at update 200 after collapse; not adopted. \\\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Losses and gradient boundaries.}
+Define the SmoothL1 penalty as $H_\beta(e)=e^2/(2\beta)$ for $|e|<\beta$ and $|e|-\beta/2$ otherwise, and let $d_\pi(\alpha,\beta)=((\alpha-\beta+\pi/2)\bmod\pi)-\pi/2$. The size residual minimizes
+\begin{equation}
+ \mathcal L_{\mathrm{size}}=\operatorname{mean}_{i\in M,k\in\{a,b\}}H_{.001}(\hat s_{ik}-s^*_{ik}).
+\end{equation}
+Here, $M$ denotes matched objects. Matching uses true source centers only during supervision, with detector outputs and predicted crop boxes detached. The selector's recorded objective combines row cross-entropy with teacher-forced pointer cross-entropy,
+\begin{equation}
+ \mathcal L_{\mathrm{select}}=\operatorname{CE}(R,r^*)+\operatorname{CE}(O,\pi^*),
+\end{equation}
+with invalid and padded targets ignored. These two losses account for the recorded total. The logs provide no evidence of an additional color regularizer.
+
+In restricted joint fine-tuning, let $G$ contain reference predictions within 2\,mm position error and $3^\circ$ angle error, and $F$ contain the other valid objects. The recorded objective is
+\begin{align}
+\mathcal L_{\mathrm{joint}}={}&\mathcal L_{\mathrm{size}}
++\operatorname{mean}_{i\in F,k\in\{x,y\}}H_{.010}(\hat p_{ik}-p^*_{ik})
++\operatorname{mean}_{i\in F}|d_\pi(\hat\theta_i,\theta_i^*)|\nonumber\\
+&+\operatorname{mean}_{i\in G,k\in\{x,y\}}H_{.001}(\hat p_{ik}-p^{\mathrm{ref}}_{ik}).
+\end{align}
+Empty terms contribute zero. Updates are restricted to the size residual, horizontal step head, and final row-origin layer. Refined sizes are detached before the pose forward pass, while perception, language, goal, relation, structure, and angle heads remain frozen. The angular term therefore contributes to the loss value without training the angle head. These gradient boundaries prevent joint optimization through the entire pipeline.
+
+\paragraph{Development evidence and its limits.}
+On the saved 152-scene full-arrangement diagnostic, success rises from 24 to 42 after size refinement and from 42 to 54 after restricted joint tuning. Size refinement reduces median major-dimension error from 1.419 to 0.790\,mm across 796 matched objects, while restricted joint tuning reduces median vertical-gap error from 2.015 to 1.588\,mm. Because code and selection gates changed across these development stages, the comparisons are not independent final-test ablations. The broader joint pilot instead falls from 2/38 to 0/38 development successes and from 24/152 to 1/152 validation successes at update 200, leaving update 0 as the best checkpoint. A historical 260-scene diagnostic overlapped earlier fitting data and is excluded from claims of independent generalization.
+
+\subsubsection{Selector Learning Curve}
+\begin{figure}[H]
+\centering\includegraphics[width=\linewidth]{figures/selector_training.pdf}
+\caption{Historical selector validation on 1,200 full-arrangement pairs. Row and slot accuracy improve while complete-scene success plateaus. The dashed line marks the recorded 222/1200 baseline, and shading identifies the selected epoch 1. This component-training diagnostic precedes the final inference refinements and independent evaluation.}
+\label{fig:training}
+\end{figure}
+
+Epoch 1 improves success from the 222/1200 baseline to 235/1200. Row/slot accuracy rises to 75.86\%/71.77\% from 68.52\%/61.87\%, and mixed-color-row tags fall from 234 to 22. At epoch 8, accuracy reaches 84.88\%/74.68\%, but success is 233/1200. The later gains in row and slot accuracy did not improve complete-scene success.
+
+\subsection{Data and Statistical Details}
+\label{app:statistics}
+Scene and asset seeds are 120912/120913. Major/minor dimensions span 40--80/25--50\,mm and heights 5--20\,mm on a 1\,mm grid, with aspect ratio $\geq1.3$. Teacher and instruction modes are \code{continuous\_rows\_v3}/\code{english\_rows\_v1}. For family $i$, bucket $\lfloor i/20\rfloor\bmod10$ assigns 0--7 to training, 8 to validation, and 9 to testing, with 64 disjoint asset families per split. Source clearance/margin is 12\,mm. Independently validated targets require 10\,mm and exact source copies for locked poses. Blender 5.1.0 renders RGB using Cycles CPU and 32 samples; PNG bytes may vary across environments.
+
+The final set uses scene seed 20261112, registry seed 120913, and development assets. Its 128 families/640 pairs share no geometry-family IDs, RGB hashes, or asset-family IDs with the corpus. Teacher-derived mode labels classify already-satisfied selective commands as no-op. This labeling yields the 384 full, 127 partial, and 129 no-op cases used in the evaluation.
+
+\paragraph{Paired bootstrap.}
+Define $d_f=\frac15\sum_{j=1}^{5}(Y^{v2}_{fj}-Y^{v1}_{fj})$, with superscripts denoting v2.0.0 and v1.0.0. We resample 128 families with replacement and compute $100\operatorname{mean}_f d_f$, retaining paired commands. Python's local random generator (seed 20261112) produces 10,000 replicates. Sorted indices 250 and 9749 yield the interval [4.84375, 11.5625] points. Mode-specific intervals use the same draws and replicate-specific mode denominators. Paired counts are 489 both-pass, 51 v2.0.0-only, 0 v1.0.0-only, and 100 both-fail. This analysis reaggregates existing evaluations.
+
+% The error table starts the next page. Ragged bottom keeps the shortfall
+% at the foot of the page instead of stretching the section and paragraph skips.
+\vfill
+\begin{table}[H]
+\centering\small
+\caption{Error tags recorded for v1.0.0 or v2.0.0. Tags can overlap, including horizontal and vertical gap errors in 20 v2.0.0 scenes.}
+\begin{tabular*}{\linewidth}{@{}l@{\extracolsep{\fill}}rrlrr@{}}\toprule
+\textbf{Error} & \textbf{v1.0.0} & \textbf{v2.0.0} & \textbf{Error} & \textbf{v1.0.0} & \textbf{v2.0.0} \\\midrule
+Horizontal gap & 51 & 49 & Clearance & 9 & 7 \\
+Vertical gap & 48 & 42 & Keep pose & 9 & 4 \\
+Object count & 45 & 5 & Mixed-color row & 2 & 0 \\
+Requested region & 17 & 4 & Collision & 1 & 0 \\
+Size order & 13 & 11 & Boundary & 1 & 0 \\\bottomrule
+\end{tabular*}
+\end{table}
+
+\flushbottom
+\subsection{Command Dependence and Object Correspondence}
+\label{app:qualitative}
+\begin{figure}[H]
+\centering\includegraphics[width=\linewidth]{figures/qualitative_modes.pdf}
+\caption{One validation scene under three commands, rendered with the same Blender camera and lighting. (b) fails because a row gap is 0.657\,mm past its upper limit. (c) fails clearance by 3.9\,$\mu$m, a deficit this print cannot resolve. (d) passes, with at most 0.42\,mm and 0.29$^\circ$ of drift from the source. Figure~\ref{fig:diagnostics} measures (b) and (c) on overhead crops.}
+\label{fig:modes}
+\end{figure}
+
+\paragraph{Interpreting command-dependent layouts.}
+The full and partial commands differ in which objects may move, while the no-op command requires the scene to remain unchanged. The two rejected arrangements show why visual plausibility alone is insufficient. Figure~\ref{fig:diagnostics} examines their scoring margins. Figure~\ref{fig:motion} provides a complementary view of object correspondence for an eight-object example, whose poses and geometry are detailed in Appendix~\ref{app:motionaudit}.
+
+\paragraph{Example provenance.}
+The smoke script selected the first supported example of each mode from family \code{expanded\_09aa3f57968449ce8a09f291}, with suffixes \code{\_0}, \code{\_2}, and \code{\_3}. The full and partial commands request horizontal axes and 15\,mm gaps, with partial mode selecting blue objects. Maximum no-op drift is 0.417\,mm and $0.292^\circ$. The six-object opening example is \code{expanded\_e2ee7a75ae3a34826b36d71f\_0}, and the eight-object motion example is \code{expanded\_717287879ce16878c5558650\_4}. These validation records illustrate behavior but lack per-record checkpoint digests and do not constitute a second benchmark. The older ten-image v1.0.0 gallery is excluded from the v2.0.0 evidence.
+
+\subsection{Failure Margins and Rendering Fidelity}
+\label{app:failure}
+\begin{figure}[H]
+\centering\includegraphics[width=\linewidth]{figures/failure_explanation.pdf}
+\caption{\textbf{Why visual separation can still fail the geometric score.} Linked frames connect each saved prediction to a magnified view, where dashed outlines mark scored envelopes. The full layout exceeds its 13--17\,mm row-gap interval. In the partial layout, the closest footprints are 12.820\,mm apart, yet their envelopes are separated by 9.8961\,mm. This is 3.9\,$\mu$m below the effective 9.9\,mm minimum, a difference smaller than the render can resolve.}
+\label{fig:diagnostics}
+\end{figure}
+
+\paragraph{Why the borderline example matters.}
+The partial failure arises from conservative evaluation geometry rather than a visible collision. For objects o06/o08, the minimum distance between footprint polygons is 12.81985\,mm, while their oriented rectangular envelopes are 9.89610\,mm apart. Both distances are recomputed from saved poses, and this pair also has the smallest footprint separation in the complete scene. The 10\,mm clearance rule includes a 0.1\,mm numerical allowance. The example explains the recorded rejection, but cannot establish physical feasibility or how often this mechanism occurs across the holdout.
+
+\paragraph{Pose and geometry fidelity.}
+Every presentation image is rendered from a preserved scene record. Meshes extrude the original footprint polygons to their recorded heights, retaining object identity, color, dimensions, and source/predicted pose. Layouts are never adjusted for composition. Before/after views share the orthographic camera, illumination, materials, background, and image quality. Blender 5.1.0 uses Cycles CPU, denoising, and adaptive sampling with a 128-sample maximum. Overview images are $1920\times1280$, and dedicated closeups are $2040\times765$ and $2040\times885$. The closeups change only camera framing and resolution, preserving meshes, poses, materials, and lights.
+
+The original $576\times384$ RGB images remain the inference inputs, as illustrated in Figure~\ref{fig:architecture}; presentation renders are generated afterward. The package includes input/output hashes, object transforms, camera settings, editable Blender scenes, and scripts. An independent check reopens each saved scene and compares every object transform and mesh vertex with the source record. Residual differences are limited to float32 storage quantization, below $10^{-7}$ in the corresponding meter/radian coordinates. This rendering and verification process performs no additional model inference or training.
+
+\subsection{Reproducibility and Evidence Package}
+\label{app:reproducibility}
+The analysis compares v1.0.0 (\code{26dca53}) with v2.0.0 (\code{593bd5d}). These project releases are distinct from published \emph{Knolling Bot 2.0}. The comparison carries forward the release-candidate measurement without changing inference. Manuscript preparation used checkout \code{535f14f}. The adopted entry points are \code{load\_adopted} in the end-to-end scorer and \code{poses\_from\_detection} in \code{size\_refinement.py}. Source-identity matching minimizes a Hungarian cost based on confidence, source position, size, and angle. Every match must also satisfy center distance $\leq10$\,mm and oriented-envelope IoU $\geq0.5$. Otherwise, the scene fails with \code{source\_identity}. Matched target poses then undergo independent semantic and geometry checks.
+
+The model runtime uses Python 3.12, PyTorch 2.9.1, torchvision 0.24.1, and transformers 4.57.3. Its text backbone is \code{paraphrase-multilingual-MiniLM-L12-v2}, with pretrained snapshots pinned in \code{configs/pretrained\_rtdetr.json}. Reloading requires local base/parent checkpoints, relation, joint row/size and selector weights, selection/direction heads, and pretrained caches. The repository distributes neither these weights nor the datasets, and the historical selector trainer and independent-set generator are missing. The package therefore reproduces the \emph{paper's analysis and figures}, but does not support full training reproduction.
+
+\paragraph{Version-controlled change.}
+The v1.0.0--v2.0.0 release changes refine inference through duplicate suppression, sentence-consistent region/gap choices, exact named-color mover replacement, infeasible-row repair, and feasible color-row splitting. Both versions share the architecture, loading paths, set attention, size residual, constraint search, and PCA correction. The effects of individual refinements have not been measured.
+
+\begin{table}[H]
+\centering\small
+\caption{Contents of the manuscript evidence package. Paths are relative to the submission root; audit manifests preserve full SHA-256 values and original paths.}
+\label{tab:package}
+\begin{tabularx}{\linewidth}{@{}lY@{}}\toprule
+\textbf{Artifact} & \textbf{Purpose} \\\midrule
+\code{audit/evidence/v1\_holdout.jsonl} & Frozen baseline scores; SHA-256 prefix \code{89b3ee1cbc24}. \\
+\code{audit/evidence/v2\_holdout.jsonl} & Frozen v2.0.0 scores; prefix \code{209df3c1b12c}. \\
+\code{audit/verified\_results.json} & Recomputed counts, breakdowns, paired gain and family bootstrap. \\
+\code{scripts/audit\_results.py} & Statistical reaggregation without model inference. \\
+\code{scripts/make\_figures.py} & Figure rebuild entry point; calls the publication compositor. \\
+\code{scripts/render\_publication.py} & Blender source for matched views at saved poses. \\
+\code{renders/} & High-resolution PNGs, editable Blender scenes, and pose/camera metadata. \\
+\code{audit/evidence/} & Training summaries, qualitative poses, RGB and rendered prediction. \\
+\code{audit/method\_audit.md} & Claim-to-code references and gradient boundaries. \\
+\code{audit/results\_audit.md} & Claim-to-record references and dataset integrity. \\
+\code{template/upstream.json} & Official ICLR template source and exact hashes. \\\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Compute scope.}
+The selector stage records 1,719 GPU-seconds, which covers only that stage. Saved inference timings give median 131.5/137.2\,ms and mean 169.2/197.5\,ms for v1.0.0/v2.0.0. Hardware, warmup, and serving conditions are insufficiently controlled for a throughput claim. The records do not establish total training compute, deployment cost, or a physical cycle time.
+
+\paragraph{Rebuilding.}
+The README provides commands and dependency pins, and the scripts in Table~\ref{tab:package} reconstruct the statistics and eight figures. The manuscript compiles with \code{latexmk -pdf main.tex}. Because all figure PDFs are included, compilation requires no Python environment, GPU, checkpoints, or original datasets.
+
+\paragraph{Assistance disclosure.}
+Codex assisted with repository and record inspection, primary-source literature discovery, drafting, figure scripting, and LaTeX typesetting. All experimental outcomes are drawn from saved project records. Manuscript preparation reaggregated statistics and visualized fixed saved poses in Blender, without generating additional model predictions or training results.
+
+
+\subsection{Spatial Audit of the Eight-Object Example}
+\label{app:motionaudit}
+Figure~\ref{fig:layout_constraints} and Table~\ref{tab:motion_poses} document the geometry and stored poses of the eight-object validation prediction in Figure~\ref{fig:motion}.
+
+\begin{figure}[H]
+\centering\includegraphics[width=\linewidth]{figures/layout_constraints.pdf}
+\caption{\textbf{Region and spacing audit of the prediction in Figure~\ref{fig:motion}.} The overhead render preserves the scene geometry and poses, with a teal guide marking the right half of the workspace. The chart plots measured minus requested envelope gaps: 15\,mm within each of four rows and 30/15/30\,mm between the three row pairs. All seven errors lie within the shared $\pm2$\,mm tolerance.}
+\label{fig:layout_constraints}
+\end{figure}
+
+\begin{table}[H]
+\centering\small
+\caption{Stored source and predicted poses and their differences, using the IDs in Figure~\ref{fig:motion}. Positions and distances are in millimeters, and angles are in degrees. Values are rounded to two decimal places for display; the audit archive retains full precision.}
+\label{tab:motion_poses}
+\setlength{\tabcolsep}{3pt}
+\begin{tabular*}{\linewidth}{@{}r@{\extracolsep{\fill}}rrrrrrrr@{}}\toprule
+& \multicolumn{3}{c}{Source pose} & \multicolumn{3}{c}{Predicted pose} & \multicolumn{2}{c}{Pose change} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(l){8-9}
+\textbf{ID} & $x$ & $y$ & $\theta$ & $\hat x$ & $\hat y$ & $\hat\theta$ & $d$ & $\Delta\theta$ \\\midrule
+1 & 369.01 & 206.60 & -3.92 & 355.05 & 205.63 & -0.05 & 13.99 & 3.86 \\
+2 & 389.78 & 274.40 & -11.46 & 441.71 & 77.18 & -0.06 & 203.94 & 11.41 \\
+3 & 495.33 & 279.53 & 41.90 & 359.72 & 280.29 & -0.05 & 135.60 & -41.96 \\
+4 & 75.31 & 100.52 & 69.81 & 357.06 & 77.18 & -0.05 & 282.71 & -69.86 \\
+5 & 248.50 & 175.74 & 84.43 & 444.44 & 148.91 & -0.07 & 197.76 & -84.51 \\
+6 & 254.96 & 81.15 & 69.88 & 441.39 & 205.63 & -0.07 & 224.17 & -69.94 \\
+7 & 164.85 & 186.67 & -17.60 & 367.66 & 148.91 & -0.07 & 206.30 & 17.53 \\
+8 & 435.56 & 69.35 & -73.01 & 452.53 & 280.29 & -0.06 & 211.62 & 72.95 \\
+\bottomrule
+\end{tabular*}
+\end{table}
+
+\newpage
+\paragraph{Coordinates and angle convention.}
+The origin is the workspace's bottom-left corner, with $+x$ right and $+y$ up. Table~\ref{tab:motion_poses} converts stored meter/radian poses to millimeters/degrees without rewrapping individual angles. Euclidean displacement is $d_i=1000\|\hat p_i-p_i^{\mathrm{src}}\|_2$. For the undirected long axis, signed rotation is
+\begin{equation}
+\Delta\theta_i=\frac{180}{\pi}\left[\left(\hat\theta_i-\theta_i^{\mathrm{src}}+\frac\pi2\right)\bmod\pi-\frac\pi2\right].
+\end{equation}
+The resulting range is $[-90^\circ,90^\circ)$, with positive values indicating counterclockwise rotation. Object IDs link the saved poses to both Blender views. These endpoint differences do not specify path length or a collision-free manipulation sequence.
+
+\paragraph{Geometry scope and precision.}
+The four rows contain IDs $(3,8)$, $(1,6)$, $(7,5)$, and $(4,2)$. Their row-band gaps are 30.592, 15.159, and 31.668\,mm, within the requested 30/15/30\,mm bands. The right-half guide lies at $x=0.30$\,m. Nominal right-region limits are $0.32\leq x\leq0.58$\,m with a 0.1\,mm evaluator tolerance. Saved envelopes span $0.3210$--$0.4905$\,m. Gap errors use true rectangular envelopes at stored predicted poses, rather than center distances or rendered pixels. They describe this layout's geometry, not learned latent structure, holdout performance, or physical accuracy.
+
+Source poses are archived in \code{audit/evidence/full8b\_choice.json}. The files \code{audit/layout\_constraints.json} and \code{audit/constraint\_correspondence.json} retain full-precision motion and spacing measurements, respectively. The former also records the rounded values in Table~\ref{tab:motion_poses}. Figure~\ref{fig:layout_constraints} uses the audited overhead Blender render with all object transforms and predictions preserved.

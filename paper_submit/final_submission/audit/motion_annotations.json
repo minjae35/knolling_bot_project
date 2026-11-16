@@ -1,0 +1,197 @@
+{
+  "sample_id": "expanded_717287879ce16878c5558650_4",
+  "camera": {
+    "location": [
+      0.3,
+      -0.54,
+      0.95
+    ],
+    "target": [
+      0.3,
+      0.2,
+      0.0
+    ],
+    "ortho_scale_m": 0.7
+  },
+  "camera_right": [
+    1.0,
+    0.0,
+    -0.0
+  ],
+  "camera_up": [
+    0.0,
+    0.7889048554638357,
+    0.6145153610981458
+  ],
+  "saved_blender_camera_basis_max_error": 1.9385427485474338e-08,
+  "projection": "Analytic top-down world-plane view; all footprints share one isotropic meter-to-point map. Blender comparison uses the separately audited camera.",
+  "angle_convention": "Signed target-source difference in [-90,90) degrees; positive CCW; undirected long-axis orientation.",
+  "arrow_semantics": "Straight source-to-target center displacement, not robot trajectories.",
+  "sources": {
+    "audit/evidence/full8b_choice.json": "82dbadde9ce7c199add36fb549a2c984bc044126bf104fc26276cfcc78c21638",
+    "audit/blender_provenance.json": "8d561054158149fc24cd12bd5405a0748c19d2329d08daa585e2e5fa5b8b2ebd",
+    "audit/blender_pose_checks.json": "b1963506f2df6e6203c358a62f4d9559a6e47f4a926a75c447e65d5712e5eaec",
+    "renders/full_before.png": "acfb75aa2d6433d26e2d169f6da391fb3ec57fb8af2b546e5b5a2432d348dfba",
+    "renders/full_after.png": "2043bd00a5181e604dda1dd8426d6eb8919dd7d6641d0dfc41b2ed52dabe2c86"
+  },
+  "objects": [
+    {
+      "object_id": "o01",
+      "number": 1,
+      "color": "green",
+      "source": {
+        "x_m": 0.36901118997254084,
+        "y_m": 0.206604616685447,
+        "theta_rad": -0.06833965597821878
+      },
+      "target": {
+        "x_m": 0.35505062341690063,
+        "y_m": 0.20563113689422607,
+        "theta_rad": -0.0009598731994628906
+      },
+      "height_m": 0.006,
+      "major_m": 0.068,
+      "translation_mm": 13.994466101226422,
+      "delta_theta_deg": 3.860577177730979
+    },
+    {
+      "object_id": "o02",
+      "number": 2,
+      "color": "blue",
+      "source": {
+        "x_m": 0.3897840449638609,
+        "y_m": 0.27439994900153264,
+        "theta_rad": -0.20008100567912512
+      },
+      "target": {
+        "x_m": 0.44170981645584106,
+        "y_m": 0.07717636227607727,
+        "theta_rad": -0.0010254383087158203
+      },
+      "height_m": 0.02,
+      "major_m": 0.066,
+      "translation_mm": 203.9446711877772,
+      "delta_theta_deg": 11.405043898906476
+    },
+    {
+      "object_id": "o03",
+      "number": 3,
+      "color": "red",
+      "source": {
+        "x_m": 0.4953254099799315,
+        "y_m": 0.27952729503797746,
+        "theta_rad": 0.7313374994011381
+      },
+      "target": {
+        "x_m": 0.35972267389297485,
+        "y_m": 0.2802911102771759,
+        "theta_rad": -0.0009223222732543945
+      },
+      "height_m": 0.012,
+      "major_m": 0.077,
+      "translation_mm": 135.6048872570176,
+      "delta_theta_deg": -41.95539728894497
+    },
+    {
+      "object_id": "o04",
+      "number": 4,
+      "color": "blue",
+      "source": {
+        "x_m": 0.0753114729825955,
+        "y_m": 0.10051510714626694,
+        "theta_rad": 1.218436058964071
+      },
+      "target": {
+        "x_m": 0.3570612370967865,
+        "y_m": 0.07717636227607727,
+        "theta_rad": -0.0008820295333862305
+      },
+      "height_m": 0.01,
+      "major_m": 0.071,
+      "translation_mm": 282.7147442043271,
+      "delta_theta_deg": -69.86178035486331
+    },
+    {
+      "object_id": "o05",
+      "number": 5,
+      "color": "green",
+      "source": {
+        "x_m": 0.24850232671782985,
+        "y_m": 0.1757444778170067,
+        "theta_rad": 1.4736575090844717
+      },
+      "target": {
+        "x_m": 0.44443780183792114,
+        "y_m": 0.1489078402519226,
+        "theta_rad": -0.0012432336807250977
+      },
+      "height_m": 0.006,
+      "major_m": 0.051,
+      "translation_mm": 197.76479850149164,
+      "delta_theta_deg": -84.50558776115606
+    },
+    {
+      "object_id": "o06",
+      "number": 6,
+      "color": "green",
+      "source": {
+        "x_m": 0.2549605204308756,
+        "y_m": 0.08114578891028025,
+        "theta_rad": 1.2195597810532002
+      },
+      "target": {
+        "x_m": 0.4413864016532898,
+        "y_m": 0.20563113689422607,
+        "theta_rad": -0.001189112663269043
+      },
+      "height_m": 0.013,
+      "major_m": 0.073,
+      "translation_mm": 224.167818948746,
+      "delta_theta_deg": -69.94375945521799
+    },
+    {
+      "object_id": "o07",
+      "number": 7,
+      "color": "green",
+      "source": {
+        "x_m": 0.16484809141721468,
+        "y_m": 0.18667012839978495,
+        "theta_rad": -0.30722812364751273
+      },
+      "target": {
+        "x_m": 0.3676576018333435,
+        "y_m": 0.1489078402519226,
+        "theta_rad": -0.0012574195861816406
+      },
+      "height_m": 0.012,
+      "major_m": 0.074,
+      "translation_mm": 206.29514759536167,
+      "delta_theta_deg": 17.530829997360588
+    },
+    {
+      "object_id": "o08",
+      "number": 8,
+      "color": "red",
+      "source": {
+        "x_m": 0.43555680612163294,
+        "y_m": 0.06934911197793316,
+        "theta_rad": -1.274303930835518
+      },
+      "target": {
+        "x_m": 0.4525250196456909,
+        "y_m": 0.2802911102771759,
+        "theta_rad": -0.0011276006698608398
+      },
+      "height_m": 0.013,
+      "major_m": 0.076,
+      "translation_mm": 211.62336098993362,
+      "delta_theta_deg": 72.94763029444678
+    }
+  ],
+  "figures": {
+    "motion_correspondence": {
+      "width_pt": 396,
+      "height_pt": 232
+    }
+  }
+}

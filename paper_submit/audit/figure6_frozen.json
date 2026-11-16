@@ -1,0 +1,17 @@
+{
+  "purpose": "Panel titles, status lines, and callouts use the manuscript Times face. Spacing between a title, its photo, the status line, and the next title is even. Source renders and the LaTeX caption block stay unchanged.",
+  "sha256": {
+    "figures/qualitative_modes.pdf": "47a0ee0dd86d5aa4ae3d817b55583ff8b1e675dffe19ffb5bee5bb2979fe8fcc",
+    "figures/qualitative_modes.svg": "4b3d38d7e03d02433588b22d736a9f92fcd41da90a39e919185e090c31fc8eb9",
+    "figures/qualitative_modes.png": "5d15f875c8ffd46fe80a3988591f3f9a81f265f2a124bbf5e18a0326e54c356f",
+    "renders/smoke_before.png": "888076709118bf613c2d0b9aec577f93f6209174977186ba90c3daa3abb34380",
+    "renders/smoke_before.blend": "ca46c9a22fd60d389b012896d26ae7fdd7f94e176368c59dbfbf2f5c608fb9f0",
+    "renders/smoke_full.png": "aedb61b7fe74f9e51a2d787b5c923f5df74004ad48e2463b267920a7b0f78c01",
+    "renders/smoke_full.blend": "eabbc68867390f4724412936c24f78a5ace58a157643d69bb196109bbcc5fb46",
+    "renders/smoke_partial.png": "7b7edbe0a49d40c5ae99fb185af884710a69b61dd5117541dd8988352c0c9bdc",
+    "renders/smoke_partial.blend": "36c889158ca17f6eed73263cc2dd0f6c21fb07fbe6c9d3761f7abfb0318d8abd",
+    "renders/smoke_no_op.png": "ced63bae35ed6abc46757434d5f0f06d9d476c457fd38efb5e5120a054a5e85a",
+    "renders/smoke_no_op.blend": "c53120e573dd6e725d60bfb15b214ec3686e53dbd3e31252f9152fb045d58063"
+  },
+  "latex_figure_block": "\\begin{figure}[H]\n\\centering\\includegraphics[width=\\linewidth]{figures/qualitative_modes.pdf}\n\\caption{One validation scene under three commands, rendered with the same Blender camera and lighting. (b) fails because a row gap is 0.657\\,mm past its upper limit. (c) fails clearance by 3.9\\,$\\mu$m, a deficit this print cannot resolve. (d) passes, with at most 0.42\\,mm and 0.29$^\\circ$ of drift from the source. Figure~\\ref{fig:diagnostics} measures (b) and (c) on overhead crops.}\n\\label{fig:modes}\n\\end{figure}"
+}

@@ -1,0 +1,52 @@
+{
+  "status": "PASS",
+  "total_pages": 14,
+  "main_pages": [
+    1,
+    5
+  ],
+  "references_pages": [
+    6,
+    6
+  ],
+  "appendix_pages": [
+    7,
+    14
+  ],
+  "figures": 8,
+  "tables": 7,
+  "cited_references": 9,
+  "checks": [
+    "page boundaries",
+    "author and primary counts",
+    "no unresolved references",
+    "no conference acceptance claim",
+    "PDF text within page bounds",
+    "frozen score hashes",
+    "official template hashes",
+    "evidence manifest",
+    "no LaTeX warnings or overfull boxes",
+    "qualitative measurement input hashes",
+    "geometric annotations and all vector/preview exports",
+    "eight Blender render/source hashes",
+    "saved Blender mesh and pose audit",
+    "matched before/after camera, light and material settings",
+    "no running headers",
+    "all figure text within bounds",
+    "eight source-to-target distances and signed rotations",
+    "eight plotted world-direction arrows, displacement/rotation axes and rounded labels",
+    "Table 7 full source/predicted coordinates, unsnapped angles and differences",
+    "five main pages; retained Figure 5\u20137 numbers; appended Figure 8 and pose Table 7",
+    "failure margins and motion/failure source hashes",
+    "six-object teaser Blender/image/source hashes",
+    "three dedicated overhead render hashes, extents, resolution, and saved-scene preservation",
+    "architecture minimum label size and width",
+    "no sparse overflow pages",
+    "user-approved Figure 6 exports, scenes, and LaTeX unchanged",
+    "independent command-wise paired family-bootstrap intervals",
+    "all nine emitted error-count comparisons",
+    "instruction geometry reconstructed from eight saved target poses",
+    "56 footprint/envelope distance pairs and nearest-point checks"
+  ],
+  "pdf_sha256": "b8699ed7ce1e1fa69b4983bd66737b9e733abfdeae399c840561e9d3f0dacdff"
+}

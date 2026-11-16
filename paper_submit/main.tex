@@ -1,0 +1,175 @@
+\documentclass{article}
+\usepackage{template/iclr2026_conference,times}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{microtype,graphicx,booktabs,amsmath,amssymb,array,tabularx,multirow,seqsplit}
+\usepackage[dvipsnames,table]{xcolor}
+\usepackage{caption,float}
+\usepackage{url}
+\usepackage[colorlinks=true,linkcolor=MidnightBlue,citecolor=MidnightBlue,urlcolor=MidnightBlue]{hyperref}
+\iclrfinalcopy
+\urlstyle{same}
+\definecolor{paperblue}{HTML}{245C91}
+\captionsetup{font=small,labelfont=bf,skip=10pt,justification=raggedright,singlelinecheck=false}
+\captionsetup[figure]{skip=10pt}
+\definecolor{tablewash}{HTML}{EEF4F9}
+\renewcommand{\arraystretch}{1.15}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\setlength{\textfloatsep}{12pt}
+\setlength{\intextsep}{10pt}
+\setlength{\tabcolsep}{5pt}
+\setlength{\abovedisplayskip}{10pt plus 2pt minus 2pt}
+\setlength{\belowdisplayskip}{10pt plus 2pt minus 2pt}
+\setlength{\abovedisplayshortskip}{10pt plus 2pt minus 2pt}
+\setlength{\belowdisplayshortskip}{10pt plus 2pt minus 2pt}
+\raggedbottom
+\newcommand{\pct}{\%}
+\newcommand{\code}[1]{\texttt{\small #1}}
+\newcommand{\Hbeta}{H_{\beta}}
+\title{\normalfont\LARGE\bfseries Knolling Bot: Language-Guided Object Arrangement}
+\author{Minjae Bang\\Department of Computer Science, Columbia University}
+\hypersetup{pdftitle={Knolling Bot: Language-Guided Object Arrangement},pdfauthor={Minjae Bang},pdfsubject={Language-conditioned object arrangement; course research paper}}
+\begin{document}
+\maketitle
+\lhead{}
+\rhead{}
+\renewcommand{\headrulewidth}{0pt}
+\begin{abstract}
+We present a system that predicts object arrangements from overhead RGB images and English instructions. It combines object-centric perception, learned row and order prediction, and geometric placement to satisfy constraints on selection, orientation, grouping, and spacing. On an independent set of 128 scene families and 640 image--instruction pairs, our system achieves 540/640 strict successes (84.4\%), compared with 489/640 (76.4\%) for its predecessor using the same learned base. It preserves every previous success and gains 8.0 percentage points (95\% family-bootstrap interval 4.8--11.6). The results support a staged hybrid approach to instruction-conditioned arrangement and identify spacing as the main remaining source of failure in this synthetic setting.
+\end{abstract}
+\vspace{-8pt}
+\begin{figure}[H]
+\centering\includegraphics[width=0.91\linewidth]{figures/qualitative_full_annotated.pdf}
+\caption{\textbf{Language-guided arrangement.} Matched Blender views show a saved six-object validation prediction with the original meshes and poses. The instruction requests horizontal axes, increasing area, and 30\,mm gaps. The prediction uses the original overhead RGB input.}
+\label{fig:qualitative}
+\end{figure}
+\vspace{-10pt}
+\enlargethispage{8pt}
+\section{Introduction}
+Knolling organizes objects into aligned, evenly spaced layouts for assembly preparation. A visually tidy arrangement can still move an unselected object, violate a gap, or extend beyond the requested region. Satisfying a complete instruction requires perception, language grounding, and geometric reasoning to work together.
+
+We study full-arrangement, color-selective, and no-op commands for two to eight objects. The system predicts discrete layout structure---row membership and object order---before placing objects according to estimated dimensions and requested gaps. Held objects retain their estimated source poses, with no teacher poses used at inference. A paired evaluation on independent scene families measures improvement, while failure analysis identifies the constraints that still limit complete-scene success.
+
+\paragraph{Related work.}
+Knolling Bot predicts tidy placements sequentially \citep{hu2025knolling}, and \emph{Knolling Bot 2.0} estimates graspability for clutter \citep{hu2023knolling2}. These published Columbia systems are separate from the project reported here. StructFormer uses point clouds for language-guided structure \citep{liu2022structformer}, whereas Transporter Networks and CLIPort predict manipulation actions \citep{zeng2021transporter,shridhar2022cliport}. We evaluate complete geometric validity from calibrated RGB and language. Task differences preclude direct performance comparisons.
+
+\clearpage
+\section{Method}
+\label{sec:method}
+\enlargethispage{15pt}
+Given overhead RGB $I\in[0,1]^{3\times384\times576}$ and an English instruction $t$, the system predicts planar poses $\hat P=\{(\hat x_i,\hat y_i,\hat\theta_i)\}_{i=1}^{\hat N}$ in a $0.60\times0.40$\,m workspace. Orientation follows the undirected long axis and is therefore $\pi$-periodic. Commands arrange all objects, select a color, or preserve the scene. Preferences specify the region, 15/20/30\,mm gaps, color grouping, area order, and orientation. A vertical-orientation command rotates objects while rows continue to run left to right.
+
+\vspace{2pt}
+\begin{figure}[H]
+\centering\includegraphics[width=\linewidth]{figures/architecture_main.pdf}
+\caption{\textbf{Hybrid inference and learned layout.} The RGB inset shows the model input, and the rendered views depict stored poses. Tensor symbols denote schemas for variable $N$. Seven attention slots $Z$ support the text-only goal $g$ and object-conditioned selection $m$. Contextual features predict $(r,\pi)$, while pose heads use the original $H$. Geometry refines movers while held and no-op objects retain estimated source poses.}
+\label{fig:architecture}
+\end{figure}
+\vspace{-10pt}
+
+\paragraph{Perception and language grounding.}
+RT-DETR-R18 \citep{zhao2024rtdetr}, a DETR-based detector \citep{carion2020detr}, produces object queries and physical attributes. Crop-conditioned appearance and size heads refine each detection into a 12-dimensional representation of position, size, angle, color, and shape. MiniLM \citep{wang2020minilm,reimers2020multilingual} encodes the instruction, and seven learned queries pool its tokens into a 13-dimensional global goal. A separate object--language attention branch identifies the objects to move. Template rules correct predicted region or gap categories that conflict with explicit English commands.
+
+\paragraph{Learned structure and constrained coordinates.}
+A relation encoder produces features $h_i\in\mathbb R^{128}$. Four-head set attention conditions row assignment $r$ and pointer order $\pi$ on the goal and object sizes, while the pose heads use the original $h_i$. The initial search ranks structures by row and order log-probabilities and checks at most eight candidates. Full arrangements also enforce predicted-area order. For feasible aligned neighbors, placement satisfies
+\begin{equation}\label{eq:mainspacing}
+ \hat x_{j+1}-\hat x_j=\tfrac12(\hat w_j+\hat w_{j+1})+d,\qquad |d-\delta|\leq2\,\mathrm{mm},
+\end{equation}
+where $\hat w_j$ is the rotated horizontal extent and $\delta$ is the requested gap. Row heights similarly determine vertical spacing. This separates the choice of structure from placement using estimated dimensions. Conditional repair ranks alternative rows by their probabilities and retains the original prediction if its bounded search fails. The procedure does not guarantee a feasible layout.
+
+\paragraph{Selective preservation.}
+For partial arrangements, the system selects the named color and searches for translations around objects that must remain in place. Held and no-op objects retain detected centers. Their angles are estimated from RGB silhouettes by principal-component analysis, with a learned fallback. Preservation thus depends on the accuracy of the source-pose estimates. Appendix~\ref{app:implementation} gives the routing and search bounds.
+
+\section{Data, Training, and Evaluation}
+\label{sec:protocol}
+\paragraph{Synthetic corpus.}
+The corpus contains 4,000 geometry families and 20,000 image--instruction pairs. Each RGB image is paired with three full-arrangement commands, one color-selective command, and one no-op command, allowing the instruction to vary while the scene remains fixed. Procedural boxes, chamfers, and capsules appear in red, green, or blue. A geometric teacher generates target layouts, an independent validator checks them, and Blender Cycles renders the images. The train/validation/test split contains 3,200/400/400 families, corresponding to 16,000/2,000/2,000 pairs. This separation keeps identical source images out of different splits. Individual training stages use the subsets described below.
+
+\paragraph{Staged optimization.}
+Perception and arrangement models are first trained separately. Relation stages then use 791 training pairs and 94 validation pairs, followed by a size-residual stage supervised on source dimensions. Restricted joint fine-tuning updates the size residual and selected row-coordinate parameters while freezing perception, language, goal, relation, row assignment, order, and angle heads. Refined sizes are detached before pose computation, so pose loss cannot train perception. The selector learns row and pointer assignments from 5,085 usable full-arrangement pairs among 5,376 eligible pairs from 1,792 training families. Detection-count or association checks exclude 291 pairs. Eight epochs are recorded, and epoch 1 is selected on 1,200 full validation pairs. Appendix~\ref{app:training} details the losses, hyperparameters, gradient boundaries, and development diagnostics.
+
+A broader joint-training pilot was not adopted because performance deteriorated. By update 200, success had fallen from 2/38 to 0/38 on development and from 24/152 to 1/152 on validation. The final system therefore retains the staged approach. This outcome concerns one configuration and leaves effective system-wide joint optimization an open research question.
+
+\paragraph{Sealed release comparison.}
+The final evaluation uses a later, separately generated set of 128 families and 640 pairs. Its family IDs, RGB hashes, and asset-family IDs are disjoint from the 20,000-pair corpus. Objects come from the development asset pool not rendered in that corpus, while retaining the same procedural shapes and colors. The set contains 384 full, 127 partial, and 129 no-op pairs. Both releases use the same records, evaluator, and thresholds. Neither this set nor the official 2,000-pair test split was used to select checkpoints or thresholds. We analyze the stored sealed scores without rerunning inference or selecting another model.
+
+\paragraph{Strict complete-scene success.}
+A prediction fails immediately if the object count is wrong. Otherwise, Hungarian matching associates predicted source objects with true identities, subject to a 10\,mm center-error limit and envelope IoU $\geq0.5$. The evaluator then checks target poses using true object geometry. Success requires every applicable check to pass, including selection and preservation, region, axis, row alignment, gaps, color grouping, size order, collision, clearance, and boundary constraints. The score averages these binary scene outcomes,
+\begin{equation}
+ S=\frac{1}{M}\sum_{s=1}^{M}\mathbf{1}\{\hat N_s=N_s\ \land\ \text{identity and task checks pass}\}.
+\end{equation}
+A valid arrangement can pass even if it differs from the teacher layout. The metric evaluates instruction fulfillment at the pose level rather than visual aesthetics, grasp success, trajectory safety, or physical execution.
+
+\begin{table}[H]
+\centering\small
+\caption{Prediction-scoring thresholds. Dataset acceptance is checked separately and requires stored locked poses to copy the source exactly.}
+\label{tab:tolerances}
+\begin{tabular*}{\linewidth}{@{}l@{\extracolsep{\fill}}l@{}}\toprule
+\textbf{Check} & \textbf{Threshold / requirement} \\\midrule
+Held position / long-axis angle & $\leq1$\,mm / $\leq1^\circ$ deviation \\
+Requested axis / row alignment & $\leq2^\circ$ / $\leq2$\,mm deviation \\
+Horizontal / vertical gap & $\leq2$\,mm from requested gap \\
+Object clearance / table margin & At least 10\,mm (0.1\,mm numerical tolerance) \\
+Size order & At most 5\% area inversion \\\bottomrule
+\end{tabular*}
+\end{table}
+
+\section{Results and Analysis}
+\label{sec:results}
+\enlargethispage{14pt}
+\paragraph{Paired release comparison.}
+v1.0.0 is the baseline implementation, and v2.0.0 keeps that learned model while refining inference; these releases are not published \emph{Knolling Bot 2.0} \citep{hu2023knolling2}. Table~\ref{tab:main} evaluates one bundle: 10\,mm duplicate suppression, sentence-consistent region and gap choices, stricter named-color selection, and feasibility-gated row and color repair.
+
+\begin{table}[H]
+\centering
+\caption{Strict target-layout success on the independent 640-pair set. Each count gives successful scenes over evaluated scenes, and gains are paired differences in percentage points.}
+\label{tab:main}
+\begin{tabularx}{\linewidth}{Yrrr}\toprule
+\textbf{Task} & \textbf{v1.0.0} & \textbf{v2.0.0} & \textbf{Gain (pp)} \\\midrule
+Full & 287/384 (74.7\%) & 311/384 (81.0\%) & +6.3 \\
+Partial & 84/127 (66.1\%) & 104/127 (81.9\%) & +15.7 \\
+No-op & 118/129 (91.5\%) & 125/129 (96.9\%) & +5.4 \\\midrule
+\rowcolor{tablewash} Overall & 489/640 (76.4\%) & \textbf{540/640 (84.4\%)} & \textbf{+8.0} \\\bottomrule
+\end{tabularx}
+\end{table}
+
+v2.0.0 retains all 489 v1.0.0 successes and adds 51, comprising 24 full, 20 partial, and 7 no-op scenes. Failures fall from 151 to 100, a 33.8\% relative reduction. Because five instructions share each image, we bootstrap paired \emph{families} rather than individual commands. Across 10,000 resamples, the 95\% interval is +4.8 to +11.6 percentage points. Twenty-nine families improve, 99 tie, and none worsen. This interval describes variation across evaluation families for the frozen systems, not training-seed uncertainty or real-world domain shift.
+
+\begin{figure}[H]
+\centering\includegraphics[width=0.96\linewidth]{figures/holdout_diagnostics.pdf}
+\caption{\textbf{Release-level gains and remaining errors.} (a) Paired success gains with pointwise 95\% family-bootstrap intervals. (b) Recorded error counts for the two releases. ``Any gap'' combines horizontal and vertical violations. Tags can overlap, and count failures skip subsequent checks.}
+\label{fig:results}
+\end{figure}
+
+\paragraph{Patterns of improvement and failure.}
+Partial tasks show the largest gain. Count failures decrease from 45 to 5 and region failures from 17 to 4, consistent with the intended refinements. Eight-object success rises from 47/90 to 65/90 (52.2\% to 72.2\%), although it remains below the two-object result of 91/95 for both releases. Without component ablations, these changes cannot be attributed to individual rules.
+
+Spacing remains the dominant source of failure. The 49 horizontal-gap and 42 vertical-gap failures overlap in 20 scenes, so 71/100 failed scenes violate at least one gap constraint. Other tags include 11 size-order, 7 clearance, 5 count, 4 region, and 4 preservation errors. One possible explanation is that placement uses \emph{predicted} dimensions whereas scoring uses true bounding rectangles. A layout can pass its internal feasibility check yet miss the scored gap threshold. The tags do not establish how often this mechanism occurs.
+
+\section{Interpreting Predicted Arrangements}
+\label{sec:discussion}
+\begin{figure}[H]
+\centering\includegraphics[width=\linewidth]{figures/motion_correspondence.pdf}
+\caption{\textbf{Object-wise predicted motion.} IDs link recorded source poses to predicted targets. In (c), equal-length arrows show direction ($+x$ right, $+y$ up), while dots and labels show displacement. In (d), $\Delta\theta\in[-90^\circ,90^\circ)$ is the counterclockwise-positive change modulo $180^\circ$. These endpoint differences do not specify robot trajectories. Appendix~\ref{app:motionaudit} gives the coordinates and spacing analysis.}
+\label{fig:motion}
+\end{figure}
+
+\paragraph{From pose changes to task validity.}
+Figure~\ref{fig:motion} shows a modest change for object 1 (14.0\,mm, $+3.9^\circ$) and a larger displacement for object 4 (282.7\,mm, $-69.9^\circ$), both within a valid final layout. Figures~\ref{fig:modes}--\ref{fig:diagnostics} illustrate the limits of judging such layouts visually. A full-layout row gap exceeds its upper limit by 0.657\,mm. In the partial layout, the closest footprints are 12.820\,mm apart, yet their envelopes miss the effective 9.9\,mm clearance limit by 3.9\,$\mu$m. The visibly separated pair fails because of conservative scoring geometry, not a visible collision. This numerical margin does not imply physical positioning precision.
+
+\paragraph{Scope and limitations.}
+The system achieves RGB-and-language inference through staged learning, discrete selection, template correction, image-based angle estimation, and geometric search. We have not yet demonstrated joint training across the full pipeline. Evaluation is limited to calibrated synthetic scenes with three colors and three shape types, containing at most eight objects. Real images, paraphrases, severe occlusions, and physical execution have not been tested. Using one learned base without factorial ablations or multiple seeds also limits component attribution and uncertainty estimation. Appendix~\ref{app:reproducibility} describes the available runtime and reproducibility evidence.
+
+\section{Conclusion}
+Our approach achieves 84.4\% strict scene success on an independent, family-separated set, improving on its predecessor by 8.0 percentage points. The results support combining learned layout structure with geometric placement and selective preservation. Future work should improve spacing, isolate the effects of individual refinements, and evaluate joint training and physical execution.
+
+\begingroup
+\small
+\raggedright
+\bibliography{references}
+\bibliographystyle{template/iclr2026_conference}
+\endgroup
+\clearpage
+\appendix
+\input{appendix}
+\end{document}

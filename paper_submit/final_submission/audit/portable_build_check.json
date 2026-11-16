@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "revision": "Five-page final submission, 2026-11-15",
+  "method": "Extract complete source bundle to an isolated directory; regenerate figures from bundled evidence and fonts; compile with pdfLaTeX/BibTeX via latexmk.",
+  "pages": 12,
+  "page_text_identical": true,
+  "page_pixels_identical": true,
+  "source_repository_required": false,
+  "model_weights_required": false,
+  "original_dataset_required": false,
+  "compiled_with_bundled_render_inputs": true,
+  "figure_png_regeneration_identical": true,
+  "geometric_annotations_regeneration_identical": true,
+  "pdf_sha256": "ea19c81192c990cb7805d61c63731ab9e269d825f74baf884e2ef67f081f1a1e"
+}

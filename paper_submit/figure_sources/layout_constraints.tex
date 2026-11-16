@@ -1,0 +1,83 @@
+\documentclass[border=0bp]{standalone}
+\usepackage[T1]{fontenc}
+\usepackage{times,amsmath,amssymb,graphicx,xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,calc,positioning,patterns}
+\pdfinfoomitdate=1
+\pdftrailerid{}
+\definecolor{ink}{HTML}{202020}
+\definecolor{muted}{HTML}{626262}
+\definecolor{hairline}{HTML}{B9B9B9}
+\definecolor{accent}{HTML}{284E67}
+\definecolor{signal}{HTML}{A33D36}
+\definecolor{objectred}{HTML}{D45B59}
+\definecolor{objectgreen}{HTML}{55A870}
+\definecolor{objectblue}{HTML}{507BC2}
+\definecolor{teal}{HTML}{087E81}
+\definecolor{ochre}{HTML}{B27A46}
+\definecolor{violet}{HTML}{7563A6}
+\tikzset{
+ every node/.style={font=\fontsize{9.5}{11.5}\selectfont,inner sep=0bp,outer sep=0bp,text=ink},
+ flow/.style={draw=ink,line width=.45bp,-{Latex[length=3bp,width=2bp]}},
+ auxflow/.style={draw=muted,line width=.35bp,-{Latex[length=3bp,width=2bp]}},
+ measure/.style={draw=ink,line width=.4bp,{Latex[length=2.4bp,width=1.6bp]}-{Latex[length=2.4bp,width=1.6bp]}},
+ envelope/.style={draw=muted,line width=.35bp,dash pattern=on 2bp off 1.5bp,fill=none},
+ frame/.style={draw=hairline,line width=.35bp,fill=none},
+ leader/.style={draw=muted,line width=.35bp},
+ module/.style={draw=ink,line width=.45bp,fill=white,minimum height=30bp,align=center,inner xsep=3bp,inner ysep=3bp},
+}
+\begin{document}
+\begin{tikzpicture}[x=1bp,y=-1bp,line cap=butt,line join=miter]
+\node[anchor=north west] at (0.0,2.0) {\includegraphics[width=198.0bp,height=132.0bp]{renders/detail_full_workspace.png}};
+\draw[draw=teal,line width=.6bp,dash pattern=on 2.4bp off 1.8bp] (99.0000000,6.1250000) -- (99.0000000,129.8750000);
+\node[anchor=west,text=teal] at (107.25000,17.12500) {Right region};
+\node[anchor=east] at (85.25000,43.15994) {r1};
+\node[anchor=east] at (85.25000,66.25787) {r2};
+\node[anchor=east] at (85.25000,83.80664) {r3};
+\node[anchor=east] at (85.25000,105.99856) {r4};
+\node[anchor=west,text=muted] at (0.00000,148.00000) {0.60 $\times$ 0.40 m workspace};
+\path[draw=none,fill=teal!7] (216.0000000,2.0000000) rectangle (390.0000000,134.0000000);
+\node[anchor=west] at (224.00000,11.00000) {Gap error (mm)};
+\node[anchor=east,text=teal] at (384.00000,11.00000) {Allowed $\pm2$};
+\node[anchor=west,text=muted] at (224.00000,24.00000) {Within rows};
+\node[anchor=west,text=muted] at (224.00000,84.00000) {Between rows};
+\draw[draw=teal!50,line width=.4bp,dash pattern=on 2bp off 1.6bp] (312.2222222,32.0000000) -- (312.2222222,134.0000000);
+\draw[draw=teal!50,line width=.4bp,dash pattern=on 2bp off 1.6bp] (379.7777778,32.0000000) -- (379.7777778,134.0000000);
+\draw[draw=muted,line width=.5bp] (346.0000000,32.0000000) -- (346.0000000,134.0000000);
+\node[anchor=east] at (302.00000,36.00000) {r1};
+\draw[draw=teal!65,line width=.65bp] (346.0000000,36.0000000) -- (367.3683592,36.0000000);
+\path[draw=white,line width=.4bp,fill=teal] (367.3683592,36.0000000) circle[radius=2.2bp];
+\node[anchor=east] at (302.00000,48.00000) {r2};
+\draw[draw=teal!65,line width=.65bp] (346.0000000,48.0000000) -- (359.4276916,48.0000000);
+\path[draw=white,line width=.4bp,fill=teal] (359.4276916,48.0000000) circle[radius=2.2bp];
+\node[anchor=east] at (302.00000,60.00000) {r3};
+\draw[draw=teal!65,line width=.65bp] (346.0000000,60.0000000) -- (333.2218034,60.0000000);
+\path[draw=white,line width=.4bp,fill=teal] (333.2218034,60.0000000) circle[radius=2.2bp];
+\node[anchor=east] at (302.00000,72.00000) {r4};
+\draw[draw=teal!65,line width=.65bp] (346.0000000,72.0000000) -- (364.6924473,72.0000000);
+\path[draw=white,line width=.4bp,fill=teal] (364.6924473,72.0000000) circle[radius=2.2bp];
+\node[anchor=east] at (302.00000,96.00000) {r1--r2};
+\draw[draw=teal!65,line width=.65bp] (346.0000000,96.0000000) -- (355.9956530,96.0000000);
+\path[draw=white,line width=.4bp,fill=teal] (355.9956530,96.0000000) circle[radius=2.2bp];
+\node[anchor=east] at (302.00000,108.00000) {r2--r3};
+\draw[draw=teal!65,line width=.65bp] (346.0000000,108.0000000) -- (348.6850451,108.0000000);
+\path[draw=white,line width=.4bp,fill=teal] (348.6850451,108.0000000) circle[radius=2.2bp];
+\node[anchor=east] at (302.00000,120.00000) {r3--r4};
+\draw[draw=teal!65,line width=.65bp] (346.0000000,120.0000000) -- (374.1788673,120.0000000);
+\path[draw=white,line width=.4bp,fill=teal] (374.1788673,120.0000000) circle[radius=2.2bp];
+\draw[draw=muted,line width=.45bp] (308.0000000,134.0000000) -- (384.0000000,134.0000000);
+\draw[draw=muted,line width=.45bp] (312.2222222,134.0000000) -- (312.2222222,137.5000000);
+\node[anchor=center,text=muted] at (312.22222,148.00000) {-2};
+\draw[draw=muted,line width=.45bp] (329.1111111,134.0000000) -- (329.1111111,137.5000000);
+\node[anchor=center,text=muted] at (329.11111,148.00000) {-1};
+\draw[draw=muted,line width=.45bp] (346.0000000,134.0000000) -- (346.0000000,137.5000000);
+\node[anchor=center,text=muted] at (346.00000,148.00000) {0};
+\draw[draw=muted,line width=.45bp] (362.8888889,134.0000000) -- (362.8888889,137.5000000);
+\node[anchor=center,text=muted] at (362.88889,148.00000) {1};
+\draw[draw=muted,line width=.45bp] (379.7777778,134.0000000) -- (379.7777778,137.5000000);
+\node[anchor=center,text=muted] at (379.77778,148.00000) {2};
+
+\pgfresetboundingbox
+\path[use as bounding box] (0,0) rectangle (396,157);
+\end{tikzpicture}
+\end{document}

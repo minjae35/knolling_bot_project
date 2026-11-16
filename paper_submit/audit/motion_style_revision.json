@@ -1,0 +1,11 @@
+{
+  "figures": [
+    4
+  ],
+  "reference": "Figure6 exact gray-table render style and paired native-aspect panels",
+  "change": "Replaced schematic footprint map with matched actual Blender renders, projected object IDs, and an eight-object measured translation/rotation ledger.",
+  "width_pt": 396,
+  "height_pt": 254,
+  "minimum_label_pt": 7,
+  "new_inference": false
+}

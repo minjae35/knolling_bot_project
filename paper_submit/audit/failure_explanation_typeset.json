@@ -1,0 +1,17 @@
+{
+  "source": "figure_sources/failure_explanation.tex",
+  "width_pt": 396,
+  "height_pt": 294,
+  "typography": "Manuscript Times text and LaTeX mathematics; nominal labels 10 pt.",
+  "line_hierarchy_bp": {
+    "primary": 0.45,
+    "auxiliary": 0.35,
+    "dimension": 0.4
+  },
+  "text_bounds": "PASS",
+  "exports_sha256": {
+    "pdf": "815099940a1657cdbf0b03ad698f7b40fccb2ea3c6f43c702605512c1a5b88b6",
+    "svg": "69734215cae9d41868d74a4e20c534ff18bda480682fc50fc846fda54ae4fe8c",
+    "png": "6df330ea11af5ae29d600f3e71900f9156de60cd69badb7379ba4fa3c11b2ec8"
+  }
+}

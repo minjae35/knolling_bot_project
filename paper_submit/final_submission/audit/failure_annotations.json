@@ -1,0 +1,69 @@
+{
+  "full": {
+    "actual_mm": 17.65737269579154,
+    "upper_bottom_y_m": 0.16989203946553608,
+    "lower_top_y_m": 0.15223466676974454,
+    "above_ids": [
+      "o06",
+      "o04",
+      "o03"
+    ],
+    "below_ids": [
+      "o07"
+    ],
+    "sample_id": "expanded_09aa3f57968449ce8a09f291_0",
+    "allowed_band_mm": [
+      13,
+      17
+    ],
+    "excess_over_upper_limit_mm": 0.6573726957915405,
+    "guide_world_xy_m": [
+      [
+        0.175,
+        0.16989203946553608
+      ],
+      [
+        0.175,
+        0.15223466676974454
+      ]
+    ]
+  },
+  "partial": {
+    "sample_id": "expanded_09aa3f57968449ce8a09f291_2",
+    "closest_pair": [
+      "o06",
+      "o08"
+    ],
+    "actual_clearance_mm": 9.896102832824814,
+    "nominal_minimum_mm": 10.0,
+    "numerical_tolerance_mm": 0.1,
+    "effective_minimum_mm": 9.9,
+    "deficit_um": 3.897167175185956,
+    "deficit_native_pixels": 0.011691501525557868,
+    "nearest_points_world_xy_m": [
+      [
+        0.2376811973970043,
+        0.20981149499744534
+      ],
+      [
+        0.22792500833553409,
+        0.21146969470637433
+      ]
+    ]
+  },
+  "provenance": {
+    "method": "Geometry recomputed from frozen validation poses and original rectangular envelopes. These are illustrative saved predictions, not a new benchmark.",
+    "overhead_extent_world_m": [
+      -0.02,
+      0.62,
+      -0.013333333333333336,
+      0.41333333333333333
+    ],
+    "input_sha256": {
+      "audit/evidence/v2_validation_smoke.json": "f1f248df95b72e0deffa45edcae9d246e172cab2da79ff51ba880f07c3398405",
+      "audit/evidence/v2_smoke_source_records.json": "ddb02bfd4addb5cf17552391e68141ae570bd2316fc9e6757ca074c6e2f5d1d8",
+      "renders/smoke_full_overhead.png": "5fb97482844e29b5d887499ae468f1432923b3b0eb0af7d77c8bf1242584b3f0",
+      "renders/smoke_partial_overhead.png": "a4dd32056b64787220a462849c1cbc725fbcc6c2f04c5005faa40c761cc8380b"
+    }
+  }
+}

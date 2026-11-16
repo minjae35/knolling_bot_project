@@ -1,0 +1,65 @@
+{
+  "status": "PASS",
+  "canonical_pdf": "knolling_bot_v2_paper.pdf",
+  "changed_figures": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    7
+  ],
+  "preserved_figure": 6,
+  "teaser_matches_figure6_camera_light_render_settings": true,
+  "figures": [
+    {
+      "figure": 1,
+      "file": "figures/qualitative_full_annotated.pdf",
+      "before_sha256": "0cc884b85d8f81df333605e268542514e431c0365e3efbc8332246e38d9d7cd4",
+      "after_sha256": "d8a238c4f8dd5d8e966fba29254c3b0de13eca7c9b7165a56f1e250141722207",
+      "changed": true
+    },
+    {
+      "figure": 2,
+      "file": "figures/architecture_main.pdf",
+      "before_sha256": "bd4d41cfcbd32ba7c5bfed18975059f98da7fb606aaf45b4502582c14a63e42c",
+      "after_sha256": "2813d0ec8af59e3cbd8be5e5321a65a771c16a6fe5ee0e2f73858c6fef29289c",
+      "changed": true
+    },
+    {
+      "figure": 3,
+      "file": "figures/holdout_diagnostics.pdf",
+      "before_sha256": "d61f172d0fd7d153b2ed51f73922c6c3fe2606bce3b4fece32a998dbc8bf269f",
+      "after_sha256": "dfffbb64afbad629cd6b0c2699b78eb71e90a4c26d3bc42a0accb2357b16b481",
+      "changed": true
+    },
+    {
+      "figure": 4,
+      "file": "figures/motion_correspondence.pdf",
+      "before_sha256": "17356df2b466f667aefdbe1ecf9389055c364ddd79c9a79ce34049579bf86aef",
+      "after_sha256": "c42e357efa05ccba6e44eba6fb9af6baa7332abb3e45c2e8a1e7a59e123d7dac",
+      "changed": true
+    },
+    {
+      "figure": 5,
+      "file": "figures/selector_training.pdf",
+      "before_sha256": "eb3f0b3cdcb963a1bcb37e88fa6074435031de336a2122d28709cc34522ffea1",
+      "after_sha256": "79de3a7f0cea255381778b7fded2b45c2487fe6dfb49029b4cc8df1d03c5f922",
+      "changed": true
+    },
+    {
+      "figure": 6,
+      "file": "figures/qualitative_modes.pdf",
+      "before_sha256": "02fa5d29a70a3c0d05e1a7c369f1f885ba43a3858ec151b47fb42119bf2aeb12",
+      "after_sha256": "02fa5d29a70a3c0d05e1a7c369f1f885ba43a3858ec151b47fb42119bf2aeb12",
+      "changed": false
+    },
+    {
+      "figure": 7,
+      "file": "figures/failure_explanation.pdf",
+      "before_sha256": "1c96b83fe3b79c4420aa920ad145dc97144ba67b191520a48e67cb18e9e78fa1",
+      "after_sha256": "1b16a3cca596bad6b13b6747ca417f58924165cb970442773eb8d7c7491f3e80",
+      "changed": true
+    }
+  ]
+}

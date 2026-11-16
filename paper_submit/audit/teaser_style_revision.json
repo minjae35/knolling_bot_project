@@ -1,0 +1,13 @@
+{
+  "figure": 1,
+  "reference": "Neutral Blender table and native 3:2 panels. Labels use Nimbus Roman, the manuscript Times face. Panel titles are 11 pt and each status line is 9.5 pt.",
+  "width_pt": 396,
+  "height_pt": 164,
+  "sample_id": "expanded_e2ee7a75ae3a34826b36d71f_0",
+  "inputs": {
+    "renders/teaser6_before.png": "8002fdd9e377f42e3db1a7ee5033982daa92fcd870bcd00ea1a652464435c15e",
+    "renders/teaser6_after.png": "c5c8768623ae70eee0af381acf88108b61cc4fd0c6b58ec5cbfc1216b669ed1e",
+    "audit/evidence/full67_choice.json": "28ab2f0cc1532de0af1cf6439a69099a1e6a5970cc5c1d67f4377f2779ef18cf"
+  },
+  "scope": "Saved original poses and mesh geometry; only presentation setup matches Figure 6. No new inference."
+}

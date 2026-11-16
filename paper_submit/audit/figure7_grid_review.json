@@ -1,0 +1,138 @@
+{
+  "pdf_sha256": "f540cbb1d1037c1670b5fc5eabf56ba3570945d0d2f00881b0f3780fa0dac030",
+  "previous_pdf_sha256": "90539b159eace99ff33a6dd24e2cd4548ae85d95a199c86971e0d6026adacdaf",
+  "page_comparison": [
+    {
+      "page": 1,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 2,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 3,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 4,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 5,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 6,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 7,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 8,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 9,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 10,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 11,
+      "pixels_identical": false,
+      "text_identical": true
+    },
+    {
+      "page": 12,
+      "pixels_identical": true,
+      "text_identical": true
+    }
+  ],
+  "other_figures_renders_and_evidence_files_unchanged": 81,
+  "manuscript_latex_bytes_unchanged": true,
+  "all_figure_text_fonts_and_sizes_unchanged": true,
+  "all_embedded_images_and_printed_object_scales_unchanged": true,
+  "detail_crops_and_scientific_values_unchanged": true,
+  "layout": {
+    "figure_size_bp": [
+      396,
+      240
+    ],
+    "image_group_bounds_x_bp": [
+      42,
+      354
+    ],
+    "outer_margins_bp": [
+      42,
+      42
+    ],
+    "gutter_bp": 40,
+    "previous_right_unused_bp": 56,
+    "previous_left_unused_bp": 0,
+    "previous_gutter_bp": 68,
+    "context_width_bp": 112,
+    "detail_width_bp": 160,
+    "image_headers_aligned_per_row": true,
+    "metric_footer_within_detail_column": true
+  },
+  "geometric_checks": [
+    {
+      "mode": "full",
+      "matching_left_right_height_bp": 60.0,
+      "linear_magnification": 1.836734693877551,
+      "leaders_clear_of_visible_objects": true,
+      "fully_visible_object_ids": [
+        "o07",
+        "o02",
+        "o04",
+        "o01",
+        "o08",
+        "o03",
+        "o06",
+        "o05"
+      ],
+      "overview_world_extent_m": [
+        0.13,
+        0.49,
+        0.10198885461342946,
+        0.2948459974705723
+      ]
+    },
+    {
+      "mode": "partial",
+      "matching_left_right_height_bp": 69.41176470588236,
+      "linear_magnification": 2.4603174603174605,
+      "leaders_clear_of_visible_objects": true,
+      "fully_visible_object_ids": [
+        "o07",
+        "o04",
+        "o08",
+        "o03",
+        "o06"
+      ],
+      "overview_world_extent_m": [
+        0.08,
+        0.39,
+        0.1060509373426377,
+        0.2981727860821335
+      ]
+    }
+  ],
+  "reframing_scope": "Existing overview images are reframed vertically at unchanged object scale. All full-layout objects and five principal partial-layout objects are fully visible. The previously clipped unrelated o02 corner fragment lies outside the partial overview. No object is erased or moved. Dedicated detail crops are unchanged.",
+  "new_rendering_or_inference": false
+}

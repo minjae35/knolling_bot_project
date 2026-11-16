@@ -1,0 +1,95 @@
+{
+  "previous_pdf_sha256": "d7145ba8c1c80aeda8d53d94a309b18a6342f4197b625aa6922e1774648de880",
+  "pdf_sha256": "16ce8946b52f510484800472a9aa5e8da08c84078ca38905cc2ae6d547fe87c7",
+  "page_comparison": [
+    {
+      "page": 1,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 2,
+      "pixels_identical": false,
+      "text_identical": false
+    },
+    {
+      "page": 3,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 4,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 5,
+      "pixels_identical": false,
+      "text_identical": false
+    },
+    {
+      "page": 6,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 7,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 8,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 9,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 10,
+      "pixels_identical": false,
+      "text_identical": false
+    },
+    {
+      "page": 11,
+      "pixels_identical": false,
+      "text_identical": false
+    },
+    {
+      "page": 12,
+      "pixels_identical": true,
+      "text_identical": true
+    }
+  ],
+  "scientific_evidence": {
+    "failure_annotations.json": "byte-identical",
+    "paired_mode_analysis.json": "byte-identical",
+    "footprint_clearance_analysis.json": "byte-identical",
+    "motion_objects": "all eight transforms, translations, signed rotations and top-panel ID positions identical",
+    "constraint_values_unchanged": [
+      "rows",
+      "horizontal_gaps",
+      "vertical_gaps",
+      "color_area_sequences",
+      "bounding_rectangle_area_mm2",
+      "maximum_axis_error_deg",
+      "evaluated_x_bounds_m",
+      "requested_region_x_m",
+      "horizontal_gap_range_mm"
+    ]
+  },
+  "gap_residuals_mm": [
+    1.265231797349287,
+    0.7950606854146418,
+    -0.7566037460353527,
+    1.1067896409228268,
+    0.5918478774243887,
+    0.1589829323116323,
+    1.6684855653560646
+  ],
+  "architecture_main_upper_panels_identical": true,
+  "motion_correspondence_upper_panels_identical": true,
+  "three_new_camera_views_verified": true
+}

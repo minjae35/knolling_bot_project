@@ -1,0 +1,147 @@
+{
+  "blender_version": "5.1.0",
+  "renderer": "Cycles CPU",
+  "threads": 8,
+  "samples": 128,
+  "denoising": true,
+  "color_management": "AgX / Medium High Contrast",
+  "object_palette": {
+    "red": [
+      0.62,
+      0.025,
+      0.025,
+      1
+    ],
+    "green": [
+      0.025,
+      0.42,
+      0.045,
+      1
+    ],
+    "blue": [
+      0.025,
+      0.07,
+      0.62,
+      1
+    ]
+  },
+  "roughness": 0.65,
+  "oblique_camera": {
+    "location": [
+      0.3,
+      -0.54,
+      0.95
+    ],
+    "target": [
+      0.3,
+      0.2,
+      0.0
+    ],
+    "ortho_scale_m": 0.7
+  },
+  "overhead_camera": {
+    "location": [
+      0.3,
+      0.2,
+      1.0
+    ],
+    "target": [
+      0.3,
+      0.2,
+      0.0
+    ],
+    "ortho_scale_m": 0.64
+  },
+  "lights": [
+    {
+      "name": "Key",
+      "location": [
+        -0.12,
+        -0.25,
+        0.85
+      ],
+      "energy": 7,
+      "size": 0.55
+    },
+    {
+      "name": "Fill",
+      "location": [
+        0.75,
+        0.32,
+        0.65
+      ],
+      "energy": 2,
+      "size": 0.65
+    },
+    {
+      "name": "Rim",
+      "location": [
+        0.15,
+        0.72,
+        0.55
+      ],
+      "energy": 3,
+      "size": 0.45
+    }
+  ],
+  "scene_policy": "Exact original footprint extrusion and heights; source or stored predicted poses unchanged. Only presentation camera, light and tabletop change. These re-renders are not model input images.",
+  "input_sha256": {
+    "full8b_choice.json": "82dbadde9ce7c199add36fb549a2c984bc044126bf104fc26276cfcc78c21638",
+    "v2_validation_smoke.json": "f1f248df95b72e0deffa45edcae9d246e172cab2da79ff51ba880f07c3398405",
+    "v2_smoke_source_records.json": "ddb02bfd4addb5cf17552391e68141ae570bd2316fc9e6757ca074c6e2f5d1d8"
+  },
+  "renders": {
+    "full_after": {
+      "sample_id": "expanded_717287879ce16878c5558650_4",
+      "image": "preview_full_after.png",
+      "camera": "oblique",
+      "resolution": [
+        768,
+        512
+      ],
+      "poses": {
+        "o01": {
+          "x_m": 0.35505062341690063,
+          "y_m": 0.20563113689422607,
+          "theta_rad": -0.0009598731994628906
+        },
+        "o02": {
+          "x_m": 0.44170981645584106,
+          "y_m": 0.07717636227607727,
+          "theta_rad": -0.0010254383087158203
+        },
+        "o03": {
+          "x_m": 0.35972267389297485,
+          "y_m": 0.2802911102771759,
+          "theta_rad": -0.0009223222732543945
+        },
+        "o04": {
+          "x_m": 0.3570612370967865,
+          "y_m": 0.07717636227607727,
+          "theta_rad": -0.0008820295333862305
+        },
+        "o05": {
+          "x_m": 0.44443780183792114,
+          "y_m": 0.1489078402519226,
+          "theta_rad": -0.0012432336807250977
+        },
+        "o06": {
+          "x_m": 0.4413864016532898,
+          "y_m": 0.20563113689422607,
+          "theta_rad": -0.001189112663269043
+        },
+        "o07": {
+          "x_m": 0.3676576018333435,
+          "y_m": 0.1489078402519226,
+          "theta_rad": -0.0012574195861816406
+        },
+        "o08": {
+          "x_m": 0.4525250196456909,
+          "y_m": 0.2802911102771759,
+          "theta_rad": -0.0011276006698608398
+        }
+      },
+      "sha256": "43bb6d9c16218f6235d96f8168e342c7d3033044999660db1573e5b7bebb1701"
+    }
+  }
+}

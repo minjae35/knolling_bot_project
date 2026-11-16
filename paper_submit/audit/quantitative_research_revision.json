@@ -1,0 +1,118 @@
+{
+  "size_pt": [
+    396,
+    172
+  ],
+  "source": "scripts/quantitative_figure.py",
+  "previous_exports_sha256": {
+    "pdf": "d61f172d0fd7d153b2ed51f73922c6c3fe2606bce3b4fece32a998dbc8bf269f",
+    "svg": "8e8550fcb59f671f97e6f2118930277ebbff1e1ffbc9bc2a74d1ffbabfcd608f",
+    "png": "75ff94aed1e8af049c1f45e0af12bc2b6c8e9432eba692efa602c885db1a6030"
+  },
+  "sources_sha256": {
+    "v1_holdout.jsonl": "89b3ee1cbc2433b948bdb0b85ac7a2d407b3001a90018297d94dd25266218aaa",
+    "v2_holdout.jsonl": "209df3c1b12cb62e82ce7daff066cc64ced99e26c9960e2b5e1070255ac5de82"
+  },
+  "paired_outcomes_in_text": {
+    "retained": 489,
+    "gained": 51,
+    "lost": 0,
+    "both_failed": 100
+  },
+  "gain_pp_in_text": 7.968749999999999,
+  "family_bootstrap_ci95_pp_in_text": [
+    4.84375,
+    11.5625
+  ],
+  "spacing_partition": {
+    "Horizontal only": 29,
+    "Both gaps": 20,
+    "Vertical only": 22,
+    "Neither gap": 29
+  },
+  "complexity": {
+    "v1": {
+      "object_count": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "success_percent": [
+        95.78947368421052,
+        90.52631578947368,
+        71.11111111111111,
+        85.55555555555556,
+        72.22222222222223,
+        65.55555555555556,
+        52.22222222222222
+      ],
+      "denominator": [
+        95,
+        95,
+        90,
+        90,
+        90,
+        90,
+        90
+      ]
+    },
+    "v2": {
+      "object_count": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "success_percent": [
+        95.78947368421052,
+        92.63157894736842,
+        83.33333333333333,
+        87.77777777777777,
+        80.0,
+        77.77777777777777,
+        72.22222222222223
+      ],
+      "denominator": [
+        95,
+        95,
+        90,
+        90,
+        90,
+        90,
+        90
+      ]
+    }
+  },
+  "style": {
+    "background": "white",
+    "axis_label_pt": 8,
+    "tick_label_pt": 7.5,
+    "panel_title_pt": 8.5,
+    "palette": {
+      "v1": "#747B83",
+      "v2": "#3067A5"
+    },
+    "bar_origin": 0
+  },
+  "visible_changes": [
+    "removed aggregate scoreboard duplicated by text and table",
+    "two conventional plots with explicit axes and units",
+    "white background and restrained grid/spines",
+    "all four mutually exclusive failure categories retained"
+  ],
+  "scientific_scope": "Exact saved paired release scores, descriptive curves and failure counts. Aggregate family-bootstrap uncertainty remains in manuscript text; no invented per-bin uncertainty.",
+  "text_bounds": "PASS",
+  "frozen_figure6_integrity": "PASS",
+  "exports_sha256": {
+    "pdf": "920dd795ae5f66894f33ec92fd77d1e3d1b1ef3ff18163da7bec73efadc5dc63",
+    "svg": "4253936708ebf11c0545f158824aa76311225c8defaef9660f982f73a92362d7",
+    "png": "332e54cd2278dd96efcec472d03f56fc0c1487d4a9f2888b9d0281843d110566"
+  }
+}

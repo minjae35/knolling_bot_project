@@ -1,0 +1,308 @@
+{
+  "sample_id": "expanded_717287879ce16878c5558650_4",
+  "purpose": "Derived geometric interpretation of the saved successful validation layout, not neural activations or an additional evaluation run.",
+  "rows": [
+    {
+      "ids": [
+        "o03",
+        "o08"
+      ],
+      "color": "red",
+      "lower_y_m": 0.2607556091688037,
+      "upper_y_m": 0.2998266113855481
+    },
+    {
+      "ids": [
+        "o01",
+        "o06"
+      ],
+      "color": "green",
+      "lower_y_m": 0.18109851249707284,
+      "upper_y_m": 0.2301637612913793
+    },
+    {
+      "ids": [
+        "o07",
+        "o05"
+      ],
+      "color": "green",
+      "lower_y_m": 0.131876150939084,
+      "upper_y_m": 0.1659395295647612
+    },
+    {
+      "ids": [
+        "o04",
+        "o02"
+      ],
+      "color": "blue",
+      "lower_y_m": 0.05414505917842661,
+      "upper_y_m": 0.10020766537372794
+    }
+  ],
+  "horizontal_gaps": [
+    {
+      "left": "o03",
+      "right": "o08",
+      "actual_mm": 16.265231797349287,
+      "requested_mm": 15
+    },
+    {
+      "left": "o01",
+      "right": "o06",
+      "actual_mm": 15.795060685414642,
+      "requested_mm": 15
+    },
+    {
+      "left": "o07",
+      "right": "o05",
+      "actual_mm": 14.243396253964647,
+      "requested_mm": 15
+    },
+    {
+      "left": "o04",
+      "right": "o02",
+      "actual_mm": 16.106789640922827,
+      "requested_mm": 15
+    }
+  ],
+  "vertical_gaps": [
+    {
+      "above_ids": [
+        "o03",
+        "o08"
+      ],
+      "below_ids": [
+        "o01",
+        "o06"
+      ],
+      "actual_mm": 30.59184787742439,
+      "requested_mm": 30
+    },
+    {
+      "above_ids": [
+        "o01",
+        "o06"
+      ],
+      "below_ids": [
+        "o07",
+        "o05"
+      ],
+      "actual_mm": 15.158982932311632,
+      "requested_mm": 15
+    },
+    {
+      "above_ids": [
+        "o07",
+        "o05"
+      ],
+      "below_ids": [
+        "o04",
+        "o02"
+      ],
+      "actual_mm": 31.668485565356065,
+      "requested_mm": 30
+    }
+  ],
+  "color_area_sequences": {
+    "red": [
+      "o03",
+      "o08"
+    ],
+    "green": [
+      "o01",
+      "o06",
+      "o07",
+      "o05"
+    ],
+    "blue": [
+      "o04",
+      "o02"
+    ]
+  },
+  "bounding_rectangle_area_mm2": {
+    "o01": 3332.0000000000005,
+    "o02": 2772.0,
+    "o03": 3003.0,
+    "o04": 3266.0,
+    "o05": 1734.0,
+    "o06": 2117.0,
+    "o07": 1850.0,
+    "o08": 2584.0
+  },
+  "maximum_axis_error_deg": 0.07204483536529449,
+  "evaluated_x_bounds_m": [
+    0.3210271221901853,
+    0.49054416469483675
+  ],
+  "requested_region_x_m": [
+    0.3,
+    0.6
+  ],
+  "overview_scale_pt_per_m": 225.0,
+  "overview_world_m": [
+    -0.02,
+    0.62,
+    -0.01333333333333334,
+    0.41333333333333333
+  ],
+  "all_displayed_geometry_to_scale": true,
+  "horizontal_gap_range_mm": [
+    14.243396253964647,
+    16.265231797349287
+  ],
+  "original_records_unchanged": true,
+  "model_inference": false,
+  "gap_residual_definition": "Measured scored-envelope gap minus requested gap, in millimeters.",
+  "gap_residual_tolerance_mm": [
+    -2,
+    2
+  ],
+  "gap_residuals": [
+    {
+      "kind": "within_row",
+      "row_label": "r1",
+      "actual_mm": 16.265231797349287,
+      "requested_mm": 15,
+      "residual_mm": 1.265231797349287,
+      "figure_point_bp": [
+        354.3295073262075,
+        197.0
+      ]
+    },
+    {
+      "kind": "within_row",
+      "row_label": "r2",
+      "actual_mm": 15.795060685414642,
+      "requested_mm": 15,
+      "residual_mm": 0.7950606854146418,
+      "figure_point_bp": [
+        337.29886482724146,
+        208.0
+      ]
+    },
+    {
+      "kind": "within_row",
+      "row_label": "r3",
+      "actual_mm": 14.243396253964647,
+      "requested_mm": 15,
+      "residual_mm": -0.7566037460353527,
+      "figure_point_bp": [
+        281.09413097694164,
+        219.0
+      ]
+    },
+    {
+      "kind": "within_row",
+      "row_label": "r4",
+      "actual_mm": 16.106789640922827,
+      "requested_mm": 15,
+      "residual_mm": 1.1067896409228268,
+      "figure_point_bp": [
+        348.59038032676017,
+        230.0
+      ]
+    },
+    {
+      "kind": "between_rows",
+      "row_label": "r1\u2013r2",
+      "actual_mm": 30.59184787742439,
+      "requested_mm": 30,
+      "residual_mm": 0.5918478774243887,
+      "figure_point_bp": [
+        329.93804533781673,
+        248.0
+      ]
+    },
+    {
+      "kind": "between_rows",
+      "row_label": "r2\u2013r3",
+      "actual_mm": 15.158982932311632,
+      "requested_mm": 15,
+      "residual_mm": 0.1589829323116323,
+      "figure_point_bp": [
+        314.25871510373247,
+        259.0
+      ]
+    },
+    {
+      "kind": "between_rows",
+      "row_label": "r3\u2013r4",
+      "actual_mm": 31.668485565356065,
+      "requested_mm": 30,
+      "residual_mm": 1.6684855653560646,
+      "figure_point_bp": [
+        368.93625492289743,
+        270.0
+      ]
+    }
+  ],
+  "chart_x_limits_mm": [
+    -2.25,
+    2.25
+  ],
+  "overhead_render": {
+    "source_blend": "renders/full_after.blend",
+    "source_sha256": "6eea07a83d28a06250087ae004d8948f9e31ddddf47fc951d26ad58882996483",
+    "blend_sha256": "007e092abd35c54203564c2e993b3a0553e91011c200bb49a0f1e6ba1ca4ebf0",
+    "image_sha256": "734c8d71c7653946e83ebd333372a9f075ce918b20583c6a83b5cbd6577f709c",
+    "image": "detail_full_workspace.png",
+    "world_extent_m": [
+      -0.02,
+      0.62,
+      -0.01333333333333334,
+      0.41333333333333333
+    ],
+    "resolution": [
+      1920,
+      1280
+    ],
+    "camera_location": [
+      0.30000001192092896,
+      0.20000000298023224,
+      1.0
+    ],
+    "camera_euler": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "ortho_scale_m": 0.6399999856948853,
+    "noncamera_scene_sha256": "53b2d8b96d84a2f4a746c94ac4b9d42f5854f2a7ef52d3441ab006d4f99b2b16",
+    "noncamera_scene_unchanged": true,
+    "saved_file_reopened_and_checked": true
+  },
+  "source_sha256": {
+    "audit/evidence/full8b_choice.json": "82dbadde9ce7c199add36fb549a2c984bc044126bf104fc26276cfcc78c21638",
+    "audit/blender_provenance.json": "8d561054158149fc24cd12bd5405a0748c19d2329d08daa585e2e5fa5b8b2ebd",
+    "audit/blender_pose_checks.json": "b1963506f2df6e6203c358a62f4d9559a6e47f4a926a75c447e65d5712e5eaec",
+    "renders/full_before.png": "acfb75aa2d6433d26e2d169f6da391fb3ec57fb8af2b546e5b5a2432d348dfba",
+    "renders/full_after.png": "2043bd00a5181e604dda1dd8426d6eb8919dd7d6641d0dfc41b2ed52dabe2c86",
+    "renders/detail_full_workspace.png": "734c8d71c7653946e83ebd333372a9f075ce918b20583c6a83b5cbd6577f709c"
+  },
+  "exports_sha256": {
+    "pdf": "b93ec67b599f0097bf2ef7ba6eec5d41ea735a45567df5b3e3dd3ce3c179fd33",
+    "svg": "314f57f86644d0a80c13e502d94b691c69095824f454eb6546e5836313760a69",
+    "png": "0f0db1d83838793bc99cd608168a169fad7349aba521299f30e4b2e91ed3325d"
+  },
+  "text_bounds": "PASS",
+  "editable_source": "figure_sources/motion_correspondence.tex",
+  "visual_style": {
+    "font": "Times 7.5 pt; panel titles 8 pt",
+    "workspace": "Actual Blender overhead render of unchanged target scene; no substitute silhouettes.",
+    "residual_tolerance_fill_percent": 7,
+    "residual_point_color": "teal",
+    "region_boundary_bp": 0.45,
+    "residual_stem_bp": 0.55,
+    "residual_marker_radius_bp": 1.8
+  },
+  "figure6_before": {
+    "status": "PASS",
+    "unchanged_files": 11,
+    "latex_block_unchanged": true
+  },
+  "figure6_after": {
+    "status": "PASS",
+    "unchanged_files": 11,
+    "latex_block_unchanged": true
+  }
+}

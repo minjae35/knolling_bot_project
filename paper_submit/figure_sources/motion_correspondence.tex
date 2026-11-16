@@ -1,0 +1,203 @@
+\documentclass[border=0bp]{standalone}
+\usepackage[T1]{fontenc}
+\usepackage{times,amsmath,amssymb,graphicx,xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,calc,positioning,patterns}
+\pdfinfoomitdate=1
+\pdftrailerid{}
+\definecolor{ink}{HTML}{202020}
+\definecolor{muted}{HTML}{626262}
+\definecolor{hairline}{HTML}{B9B9B9}
+\definecolor{accent}{HTML}{284E67}
+\definecolor{signal}{HTML}{A33D36}
+\definecolor{objectred}{HTML}{D45B59}
+\definecolor{objectgreen}{HTML}{55A870}
+\definecolor{objectblue}{HTML}{507BC2}
+\definecolor{teal}{HTML}{087E81}
+\definecolor{ochre}{HTML}{B27A46}
+\definecolor{violet}{HTML}{7563A6}
+\tikzset{
+ every node/.style={font=\fontsize{8.5}{10.5}\selectfont,inner sep=0bp,outer sep=0bp,text=ink},
+ flow/.style={draw=ink,line width=.45bp,-{Latex[length=3bp,width=2bp]}},
+ auxflow/.style={draw=muted,line width=.35bp,-{Latex[length=3bp,width=2bp]}},
+ measure/.style={draw=ink,line width=.4bp,{Latex[length=2.4bp,width=1.6bp]}-{Latex[length=2.4bp,width=1.6bp]}},
+ envelope/.style={draw=muted,line width=.35bp,dash pattern=on 2bp off 1.5bp,fill=none},
+ frame/.style={draw=hairline,line width=.35bp,fill=none},
+ leader/.style={draw=muted,line width=.35bp},
+ module/.style={draw=ink,line width=.45bp,fill=white,minimum height=30bp,align=center,inner xsep=3bp,inner ysep=3bp},
+}
+\begin{document}
+\begin{tikzpicture}[x=1bp,y=-1bp,line cap=butt,line join=miter]
+\node[anchor=west,font=\fontsize{11}{13}\selectfont] at (0.00000,8.00000) {\textbf{a}\enspace Recorded source};
+\node[anchor=north west] at (0,22) {\includegraphics[width=192bp,height=128bp]{renders/full_before.png}};
+\draw[draw=objectgreen,line width=.35bp] (114.9287835,83.5595411) -- (114.9287835,73.6680849);
+\path[draw=objectgreen,line width=.45bp,fill=white] (114.9287835,73.6680849) circle[radius=3.6bp];
+\node[anchor=center,text=objectgreen] at (114.92878,73.66808) {1};
+\draw[draw=objectblue,line width=.35bp] (120.6264809,66.5298867) -- (120.6264809,57.3697506);
+\path[draw=objectblue,line width=.45bp,fill=white] (120.6264809,57.3697506) circle[radius=3.6bp];
+\node[anchor=center,text=objectblue] at (120.62648,57.36975) {2};
+\draw[draw=objectred,line width=.35bp] (149.5749696,66.7688265) -- (149.5749696,54.9789445);
+\path[draw=objectred,line width=.45bp,fill=white] (149.5749696,54.9789445) circle[radius=3.6bp];
+\node[anchor=center,text=objectred] at (149.57497,54.97894) {3};
+\draw[draw=objectblue,line width=.35bp] (34.3711469,105.8415437) -- (34.3711469,92.8142358);
+\path[draw=objectblue,line width=.45bp,fill=white] (34.3711469,92.8142358) circle[radius=3.6bp];
+\node[anchor=center,text=objectblue] at (34.37115,92.81424) {4};
+\draw[draw=objectgreen,line width=.35bp] (81.8749239,90.2372225) -- (81.8749239,80.2886407);
+\path[draw=objectgreen,line width=.45bp,fill=white] (81.8749239,80.2886407) circle[radius=3.6bp];
+\node[anchor=center,text=objectgreen] at (81.87492,80.28864) {5};
+\draw[draw=objectgreen,line width=.35bp] (83.6463142,109.5271217) -- (83.6463142,97.3203599);
+\path[draw=objectgreen,line width=.45bp,fill=white] (83.6463142,97.3203599) circle[radius=3.6bp];
+\node[anchor=center,text=objectgreen] at (83.64631,97.32036) {6};
+\draw[draw=objectgreen,line width=.35bp] (58.9297622,86.8617553) -- (58.9297622,78.4635628);
+\path[draw=objectgreen,line width=.45bp,fill=white] (58.9297622,78.4635628) circle[radius=3.6bp];
+\node[anchor=center,text=objectgreen] at (58.92976,78.46356) {7};
+\draw[draw=objectred,line width=.35bp] (133.1812954,112.0797496) -- (133.1812954,99.4280423);
+\path[draw=objectred,line width=.45bp,fill=white] (133.1812954,99.4280423) circle[radius=3.6bp];
+\node[anchor=center,text=objectred] at (133.18130,99.42804) {8};
+\node[anchor=west,font=\fontsize{11}{13}\selectfont] at (204.00000,8.00000) {\textbf{b}\enspace Predicted target};
+\node[anchor=north west] at (204,22) {\includegraphics[width=192bp,height=128bp]{renders/full_after.png}};
+\draw[draw=objectgreen,line width=.35bp] (315.0995996,83.7701879) -- (300.7674392,83.7701879);
+\path[draw=objectgreen,line width=.45bp,fill=white] (300.7674392,83.7701879) circle[radius=3.6bp];
+\node[anchor=center,text=objectgreen] at (300.76744,83.77019) {1};
+\draw[draw=objectblue,line width=.35bp] (338.8689782,109.2061779) -- (352.9204020,109.2061779);
+\path[draw=objectblue,line width=.45bp,fill=white] (352.9204020,109.2061779) circle[radius=3.6bp];
+\node[anchor=center,text=objectblue] at (352.92040,109.20618) {2};
+\draw[draw=objectred,line width=.35bp] (316.3810763,66.6035480) -- (300.8179236,66.6035480);
+\path[draw=objectred,line width=.45bp,fill=white] (300.8179236,66.6035480) circle[radius=3.6bp];
+\node[anchor=center,text=objectred] at (300.81792,66.60355) {3};
+\draw[draw=objectblue,line width=.35bp] (315.6510822,110.8917058) -- (300.9083788,110.8917058);
+\path[draw=objectblue,line width=.45bp,fill=white] (300.9083788,110.8917058) circle[radius=3.6bp];
+\node[anchor=center,text=objectblue] at (300.90838,110.89171) {4};
+\draw[draw=objectgreen,line width=.35bp] (339.6172256,96.0442772) -- (351.6173030,96.0442772);
+\path[draw=objectgreen,line width=.45bp,fill=white] (351.6173030,96.0442772) circle[radius=3.6bp];
+\node[anchor=center,text=objectgreen] at (351.61730,96.04428) {5};
+\draw[draw=objectgreen,line width=.35bp] (338.7802702,82.5903184) -- (353.7947184,82.5903184);
+\path[draw=objectgreen,line width=.45bp,fill=white] (353.7947184,82.5903184) circle[radius=3.6bp];
+\node[anchor=center,text=objectgreen] at (353.79472,82.59032) {6};
+\draw[draw=objectgreen,line width=.35bp] (318.5575136,95.0329605) -- (303.4089502,95.0329605);
+\path[draw=objectgreen,line width=.45bp,fill=white] (303.4089502,95.0329605) circle[radius=3.6bp];
+\node[anchor=center,text=objectgreen] at (303.40895,95.03296) {7};
+\draw[draw=objectred,line width=.35bp] (341.8354340,66.4349953) -- (357.2616495,66.4349953);
+\path[draw=objectred,line width=.45bp,fill=white] (357.2616495,66.4349953) circle[radius=3.6bp];
+\node[anchor=center,text=objectred] at (357.26165,66.43500) {8};
+\node[anchor=west,text=muted,font=\fontsize{9.5}{11.5}\selectfont] at (0.00000,164.00000) {Eight objects; stable IDs across both views};
+\node[anchor=west,text=accent,font=\fontsize{9.5}{11.5}\selectfont] at (204.00000,164.00000) {PASS $\cdot$ Right region $\cdot$ Color-grouped rows};
+\node[anchor=west,font=\fontsize{11}{13}\selectfont] at (0.00000,190.00000) {\textbf{c}\enspace Translation (mm)};
+\node[anchor=west,font=\fontsize{11}{13}\selectfont] at (204.00000,190.00000) {\textbf{d}\enspace Rotation $\Delta\theta$ ($^\circ$)};
+\node[anchor=east,text=muted] at (394.00000,190.00000) {$-\,$CW $/\,+\,$CCW};
+\draw[draw=hairline!55,line width=.25bp] (42.0000000,207.4000000) -- (42.0000000,292.0000000);
+\draw[draw=muted,line width=.35bp] (42.0000000,297.0000000) -- (42.0000000,299.0000000);
+\node[anchor=center,text=muted] at (42.00000,307.00000) {0};
+\draw[draw=hairline!55,line width=.25bp] (78.3333333,207.4000000) -- (78.3333333,292.0000000);
+\draw[draw=muted,line width=.35bp] (78.3333333,297.0000000) -- (78.3333333,299.0000000);
+\node[anchor=center,text=muted] at (78.33333,307.00000) {100};
+\draw[draw=hairline!55,line width=.25bp] (114.6666667,207.4000000) -- (114.6666667,292.0000000);
+\draw[draw=muted,line width=.35bp] (114.6666667,297.0000000) -- (114.6666667,299.0000000);
+\node[anchor=center,text=muted] at (114.66667,307.00000) {200};
+\draw[draw=hairline!55,line width=.25bp] (151.0000000,207.4000000) -- (151.0000000,292.0000000);
+\draw[draw=muted,line width=.35bp] (151.0000000,297.0000000) -- (151.0000000,299.0000000);
+\node[anchor=center,text=muted] at (151.00000,307.00000) {300};
+\draw[draw=hairline!55,line width=.25bp] (239.0000000,207.4000000) -- (239.0000000,292.0000000);
+\draw[draw=muted,line width=.35bp] (239.0000000,297.0000000) -- (239.0000000,299.0000000);
+\node[anchor=center,text=muted] at (239.00000,307.00000) {$-90$};
+\draw[draw=muted,line width=.4bp] (300.0000000,207.4000000) -- (300.0000000,292.0000000);
+\draw[draw=muted,line width=.35bp] (300.0000000,297.0000000) -- (300.0000000,299.0000000);
+\node[anchor=center,text=muted] at (300.00000,307.00000) {$0$};
+\draw[draw=hairline!55,line width=.25bp] (361.0000000,207.4000000) -- (361.0000000,292.0000000);
+\draw[draw=muted,line width=.35bp] (361.0000000,297.0000000) -- (361.0000000,299.0000000);
+\node[anchor=center,text=muted] at (361.00000,307.00000) {$+90$};
+\draw[draw=muted,line width=.35bp] (42.0000000,297.0000000) -- (151.0000000,297.0000000);
+\draw[draw=muted,line width=.35bp] (239.0000000,297.0000000) -- (361.0000000,297.0000000);
+\path[draw=objectgreen,line width=.45bp,fill=white] (5,211.0) circle[radius=3.6bp];
+\node[anchor=center,text=objectgreen] at (5.00000,211.00000) {1};
+\path[draw=objectgreen,line width=.45bp,fill=white] (213,211.0) circle[radius=3.6bp];
+\node[anchor=center,text=objectgreen] at (213.00000,211.00000) {1};
+\draw[draw=objectgreen,line width=.6bp,-{Latex[length=2.4bp,width=1.8bp]}] (26.9903106,210.7217529) -- (19.0096894,211.2782471);
+\draw[draw=objectgreen!70,line width=.85bp] (42.0000000,211.0000000) -- (47.0846560,211.0000000);
+\path[draw=white,line width=.4bp,fill=objectgreen] (47.0846560,211.0) circle[radius=1.8bp];
+\node[anchor=east] at (190.00000,211.00000) {$14.0$};
+\draw[draw=objectgreen!70,line width=.85bp] (300.0000000,211.0000000) -- (302.6166134,211.0000000);
+\path[draw=white,line width=.4bp,fill=objectgreen] (302.6166134,211.0) circle[radius=1.8bp];
+\node[anchor=east] at (394.00000,211.00000) {$+3.9$};
+\path[draw=objectblue,line width=.45bp,fill=white] (5,222.0) circle[radius=3.6bp];
+\node[anchor=center,text=objectblue] at (5.00000,222.00000) {2};
+\path[draw=objectblue,line width=.45bp,fill=white] (213,222.0) circle[radius=3.6bp];
+\node[anchor=center,text=objectblue] at (213.00000,222.00000) {2};
+\draw[draw=objectblue,line width=.6bp,-{Latex[length=2.4bp,width=1.8bp]}] (21.9815714,218.1318217) -- (24.0184286,225.8681783);
+\draw[draw=objectblue!70,line width=.85bp] (42.0000000,222.0000000) -- (116.0998972,222.0000000);
+\path[draw=white,line width=.4bp,fill=objectblue] (116.0998972,222.0) circle[radius=1.8bp];
+\node[anchor=east] at (190.00000,222.00000) {$203.9$};
+\draw[draw=objectblue!70,line width=.85bp] (300.0000000,222.0000000) -- (307.7300853,222.0000000);
+\path[draw=white,line width=.4bp,fill=objectblue] (307.7300853,222.0) circle[radius=1.8bp];
+\node[anchor=east] at (394.00000,222.00000) {$+11.4$};
+\path[draw=objectred,line width=.45bp,fill=white] (5,233.0) circle[radius=3.6bp];
+\node[anchor=center,text=objectred] at (5.00000,233.00000) {3};
+\path[draw=objectred,line width=.45bp,fill=white] (213,233.0) circle[radius=3.6bp];
+\node[anchor=center,text=objectred] at (213.00000,233.00000) {3};
+\draw[draw=objectred,line width=.6bp,-{Latex[length=2.4bp,width=1.8bp]}] (26.9999365,233.0225306) -- (19.0000635,232.9774694);
+\draw[draw=objectred!70,line width=.85bp] (42.0000000,233.0000000) -- (91.2697757,233.0000000);
+\path[draw=white,line width=.4bp,fill=objectred] (91.2697757,233.0) circle[radius=1.8bp];
+\node[anchor=east] at (190.00000,233.00000) {$135.6$};
+\draw[draw=objectred!70,line width=.85bp] (300.0000000,233.0000000) -- (271.5635641,233.0000000);
+\path[draw=white,line width=.4bp,fill=objectred] (271.5635641,233.0) circle[radius=1.8bp];
+\node[anchor=east] at (394.00000,233.00000) {$-42.0$};
+\path[draw=objectblue,line width=.45bp,fill=white] (5,244.0) circle[radius=3.6bp];
+\node[anchor=center,text=objectblue] at (5.00000,244.00000) {4};
+\path[draw=objectblue,line width=.45bp,fill=white] (213,244.0) circle[radius=3.6bp];
+\node[anchor=center,text=objectblue] at (213.00000,244.00000) {4};
+\draw[draw=objectblue,line width=.6bp,-{Latex[length=2.4bp,width=1.8bp]}] (19.0136531,243.6697909) -- (26.9863469,244.3302091);
+\draw[draw=objectblue!70,line width=.85bp] (42.0000000,244.0000000) -- (144.7196904,244.0000000);
+\path[draw=white,line width=.4bp,fill=objectblue] (144.7196904,244.0) circle[radius=1.8bp];
+\node[anchor=east] at (190.00000,244.00000) {$282.7$};
+\draw[draw=objectblue!70,line width=.85bp] (300.0000000,244.0000000) -- (252.6492378,244.0000000);
+\path[draw=white,line width=.4bp,fill=objectblue] (252.6492378,244.0) circle[radius=1.8bp];
+\node[anchor=east] at (394.00000,244.00000) {$-69.9$};
+\path[draw=objectgreen,line width=.45bp,fill=white] (5,255.0) circle[radius=3.6bp];
+\node[anchor=center,text=objectgreen] at (5.00000,255.00000) {5};
+\path[draw=objectgreen,line width=.45bp,fill=white] (213,255.0) circle[radius=3.6bp];
+\node[anchor=center,text=objectgreen] at (213.00000,255.00000) {5};
+\draw[draw=objectgreen,line width=.6bp,-{Latex[length=2.4bp,width=1.8bp]}] (19.0370000,254.4572009) -- (26.9630000,255.5427991);
+\draw[draw=objectgreen!70,line width=.85bp] (42.0000000,255.0000000) -- (113.8545435,255.0000000);
+\path[draw=white,line width=.4bp,fill=objectgreen] (113.8545435,255.0) circle[radius=1.8bp];
+\node[anchor=east] at (190.00000,255.00000) {$197.8$};
+\draw[draw=objectgreen!70,line width=.85bp] (300.0000000,255.0000000) -- (242.7239905,255.0000000);
+\path[draw=white,line width=.4bp,fill=objectgreen] (242.7239905,255.0) circle[radius=1.8bp];
+\node[anchor=east] at (394.00000,255.00000) {$-84.5$};
+\path[draw=objectgreen,line width=.45bp,fill=white] (5,266.0) circle[radius=3.6bp];
+\node[anchor=center,text=objectgreen] at (5.00000,266.00000) {6};
+\path[draw=objectgreen,line width=.45bp,fill=white] (213,266.0) circle[radius=3.6bp];
+\node[anchor=center,text=objectgreen] at (213.00000,266.00000) {6};
+\draw[draw=objectgreen,line width=.6bp,-{Latex[length=2.4bp,width=1.8bp]}] (19.6734586,268.2212885) -- (26.3265414,263.7787115);
+\draw[draw=objectgreen!70,line width=.85bp] (42.0000000,266.0000000) -- (123.4476409,266.0000000);
+\path[draw=white,line width=.4bp,fill=objectgreen] (123.4476409,266.0) circle[radius=1.8bp];
+\node[anchor=east] at (190.00000,266.00000) {$224.2$};
+\draw[draw=objectgreen!70,line width=.85bp] (300.0000000,266.0000000) -- (252.5936741,266.0000000);
+\path[draw=white,line width=.4bp,fill=objectgreen] (252.5936741,266.0) circle[radius=1.8bp];
+\node[anchor=east] at (394.00000,266.00000) {$-69.9$};
+\path[draw=objectgreen,line width=.45bp,fill=white] (5,277.0) circle[radius=3.6bp];
+\node[anchor=center,text=objectgreen] at (5.00000,277.00000) {7};
+\path[draw=objectgreen,line width=.45bp,fill=white] (213,277.0) circle[radius=3.6bp];
+\node[anchor=center,text=objectgreen] at (213.00000,277.00000) {7};
+\draw[draw=objectgreen,line width=.6bp,-{Latex[length=2.4bp,width=1.8bp]}] (19.0675854,276.2678007) -- (26.9324146,277.7321993);
+\draw[draw=objectgreen!70,line width=.85bp] (42.0000000,277.0000000) -- (116.9539036,277.0000000);
+\path[draw=white,line width=.4bp,fill=objectgreen] (116.9539036,277.0) circle[radius=1.8bp];
+\node[anchor=east] at (190.00000,277.00000) {$206.3$};
+\draw[draw=objectgreen!70,line width=.85bp] (300.0000000,277.0000000) -- (311.8820070,277.0000000);
+\path[draw=white,line width=.4bp,fill=objectgreen] (311.8820070,277.0) circle[radius=1.8bp];
+\node[anchor=east] at (394.00000,277.00000) {$+17.5$};
+\path[draw=objectred,line width=.45bp,fill=white] (5,288.0) circle[radius=3.6bp];
+\node[anchor=center,text=objectred] at (5.00000,288.00000) {8};
+\path[draw=objectred,line width=.45bp,fill=white] (213,288.0) circle[radius=3.6bp];
+\node[anchor=center,text=objectred] at (213.00000,288.00000) {8};
+\draw[draw=objectred,line width=.6bp,-{Latex[length=2.4bp,width=1.8bp]}] (22.6792752,291.9871212) -- (23.3207248,284.0128788);
+\draw[draw=objectred!70,line width=.85bp] (42.0000000,288.0000000) -- (118.8898212,288.0000000);
+\path[draw=white,line width=.4bp,fill=objectred] (118.8898212,288.0) circle[radius=1.8bp];
+\node[anchor=east] at (190.00000,288.00000) {$211.6$};
+\draw[draw=objectred!70,line width=.85bp] (300.0000000,288.0000000) -- (349.4422828,288.0000000);
+\path[draw=white,line width=.4bp,fill=objectred] (349.4422828,288.0) circle[radius=1.8bp];
+\node[anchor=east] at (394.00000,288.00000) {$+72.9$};
+
+\pgfresetboundingbox
+\path[use as bounding box] (0,0) rectangle (396,318);
+\end{tikzpicture}
+\end{document}

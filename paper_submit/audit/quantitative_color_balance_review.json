@@ -1,0 +1,16 @@
+{
+  "figure": 3,
+  "analysis_bytes_identical_to_before_color_balance": true,
+  "all_text_positions_sizes_fonts_identical": true,
+  "existing_stroke_and_marker_geometry_identical": true,
+  "only_added_geometry": "One teal 6% pooled-estimate band; bounds [0,143,183,163] bp.",
+  "added_geometry_index": 2,
+  "palette": {
+    "mode_estimates": "#507BC2",
+    "pooled_estimate": "#087E81",
+    "v1_open": "#B27A46",
+    "v2_filled": "#087E81"
+  },
+  "direct_visual_review": "Reviewed 300 dpi export and 396 bp-width PDF rendered at 108 dpi; all labels and endpoints remain distinguishable.",
+  "new_inference": false
+}

@@ -1,0 +1,322 @@
+{
+  "status": "PASS",
+  "sample_id": "expanded_e2ee7a75ae3a34826b36d71f_0",
+  "task": "PASS",
+  "instruction": "Arrange all objects in rows in the full workspace; long axes horizontal. Across the selected objects, order by bounding-rectangle area, smallest first, left to right then top to bottom. Leave 30 mm horizontal gaps between neighboring bounding rectangles in a row. Use 30 mm vertical gaps between consecutive row bands. A row band spans the full height of that row's bounding rectangles.",
+  "blender_version": "5.1.0",
+  "source_sha256": "28ab2f0cc1532de0af1cf6439a69099a1e6a5970cc5c1d67f4377f2779ef18cf",
+  "source_path": "audit/evidence/full67_choice.json",
+  "camera": {
+    "location": [
+      0.3,
+      -0.54,
+      0.95
+    ],
+    "target": [
+      0.3,
+      0.2,
+      0.0
+    ],
+    "ortho_scale_m": 0.7
+  },
+  "lights": [
+    {
+      "name": "Key",
+      "location": [
+        -0.12,
+        -0.25,
+        0.85
+      ],
+      "energy": 7,
+      "size": 0.55
+    },
+    {
+      "name": "Fill",
+      "location": [
+        0.75,
+        0.32,
+        0.65
+      ],
+      "energy": 2,
+      "size": 0.65
+    },
+    {
+      "name": "Rim",
+      "location": [
+        0.15,
+        0.72,
+        0.55
+      ],
+      "energy": 3,
+      "size": 0.45
+    }
+  ],
+  "scope": "Presentation render of original project meshes, colors and material roughness at exact saved source and predicted target poses. Lighting/camera/tabletop are presentation choices. Not model input, new inference, or a benchmark.",
+  "independent_check": "Reopen saved .blend scenes, compare all six object transforms and every mesh vertex directly to the frozen scene record; compare render/camera/light/material settings between before and after.",
+  "maximum_absolute_pose_or_vertex_error": 4.547496579299093e-08,
+  "tolerance": 1e-07,
+  "renders": {
+    "teaser6_before": {
+      "status": "PASS",
+      "max_pose_error": 4.547496579299093e-08,
+      "max_mesh_error": 1.7297916848901806e-09,
+      "blend_sha256": "4f5b248b361ee983d454697e11310e2ef1d3596275671c01e1d967b70b79a424",
+      "image_sha256": "8002fdd9e377f42e3db1a7ee5033982daa92fcd870bcd00ea1a652464435c15e",
+      "camera_location": [
+        0.30000001192092896,
+        -0.5400000214576721,
+        0.949999988079071
+      ],
+      "camera_euler": [
+        0.6617714762687683,
+        -0.0,
+        0.0
+      ],
+      "ortho_scale": 0.699999988079071,
+      "resolution": [
+        1920,
+        1280
+      ],
+      "engine": "CYCLES",
+      "samples": 128,
+      "device": "CPU",
+      "threads": 8,
+      "view_transform": "AgX",
+      "look": "AgX - Medium High Contrast",
+      "exposure": 0.0,
+      "denoising": true,
+      "world_strength": 0.30000001192092896,
+      "lights": {
+        "Key": {
+          "location": [
+            -0.11999999731779099,
+            -0.25,
+            0.8500000238418579
+          ],
+          "rotation": [
+            0.6267670392990112,
+            7.93244865349152e-08,
+            -0.7509292364120483
+          ],
+          "energy": 7.0,
+          "size": 0.550000011920929
+        },
+        "Fill": {
+          "location": [
+            0.75,
+            0.3199999928474426,
+            0.6499999761581421
+          ],
+          "rotation": [
+            0.6217144131660461,
+            -2.7044796624409173e-08,
+            1.8313987255096436
+          ],
+          "energy": 2.0,
+          "size": 0.6499999761581421
+        },
+        "Rim": {
+          "location": [
+            0.15000000596046448,
+            0.7200000286102295,
+            0.550000011920929
+          ],
+          "rotation": [
+            0.7773361206054688,
+            5.557609839001998e-08,
+            -2.86075496673584
+          ],
+          "energy": 3.0,
+          "size": 0.44999998807907104
+        }
+      },
+      "materials": {
+        "o01": {
+          "base_color": [
+            0.6200000047683716,
+            0.02500000037252903,
+            0.02500000037252903,
+            1.0
+          ],
+          "roughness": 0.6499999761581421
+        },
+        "o02": {
+          "base_color": [
+            0.02500000037252903,
+            0.07000000029802322,
+            0.6200000047683716,
+            1.0
+          ],
+          "roughness": 0.6499999761581421
+        },
+        "o03": {
+          "base_color": [
+            0.6200000047683716,
+            0.02500000037252903,
+            0.02500000037252903,
+            1.0
+          ],
+          "roughness": 0.6499999761581421
+        },
+        "o04": {
+          "base_color": [
+            0.02500000037252903,
+            0.07000000029802322,
+            0.6200000047683716,
+            1.0
+          ],
+          "roughness": 0.6499999761581421
+        },
+        "o05": {
+          "base_color": [
+            0.02500000037252903,
+            0.07000000029802322,
+            0.6200000047683716,
+            1.0
+          ],
+          "roughness": 0.6499999761581421
+        },
+        "o06": {
+          "base_color": [
+            0.02500000037252903,
+            0.07000000029802322,
+            0.6200000047683716,
+            1.0
+          ],
+          "roughness": 0.6499999761581421
+        }
+      }
+    },
+    "teaser6_after": {
+      "status": "PASS",
+      "max_pose_error": 0.0,
+      "max_mesh_error": 1.7297916848901806e-09,
+      "blend_sha256": "83b00d6b15b4a3076bb8dafc85df4e34c481dd63401cfa5a2796d65c413b3f8b",
+      "image_sha256": "c5c8768623ae70eee0af381acf88108b61cc4fd0c6b58ec5cbfc1216b669ed1e",
+      "camera_location": [
+        0.30000001192092896,
+        -0.5400000214576721,
+        0.949999988079071
+      ],
+      "camera_euler": [
+        0.6617714762687683,
+        -0.0,
+        0.0
+      ],
+      "ortho_scale": 0.699999988079071,
+      "resolution": [
+        1920,
+        1280
+      ],
+      "engine": "CYCLES",
+      "samples": 128,
+      "device": "CPU",
+      "threads": 8,
+      "view_transform": "AgX",
+      "look": "AgX - Medium High Contrast",
+      "exposure": 0.0,
+      "denoising": true,
+      "world_strength": 0.30000001192092896,
+      "lights": {
+        "Key": {
+          "location": [
+            -0.11999999731779099,
+            -0.25,
+            0.8500000238418579
+          ],
+          "rotation": [
+            0.6267670392990112,
+            7.93244865349152e-08,
+            -0.7509292364120483
+          ],
+          "energy": 7.0,
+          "size": 0.550000011920929
+        },
+        "Fill": {
+          "location": [
+            0.75,
+            0.3199999928474426,
+            0.6499999761581421
+          ],
+          "rotation": [
+            0.6217144131660461,
+            -2.7044796624409173e-08,
+            1.8313987255096436
+          ],
+          "energy": 2.0,
+          "size": 0.6499999761581421
+        },
+        "Rim": {
+          "location": [
+            0.15000000596046448,
+            0.7200000286102295,
+            0.550000011920929
+          ],
+          "rotation": [
+            0.7773361206054688,
+            5.557609839001998e-08,
+            -2.86075496673584
+          ],
+          "energy": 3.0,
+          "size": 0.44999998807907104
+        }
+      },
+      "materials": {
+        "o01": {
+          "base_color": [
+            0.6200000047683716,
+            0.02500000037252903,
+            0.02500000037252903,
+            1.0
+          ],
+          "roughness": 0.6499999761581421
+        },
+        "o02": {
+          "base_color": [
+            0.02500000037252903,
+            0.07000000029802322,
+            0.6200000047683716,
+            1.0
+          ],
+          "roughness": 0.6499999761581421
+        },
+        "o03": {
+          "base_color": [
+            0.6200000047683716,
+            0.02500000037252903,
+            0.02500000037252903,
+            1.0
+          ],
+          "roughness": 0.6499999761581421
+        },
+        "o04": {
+          "base_color": [
+            0.02500000037252903,
+            0.07000000029802322,
+            0.6200000047683716,
+            1.0
+          ],
+          "roughness": 0.6499999761581421
+        },
+        "o05": {
+          "base_color": [
+            0.02500000037252903,
+            0.07000000029802322,
+            0.6200000047683716,
+            1.0
+          ],
+          "roughness": 0.6499999761581421
+        },
+        "o06": {
+          "base_color": [
+            0.02500000037252903,
+            0.07000000029802322,
+            0.6200000047683716,
+            1.0
+          ],
+          "roughness": 0.6499999761581421
+        }
+      }
+    }
+  }
+}

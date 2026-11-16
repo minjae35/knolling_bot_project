@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "revision": "Canonical paper_submit, comprehensive academic prose revision with all figure artwork preserved, 2026-11-15",
+  "method": "Extract complete source bundle to an isolated directory; regenerate Figures 1\u20135, 7 and 8 from bundled evidence and fonts while preserving approved Figure 6; compile with pdfLaTeX/BibTeX via latexmk and run submission verification.",
+  "pages": 13,
+  "page_text_identical": true,
+  "page_pixels_identical": true,
+  "source_repository_required": false,
+  "model_weights_required": false,
+  "original_dataset_required": false,
+  "compiled_with_bundled_render_inputs": true,
+  "figure_png_regeneration_identical": true,
+  "figure6_files_and_latex_unchanged": true,
+  "geometric_annotations_regeneration_identical": true,
+  "pdf_sha256": "55a48eb3c9b09f09cdbc417a8dc621089449d3f295dff2025f90bd2601e09aa2"
+}

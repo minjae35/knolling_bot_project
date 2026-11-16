@@ -1,0 +1,135 @@
+{
+  "status": "PASS",
+  "source_sha256": {
+    "v1_holdout.jsonl": "89b3ee1cbc2433b948bdb0b85ac7a2d407b3001a90018297d94dd25266218aaa",
+    "v2_holdout.jsonl": "209df3c1b12cb62e82ce7daff066cc64ced99e26c9960e2b5e1070255ac5de82"
+  },
+  "source_paths": [
+    "audit/evidence/v1_holdout.jsonl",
+    "audit/evidence/v2_holdout.jsonl"
+  ],
+  "paired_records": 640,
+  "families": 128,
+  "records_per_family": 5,
+  "bootstrap": {
+    "seed": 20261112,
+    "resamples": 10000,
+    "resampling_unit": "128 scene families sampled with replacement; the same family indices are used for every mode and both releases.",
+    "estimator": "100 * sum(v2_task - v1_task) / number of sampled records of that mode; mode denominator is recomputed within each family resample.",
+    "interval": "Pointwise 95% percentile intervals; sorted bootstrap samples at zero-based indices 250 and 9749.",
+    "percentile_indices": [
+      250,
+      9749
+    ],
+    "scope": "Evaluation-family variation conditional on frozen releases, not training-seed uncertainty. Intervals are not simultaneous and do not test differences between modes."
+  },
+  "modes": {
+    "full": {
+      "paired_gain_count": 24,
+      "n": 384,
+      "families_with_mode": 128,
+      "v1_success": 287,
+      "v2_success": 311,
+      "gain_pp": 6.25,
+      "ci95_pp": [
+        2.8645833333333335,
+        10.15625
+      ]
+    },
+    "partial": {
+      "paired_gain_count": 20,
+      "n": 127,
+      "families_with_mode": 127,
+      "v1_success": 84,
+      "v2_success": 104,
+      "gain_pp": 15.748031496062993,
+      "ci95_pp": [
+        9.523809523809524,
+        22.04724409448819
+      ]
+    },
+    "no_op": {
+      "paired_gain_count": 7,
+      "n": 129,
+      "families_with_mode": 128,
+      "v1_success": 118,
+      "v2_success": 125,
+      "gain_pp": 5.426356589147287,
+      "ci95_pp": [
+        1.5625,
+        10.0
+      ]
+    },
+    "overall": {
+      "paired_gain_count": 51,
+      "n": 640,
+      "families_with_mode": 128,
+      "v1_success": 489,
+      "v2_success": 540,
+      "gain_pp": 7.96875,
+      "ci95_pp": [
+        4.84375,
+        11.5625
+      ]
+    }
+  },
+  "error_counts": [
+    {
+      "key": "any_gap",
+      "label": "Any gap",
+      "v1": 77,
+      "v2": 71
+    },
+    {
+      "key": "count",
+      "label": "Count",
+      "v1": 45,
+      "v2": 5
+    },
+    {
+      "key": "requested_region",
+      "label": "Region",
+      "v1": 17,
+      "v2": 4
+    },
+    {
+      "key": "size_order",
+      "label": "Size order",
+      "v1": 13,
+      "v2": 11
+    },
+    {
+      "key": "keep",
+      "label": "Preservation",
+      "v1": 9,
+      "v2": 4
+    },
+    {
+      "key": "clearance",
+      "label": "Clearance",
+      "v1": 9,
+      "v2": 7
+    },
+    {
+      "key": "mixed_color_row",
+      "label": "Color rows",
+      "v1": 2,
+      "v2": 0
+    },
+    {
+      "key": "collision",
+      "label": "Collision",
+      "v1": 1,
+      "v2": 0
+    },
+    {
+      "key": "boundary",
+      "label": "Boundary",
+      "v1": 1,
+      "v2": 0
+    }
+  ],
+  "error_scope": "Counts of emitted error tags across the same 640 records. Any gap is the horizontal/vertical union; other categories may overlap. Count mismatch terminates downstream checks, so tag reductions are not isolated causal effects or uncensored latent-error prevalence.",
+  "new_inference": false,
+  "existing_overall_statistics_match": true
+}

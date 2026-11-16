@@ -1,0 +1,77 @@
+{
+  "width_pt": 396,
+  "height_pt": 251,
+  "minimum_label_pt": 9,
+  "source": "scripts/architecture_figure.py",
+  "editable_source": "figure_sources/architecture_main.tex",
+  "export_formats": [
+    "pdf",
+    "svg",
+    "png"
+  ],
+  "png_dpi": 300,
+  "style_reference": "Manuscript Times typography; precise TeX/TikZ flat technical diagram.",
+  "sample_id": "expanded_717287879ce16878c5558650_4",
+  "source_images": {
+    "renders/full_before.png": "acfb75aa2d6433d26e2d169f6da391fb3ec57fb8af2b546e5b5a2432d348dfba",
+    "renders/full_after.png": "2043bd00a5181e604dda1dd8426d6eb8919dd7d6641d0dfc41b2ed52dabe2c86",
+    "audit/evidence/qualitative_full_source.png": "caf3469df2903a1f74c7b93090e90e523f1b4ed5debfd58b26d7b02b0b1e5e5b"
+  },
+  "out_of_bounds_labels": [],
+  "overlapping_label_pairs": [],
+  "figure6_frozen_files_unchanged": true,
+  "upper_panels_pixel_identical": false,
+  "routing_notes": [
+    "The actual RGB inset, not the presentation render, feeds perception.",
+    "Global g is text-only; m additionally reads object features and language slots.",
+    "Set-context features feed row/pointer selection; pose heads receive original h.",
+    "Explicit rules constrain/repair full and selected-mover layouts.",
+    "Held/no-op copies detected xy with RGB-PCA angle and learned fallback.",
+    "Colored object glyphs use recorded shapes/colors, but feature-grid and row layouts are schematic, not activations.",
+    "The scalar gap is delta; g is reserved for the global goal."
+  ],
+  "typography": "Times text and native LaTeX math; 7.5 pt labels, 8 pt panel headings; only panel letters bold.",
+  "line_width_bp": {
+    "main": 0.45,
+    "auxiliary": 0.35
+  },
+  "color_semantics": {
+    "language": "Violet language-slot schema and conditioning routes.",
+    "object_features": "Blue relation/context schemas and original-feature branch.",
+    "structure_and_pose": "Teal row/order and pose-output schemas.",
+    "input_schema": "Twelve O columns encode attribute groups, never values: xy(2), size(2), doubled angle(2), color(3), shape(3).",
+    "upper_panels": "Unchanged from the previous colored version."
+  },
+  "caption_change": "Explain that tensor glyphs show schemas, not activations; three object rows denote variable N. Z consists of seven learned-query language slots. Global g is text-only; Grounder(O,Z) additionally reads objects for m. Contextual features select rows/order; pose heads use original H with g, object sizes and predicted structure. Full/mover constraint repair and held/no-op preservation are summarized in panels a-c and the caption.",
+  "source_verification": [
+    "arrangement/contracts.py::Objects.features: 12 input channels.",
+    "arrangement/goal_encoder.py::GoalEncoder: seven queries, 384-to-128 projection, 13-D text-only goal, object-conditioned grounder.",
+    "experiments/relation_pose.py::NeuralRelationPose: 12-to-128-to-128 hidden encoder.",
+    "experiments/set_context.py::SetArrangement: four-head context feeds selector; placement receives original hidden.",
+    "experiments/row_layout.py::NeuralRowPlacement: contextual rows/order, original-feature origins/angles and size/goal-conditioned steps."
+  ],
+  "visual_changes": [
+    "Five equal cards replaced by an open representation-and-operator plate.",
+    "Dimensioned tensor schemas expose the 12-channel object interface and 128-channel factorization.",
+    "Separate language-to-goal and object-grounder branches reveal text-only versus object-conditioned outputs.",
+    "Original-H bypass and predicted-structure input converge on the pose operator.",
+    "Panels a-c, Times typography, page size, recorded inputs and predictions retained."
+  ],
+  "typeset_export": {
+    "source": "figure_sources/architecture_main.tex",
+    "width_pt": 396,
+    "height_pt": 251,
+    "typography": "Manuscript Times text and LaTeX mathematics; nominal labels 10 pt.",
+    "line_hierarchy_bp": {
+      "primary": 0.45,
+      "auxiliary": 0.35,
+      "dimension": 0.4
+    },
+    "text_bounds": "PASS",
+    "exports_sha256": {
+      "pdf": "b2b6d18eeb901b160755f718dcb23e547d0792db4a7f8d6520a46130a11c99d0",
+      "svg": "6bbc5f938e758b764e2ac239a7791142092701cc1ecb1737fedf9dba4c19e9b4",
+      "png": "a3c35cb055d9f5b6ebedc91b7c68322837cea3b4f9036653ebd9b1b163175633"
+    }
+  }
+}

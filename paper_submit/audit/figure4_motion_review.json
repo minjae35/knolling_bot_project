@@ -1,0 +1,119 @@
+{
+  "status": "PASS",
+  "pdf_sha256": "cad636011e847e2f09f02bab83bebb7cb5ac65e3395fcc755e543509e2b3a06d",
+  "previous_pdf_sha256": "f540cbb1d1037c1670b5fc5eabf56ba3570945d0d2f00881b0f3780fa0dac030",
+  "main_pages": 5,
+  "total_pages": 13,
+  "references_pages": [
+    6,
+    6
+  ],
+  "appendix_pages": [
+    7,
+    13
+  ],
+  "figure_count": 8,
+  "table_count": 7,
+  "page_comparison_to_previous": [
+    {
+      "page": 1,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 2,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 3,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 4,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 5,
+      "pixels_identical": false,
+      "text_identical": false
+    },
+    {
+      "page": 6,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 7,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 8,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 9,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 10,
+      "pixels_identical": false,
+      "text_identical": false
+    },
+    {
+      "page": 11,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 12,
+      "pixels_identical": false,
+      "text_identical": false
+    }
+  ],
+  "unchanged_evidence_and_other_artwork_files": 87,
+  "figure_1_to_3_latex_blocks_unchanged": true,
+  "figure_5_to_7_latex_blocks_unchanged": true,
+  "old_spacing_diagnostic_preserved_as_figure_8": true,
+  "old_spacing_diagnostic_crop_pixels_identical_at_144dpi": true,
+  "no_model_dataset_checkpoint_pose_render_or_experiment_result_changes": true,
+  "motion_conventions": {
+    "source": "Recorded source pose",
+    "target": "Saved model prediction",
+    "direction_arrows": "Normalized world-xy direction only, +x right and +y up",
+    "distance": "Euclidean center displacement in millimeters, never rendered-pixel distance or robot path length",
+    "rotation": "Signed modulo-pi long-axis change in [-90,90) degrees, CCW positive; unsnapped predicted angles used"
+  },
+  "figure4_source": "scripts/motion_figure.py",
+  "appendix_figure_source": "scripts/layout_constraint_figure.py",
+  "frozen_original_motion_audit": "audit/motion_annotations.json",
+  "current_motion_artwork_audit": "audit/motion_visualization.json",
+  "appendix_figure_and_pose_table_audit": "audit/layout_constraints.json",
+  "independent_export_audit": {
+    "scope": "Actual exported PDF paths, arrowheads, dots and text compared independently with frozen source/predicted poses, not only generator metadata.",
+    "all_eight_direction_arrows_correct": true,
+    "all_sixteen_distance_rotation_dots_correct": true,
+    "all_display_strings_correct": true,
+    "max_inverse_axis_distance_difference_mm": 0.00052,
+    "max_inverse_axis_rotation_difference_deg": 0.000666,
+    "max_direction_difference_deg": 0.000588,
+    "difference_source": "PDF numeric-coordinate quantization."
+  },
+  "visual_review": {
+    "reviewed_pages": [
+      5,
+      10,
+      12,
+      13
+    ],
+    "other_existing_pages_pixel_identical": true,
+    "independent_figure4_print_width_review": "No label/marker overlap, clipping or crowded arrowheads; all eight IDs and quantities legible.",
+    "figure8_old_crop_pixel_identical": true,
+    "main_body_pages": 5
+  }
+}

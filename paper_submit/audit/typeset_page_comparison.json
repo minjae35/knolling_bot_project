@@ -1,0 +1,66 @@
+{
+  "previous_pdf_sha256": "c430318c11b07dcd0283e93af6e0ef6d03535dd97ae6f402f787efa0582ae4be",
+  "current_pdf_sha256": "052b0c1374dd0df37f3ad79c64e7d8caa1893aafd02ae102ce84f020939f37f8",
+  "page_comparison": [
+    {
+      "page": 1,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 2,
+      "pixels_identical": false,
+      "text_identical": false
+    },
+    {
+      "page": 3,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 4,
+      "pixels_identical": false,
+      "text_identical": false
+    },
+    {
+      "page": 5,
+      "pixels_identical": false,
+      "text_identical": false
+    },
+    {
+      "page": 6,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 7,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 8,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 9,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 10,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 11,
+      "pixels_identical": false,
+      "text_identical": false
+    },
+    {
+      "page": 12,
+      "pixels_identical": true,
+      "text_identical": true
+    }
+  ]
+}

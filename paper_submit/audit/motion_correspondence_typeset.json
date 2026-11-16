@@ -1,0 +1,17 @@
+{
+  "source": "figure_sources/motion_correspondence.tex",
+  "width_pt": 396,
+  "height_pt": 318,
+  "typography": "Manuscript Times text and LaTeX mathematics; nominal labels 8.5 pt.",
+  "line_hierarchy_bp": {
+    "primary": 0.45,
+    "auxiliary": 0.35,
+    "dimension": 0.4
+  },
+  "text_bounds": "PASS",
+  "exports_sha256": {
+    "pdf": "ecbc3d6bfeb285828ef39ec5c8d3a2d8df1b5171bf60e99fcad88a4502b07334",
+    "svg": "abb22fe1b71d5fde71cc5a5bfc7b6d08fce6bac7539771e916daf01edc02910e",
+    "png": "521f860b9ec1eab4299227f114061448dfbf809dc2620138a19a871c41fbc042"
+  }
+}

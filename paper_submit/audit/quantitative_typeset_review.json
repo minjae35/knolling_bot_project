@@ -1,0 +1,108 @@
+{
+  "figure": 3,
+  "scientific_analysis_bytes_unchanged": true,
+  "typesetting": {
+    "source": "figure_sources/holdout_diagnostics.tex",
+    "width_pt": 396,
+    "height_pt": 199,
+    "typography": "Manuscript Times text and LaTeX mathematics; nominal labels 10.5 pt.",
+    "line_hierarchy_bp": {
+      "primary": 0.45,
+      "auxiliary": 0.35,
+      "dimension": 0.4
+    },
+    "text_bounds": "PASS",
+    "exports_sha256": {
+      "pdf": "fa121fc273111e2bd5cf8bedc17c000513989edbe56c8b11a8d33d0aa4b19404",
+      "svg": "3c1eba287a384243b5f6c9ae99d5ea0ccb7df07b1aff2c2d8dfab9037c1172bd",
+      "png": "665a80e446bd122504718fa81984207f0ffe801debb678867ef9732b7ca37c94"
+    }
+  },
+  "style": {
+    "background": "white",
+    "minimum_label_pt": 10.5,
+    "axis_label_pt": 10.5,
+    "panel_title_pt": 11.5,
+    "palette": {
+      "v1": "#B27A46",
+      "v2": "#087E81",
+      "mode_intervals": "#507BC2",
+      "pooled_interval": "#087E81",
+      "pooled_band": "teal!6"
+    },
+    "error_count_ticks": [
+      0,
+      20,
+      40,
+      60,
+      80
+    ],
+    "font": "Times text / LaTeX mathematics",
+    "plot_widths_bp": [
+      135,
+      126
+    ],
+    "marker_diameter_bp": 2.8,
+    "primary_line_bp": 0.45,
+    "secondary_line_bp": 0.35,
+    "pooled_band_bounds_bp": [
+      0,
+      143,
+      183,
+      163
+    ],
+    "color_semantics": "Blue mode estimates; teal pooled estimate and v2; warm ochre open v1 markers. Marker shape and labels retain all distinctions without color.",
+    "low_count_vertical_offsets": [
+      {
+        "category": "any_gap",
+        "v1_vertical_offset_bp": 0,
+        "v2_vertical_offset_bp": 0
+      },
+      {
+        "category": "count",
+        "v1_vertical_offset_bp": 0,
+        "v2_vertical_offset_bp": 0
+      },
+      {
+        "category": "requested_region",
+        "v1_vertical_offset_bp": 0,
+        "v2_vertical_offset_bp": 0
+      },
+      {
+        "category": "size_order",
+        "v1_vertical_offset_bp": 0,
+        "v2_vertical_offset_bp": 0
+      },
+      {
+        "category": "keep",
+        "v1_vertical_offset_bp": 0,
+        "v2_vertical_offset_bp": 0
+      },
+      {
+        "category": "clearance",
+        "v1_vertical_offset_bp": 0,
+        "v2_vertical_offset_bp": 0
+      },
+      {
+        "category": "mixed_color_row",
+        "v1_vertical_offset_bp": 0,
+        "v2_vertical_offset_bp": 0
+      },
+      {
+        "category": "collision",
+        "v1_vertical_offset_bp": -1.2,
+        "v2_vertical_offset_bp": 1.2
+      },
+      {
+        "category": "boundary",
+        "v1_vertical_offset_bp": -1.2,
+        "v2_vertical_offset_bp": 1.2
+      }
+    ],
+    "typeset_source": "figure_sources/holdout_diagnostics.tex"
+  },
+  "text_bounds": "PASS",
+  "new_inference": false,
+  "figure6_integrity": "PASS",
+  "minimum_body_text_pt": 10.5
+}

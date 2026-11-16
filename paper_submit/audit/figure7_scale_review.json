@@ -1,0 +1,81 @@
+{
+  "pdf_sha256": "c9f41d63b26c0628eae1d1349c4ee4eed7bfbc55d430f530cd6b4f64d386ba4f",
+  "previous_pdf_sha256": "c795656abbb29ef36dffec2eb2ba31993ff3dcd102e38b3937689cf0a9e156e2",
+  "page_comparison": [
+    {
+      "page": 1,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 2,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 3,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 4,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 5,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 6,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 7,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 8,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 9,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 10,
+      "pixels_identical": true,
+      "text_identical": true
+    },
+    {
+      "page": 11,
+      "pixels_identical": false,
+      "text_identical": true
+    },
+    {
+      "page": 12,
+      "pixels_identical": true,
+      "text_identical": true
+    }
+  ],
+  "other_figures_renders_and_evidence_files_unchanged": 71,
+  "typography_and_all_figure_text_unchanged": true,
+  "latex_manuscript_text_unchanged": true,
+  "detail_width_bp": 160,
+  "previous_detail_width_bp": 216,
+  "original_detail_width_bp": 272,
+  "linear_size_reduction_percent": 25.92592592592593,
+  "object_area_reduction_percent": 45.13031550068588,
+  "linear_size_reduction_from_original_percent": 41.17647058823529,
+  "figure_height_bp": 240,
+  "previous_figure_height_bp": 300,
+  "figure_height_reduction_percent": 20,
+  "context_width_bp": 112,
+  "render_files_and_crop_extents_unchanged": true,
+  "new_inference": false
+}

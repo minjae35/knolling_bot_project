@@ -1,0 +1,342 @@
+{
+  "reference": "figures/qualitative_modes.png",
+  "reference_sha256": "917552f5ced03eeebc0237e2c3fb918368c6ebc92eba135290ca08fc8690239d",
+  "scope": "Figures 3 and 5 only. Frozen Figure 6 exports, renders, scenes and LaTeX are unchanged.",
+  "figures": {
+    "holdout_diagnostics": {
+      "size_pt": [
+        396,
+        199
+      ],
+      "source": "scripts/quantitative_figure.py",
+      "previous_exports_sha256": {
+        "pdf": "d61f172d0fd7d153b2ed51f73922c6c3fe2606bce3b4fece32a998dbc8bf269f",
+        "svg": "8e8550fcb59f671f97e6f2118930277ebbff1e1ffbc9bc2a74d1ffbabfcd608f",
+        "png": "75ff94aed1e8af049c1f45e0af12bc2b6c8e9432eba692efa602c885db1a6030"
+      },
+      "sources_sha256": {
+        "v1_holdout.jsonl": "89b3ee1cbc2433b948bdb0b85ac7a2d407b3001a90018297d94dd25266218aaa",
+        "v2_holdout.jsonl": "209df3c1b12cb62e82ce7daff066cc64ced99e26c9960e2b5e1070255ac5de82"
+      },
+      "analysis": "audit/paired_mode_analysis.json",
+      "modes": {
+        "full": {
+          "paired_gain_count": 24,
+          "n": 384,
+          "families_with_mode": 128,
+          "v1_success": 287,
+          "v2_success": 311,
+          "gain_pp": 6.25,
+          "ci95_pp": [
+            2.8645833333333335,
+            10.15625
+          ]
+        },
+        "partial": {
+          "paired_gain_count": 20,
+          "n": 127,
+          "families_with_mode": 127,
+          "v1_success": 84,
+          "v2_success": 104,
+          "gain_pp": 15.748031496062993,
+          "ci95_pp": [
+            9.523809523809524,
+            22.04724409448819
+          ]
+        },
+        "no_op": {
+          "paired_gain_count": 7,
+          "n": 129,
+          "families_with_mode": 128,
+          "v1_success": 118,
+          "v2_success": 125,
+          "gain_pp": 5.426356589147287,
+          "ci95_pp": [
+            1.5625,
+            10.0
+          ]
+        },
+        "overall": {
+          "paired_gain_count": 51,
+          "n": 640,
+          "families_with_mode": 128,
+          "v1_success": 489,
+          "v2_success": 540,
+          "gain_pp": 7.96875,
+          "ci95_pp": [
+            4.84375,
+            11.5625
+          ]
+        }
+      },
+      "error_counts": [
+        {
+          "key": "any_gap",
+          "label": "Any gap",
+          "v1": 77,
+          "v2": 71
+        },
+        {
+          "key": "count",
+          "label": "Count",
+          "v1": 45,
+          "v2": 5
+        },
+        {
+          "key": "requested_region",
+          "label": "Region",
+          "v1": 17,
+          "v2": 4
+        },
+        {
+          "key": "size_order",
+          "label": "Size order",
+          "v1": 13,
+          "v2": 11
+        },
+        {
+          "key": "keep",
+          "label": "Preservation",
+          "v1": 9,
+          "v2": 4
+        },
+        {
+          "key": "clearance",
+          "label": "Clearance",
+          "v1": 9,
+          "v2": 7
+        },
+        {
+          "key": "mixed_color_row",
+          "label": "Color rows",
+          "v1": 2,
+          "v2": 0
+        },
+        {
+          "key": "collision",
+          "label": "Collision",
+          "v1": 1,
+          "v2": 0
+        },
+        {
+          "key": "boundary",
+          "label": "Boundary",
+          "v1": 1,
+          "v2": 0
+        }
+      ],
+      "style": {
+        "background": "white",
+        "minimum_label_pt": 10.5,
+        "axis_label_pt": 10.5,
+        "panel_title_pt": 11.5,
+        "palette": {
+          "v1": "#B27A46",
+          "v2": "#087E81",
+          "mode_intervals": "#507BC2",
+          "pooled_interval": "#087E81",
+          "pooled_band": "teal!6"
+        },
+        "error_count_ticks": [
+          0,
+          20,
+          40,
+          60,
+          80
+        ],
+        "font": "Times text / LaTeX mathematics",
+        "plot_widths_bp": [
+          135,
+          126
+        ],
+        "marker_diameter_bp": 2.8,
+        "primary_line_bp": 0.45,
+        "secondary_line_bp": 0.35,
+        "pooled_band_bounds_bp": [
+          0,
+          143,
+          183,
+          163
+        ],
+        "color_semantics": "Blue mode estimates; teal pooled estimate and v2; warm ochre open v1 markers. Marker shape and labels retain all distinctions without color.",
+        "low_count_vertical_offsets": [
+          {
+            "category": "any_gap",
+            "v1_vertical_offset_bp": 0,
+            "v2_vertical_offset_bp": 0
+          },
+          {
+            "category": "count",
+            "v1_vertical_offset_bp": 0,
+            "v2_vertical_offset_bp": 0
+          },
+          {
+            "category": "requested_region",
+            "v1_vertical_offset_bp": 0,
+            "v2_vertical_offset_bp": 0
+          },
+          {
+            "category": "size_order",
+            "v1_vertical_offset_bp": 0,
+            "v2_vertical_offset_bp": 0
+          },
+          {
+            "category": "keep",
+            "v1_vertical_offset_bp": 0,
+            "v2_vertical_offset_bp": 0
+          },
+          {
+            "category": "clearance",
+            "v1_vertical_offset_bp": 0,
+            "v2_vertical_offset_bp": 0
+          },
+          {
+            "category": "mixed_color_row",
+            "v1_vertical_offset_bp": 0,
+            "v2_vertical_offset_bp": 0
+          },
+          {
+            "category": "collision",
+            "v1_vertical_offset_bp": -1.2,
+            "v2_vertical_offset_bp": 1.2
+          },
+          {
+            "category": "boundary",
+            "v1_vertical_offset_bp": -1.2,
+            "v2_vertical_offset_bp": 1.2
+          }
+        ],
+        "typeset_source": "figure_sources/holdout_diagnostics.tex"
+      },
+      "scientific_question": "Which command modes gain, and which inference bottleneck persists?",
+      "visible_changes": [
+        "Pointwise paired family-bootstrap intervals for each command mode",
+        "Before/after comparison of all nine emitted error categories (spacing union)",
+        "One connected analytical argument rather than unrelated complexity and residual-count plots",
+        "Aligned plot baselines; understated panel titles and Times labels; fine capped intervals and small release endpoints",
+        "Restrained blue/teal estimate hierarchy and warm-ochre/teal release comparison; one subtle pooled-row band"
+      ],
+      "references": [
+        {
+          "title": "CLIPort",
+          "url": "https://arxiv.org/pdf/2109.12098",
+          "inspected": "Figure 3, PDF page 6, and Figure 4, PDF page 8",
+          "observation": "Figure 3 uses grouped bar charts, not curves; a repeated comparison isolates seen/unseen performance. Adopt explicit empirical contrasts, not its exact graphic form."
+        },
+        {
+          "title": "DINOv2",
+          "url": "https://arxiv.org/pdf/2304.07193",
+          "inspected": "Figure 2, PDF page 3, and Figure 6, PDF page 10",
+          "observation": "Consistent axes and visual codes expose model/condition differences. Adopt claim-led comparisons and small labels with limited accents."
+        },
+        {
+          "title": "Transporter Networks",
+          "url": "https://proceedings.mlr.press/v155/zeng21a/zeng21a.pdf",
+          "inspected": "Figures 9\u201310, PDF pages 18\u201319",
+          "observation": "Repeated model comparisons connect generalization and failure patterns. Adopt a comparison that interrogates the bottleneck; do not copy unmeasured breadth."
+        }
+      ],
+      "scope": "Evaluation-family variation conditional on frozen releases, not training-seed uncertainty. Intervals are not simultaneous and do not test differences between modes.",
+      "caveats": [
+        "Counts of emitted error tags across the same 640 records. Any gap is the horizontal/vertical union; other categories may overlap. Count mismatch terminates downstream checks, so tag reductions are not isolated causal effects or uncensored latent-error prevalence.",
+        "Mode intervals are pointwise; observed differences between modes are not a causal ablation."
+      ],
+      "text_bounds": "PASS",
+      "frozen_figure6_integrity": "PASS",
+      "new_inference": false,
+      "exports_sha256": {
+        "pdf": "fa121fc273111e2bd5cf8bedc17c000513989edbe56c8b11a8d33d0aa4b19404",
+        "svg": "3c1eba287a384243b5f6c9ae99d5ea0ccb7df07b1aff2c2d8dfab9037c1172bd",
+        "png": "665a80e446bd122504718fa81984207f0ffe801debb678867ef9732b7ca37c94"
+      }
+    },
+    "selector_training": {
+      "size_pt": [
+        396,
+        176
+      ],
+      "source": "scripts/training_figure.py",
+      "previous_exports_sha256": {
+        "pdf": "eb3f0b3cdcb963a1bcb37e88fa6074435031de336a2122d28709cc34522ffea1",
+        "svg": "9cc13e277a737ac65060fcb1b558ab86dae0a1a44216543a120d3706129495cf",
+        "png": "d563d8f313ef690a63e857d27fc5593c16312e056d57c8655e84961c90b763ac"
+      },
+      "source_sha256": {
+        "audit/evidence/selector_full_result.json": "cd57e6e905c2c6a8e274639f8524773584b00e7573c50746127cb5b7626ef2ad"
+      },
+      "epochs": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "metrics_percent": {
+        "val_row_accuracy": [
+          75.85575691012264,
+          77.28354384038074,
+          79.27878455061321,
+          80.81640124473732,
+          82.18927329306241,
+          82.51876258466044,
+          84.34925864909391,
+          84.88010250777961
+        ],
+        "val_slot_accuracy": [
+          71.77375068643602,
+          73.42119714442615,
+          73.2930624199158,
+          73.60424675086948,
+          73.98865092440052,
+          74.2449203734212,
+          74.66593446824089,
+          74.68423942888522
+        ]
+      },
+      "strict_success_counts": [
+        235,
+        235,
+        233,
+        228,
+        229,
+        224,
+        232,
+        233
+      ],
+      "validation_pairs": 1200,
+      "baseline_count": 222,
+      "selected_epoch": 1,
+      "visible_changes": [
+        "gray equal-size panels match Figure 6 hierarchy and alignment",
+        "Nimbus Roman, the manuscript Times face, for titles, ticks, and the scope line",
+        "blue row and green slot curves with direct endpoint labels",
+        "teal complete-scene curve with selected-epoch marker",
+        "genuine 222/1200 baseline drawn as a neutral dashed reference",
+        "scope line set at 9.5 pt so it reads with the axis labels"
+      ],
+      "scientific_scope": "Saved eight-epoch selector-stage validation before final inference rules. Not sealed holdout performance. No new measurements or uncertainty bands.",
+      "text_bounds": "PASS",
+      "frozen_figure6_integrity": "PASS",
+      "exports_sha256": {
+        "pdf": "3246f9397f97677823fe22b1707f6ebca11446132782cf1b022fa60258ecd784",
+        "svg": "cc3f1b7e332561dab8d05705fc4e1ed7852f7cf23db9f2505e94870f461a0de7",
+        "png": "ba5b49c4393faa298867f89f741ee065996655b7ac5c64d4096efb07904886e6"
+      }
+    }
+  },
+  "shared_style": {
+    "minimum_chart_label_pt": 7.0,
+    "fonts": {
+      "holdout_diagnostics": "Times / native LaTeX math",
+      "selector_training": "Nimbus Roman (manuscript Times face)"
+    },
+    "panel_backgrounds": {
+      "selector_training": "#F0F1F1",
+      "holdout_diagnostics": "white"
+    },
+    "principle": "Individual figure records specify typography, geometry, and palette; Figure 3 now uses editable TikZ while Figure 5 retains its existing artwork."
+  }
+}

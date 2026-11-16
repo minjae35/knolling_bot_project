@@ -1,0 +1,114 @@
+{
+  "figure": 4,
+  "changed_panel": "c",
+  "design": "White-background joint translation/rotation scatter, direct object IDs, one zero reference. Exact scientific axes replace the previous eight gray ledger cards.",
+  "width_pt": 396,
+  "height_pt": 278,
+  "minimum_label_pt": 7,
+  "unchanged_panels": [
+    "a",
+    "b"
+  ],
+  "points": [
+    {
+      "object_id": "o01",
+      "x_translation_mm": 13.994466101226422,
+      "y_signed_rotation_deg": 3.860577177730979,
+      "label_offset_pt": [
+        5,
+        3
+      ]
+    },
+    {
+      "object_id": "o02",
+      "x_translation_mm": 203.9446711877772,
+      "y_signed_rotation_deg": 11.405043898906476,
+      "label_offset_pt": [
+        -8,
+        -8
+      ]
+    },
+    {
+      "object_id": "o03",
+      "x_translation_mm": 135.6048872570176,
+      "y_signed_rotation_deg": -41.95539728894497,
+      "label_offset_pt": [
+        5,
+        3
+      ]
+    },
+    {
+      "object_id": "o04",
+      "x_translation_mm": 282.7147442043271,
+      "y_signed_rotation_deg": -69.86178035486331,
+      "label_offset_pt": [
+        5,
+        3
+      ]
+    },
+    {
+      "object_id": "o05",
+      "x_translation_mm": 197.76479850149164,
+      "y_signed_rotation_deg": -84.50558776115606,
+      "label_offset_pt": [
+        -8,
+        3
+      ]
+    },
+    {
+      "object_id": "o06",
+      "x_translation_mm": 224.167818948746,
+      "y_signed_rotation_deg": -69.94375945521799,
+      "label_offset_pt": [
+        5,
+        3
+      ]
+    },
+    {
+      "object_id": "o07",
+      "x_translation_mm": 206.29514759536167,
+      "y_signed_rotation_deg": 17.530829997360588,
+      "label_offset_pt": [
+        6,
+        5
+      ]
+    },
+    {
+      "object_id": "o08",
+      "x_translation_mm": 211.62336098993362,
+      "y_signed_rotation_deg": 72.94763029444678,
+      "label_offset_pt": [
+        5,
+        0
+      ]
+    }
+  ],
+  "interpretation": "Object 1 needs a small pose correction; all other objects are translated over 135 mm. The plot describes one saved validation scene, not a statistical benchmark or trajectory.",
+  "angle_convention": "Signed target-source difference in [-90,90) degrees; positive CCW; undirected long-axis orientation.",
+  "source_sha256": {
+    "audit/evidence/full8b_choice.json": "82dbadde9ce7c199add36fb549a2c984bc044126bf104fc26276cfcc78c21638",
+    "audit/blender_provenance.json": "8d561054158149fc24cd12bd5405a0748c19d2329d08daa585e2e5fa5b8b2ebd",
+    "audit/blender_pose_checks.json": "b1963506f2df6e6203c358a62f4d9559a6e47f4a926a75c447e65d5712e5eaec",
+    "renders/full_before.png": "acfb75aa2d6433d26e2d169f6da391fb3ec57fb8af2b546e5b5a2432d348dfba",
+    "renders/full_after.png": "2043bd00a5181e604dda1dd8426d6eb8919dd7d6641d0dfc41b2ed52dabe2c86"
+  },
+  "exports_sha256": {
+    "pdf": "0ffd5f9c079c61e046ce8e4573b948799d85b8444474dec3b6d9eb6321adf33b",
+    "svg": "07f304b188047fea89a03c9258e2be116b76d159b8c1c451c09e480b2ed1490b",
+    "png": "e75f5716c45c35ec9553691d5d45400798df451c3f21c2aa8316f80ce5229242"
+  },
+  "text_bounds": "PASS",
+  "new_inference": false,
+  "figure6_before": {
+    "status": "PASS",
+    "unchanged_files": 11,
+    "latex_block_unchanged": true
+  },
+  "figure6_after": {
+    "status": "PASS",
+    "unchanged_files": 11,
+    "latex_block_unchanged": true
+  },
+  "upper_panels_pixel_identical_to_prior": true,
+  "point_values_independently_recomputed": true
+}

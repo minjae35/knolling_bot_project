@@ -1,0 +1,17 @@
+{
+  "source": "figure_sources/layout_constraints.tex",
+  "width_pt": 396,
+  "height_pt": 157,
+  "typography": "Manuscript Times text and LaTeX mathematics; nominal labels 9.5 pt.",
+  "line_hierarchy_bp": {
+    "primary": 0.45,
+    "auxiliary": 0.35,
+    "dimension": 0.4
+  },
+  "text_bounds": "PASS",
+  "exports_sha256": {
+    "pdf": "f1fb71cb8a70d9013b299c6ed035c7bfc25c137cff1eaeac044f5688bce2e16b",
+    "svg": "0a8207a054e32ce0d38706e402b2bf20c551e1f3547708b9888808ea376dc123",
+    "png": "d13cbe761a7b59959fd40260f57f941779308a1dbde913eaac470e30517cce83"
+  }
+}

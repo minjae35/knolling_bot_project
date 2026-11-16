@@ -1,0 +1,17 @@
+{
+  "source": "figure_sources/architecture_main.tex",
+  "width_pt": 396,
+  "height_pt": 251,
+  "typography": "Manuscript Times text and LaTeX mathematics; nominal labels 10 pt.",
+  "line_hierarchy_bp": {
+    "primary": 0.45,
+    "auxiliary": 0.35,
+    "dimension": 0.4
+  },
+  "text_bounds": "PASS",
+  "exports_sha256": {
+    "pdf": "b2b6d18eeb901b160755f718dcb23e547d0792db4a7f8d6520a46130a11c99d0",
+    "svg": "6bbc5f938e758b764e2ac239a7791142092701cc1ecb1737fedf9dba4c19e9b4",
+    "png": "a3c35cb055d9f5b6ebedc91b7c68322837cea3b4f9036653ebd9b1b163175633"
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "blender_version": "5.1.0",
+  "scope": "Camera-only presentation crops of saved scenes; not new inference or evaluation.",
+  "renderer": "Cycles CPU",
+  "samples": 128,
+  "threads": 8,
+  "renders": {
+    "detail_full_workspace": {
+      "source_blend": "renders/full_after.blend",
+      "source_sha256": "6eea07a83d28a06250087ae004d8948f9e31ddddf47fc951d26ad58882996483",
+      "blend_sha256": "007e092abd35c54203564c2e993b3a0553e91011c200bb49a0f1e6ba1ca4ebf0",
+      "image_sha256": "734c8d71c7653946e83ebd333372a9f075ce918b20583c6a83b5cbd6577f709c",
+      "image": "detail_full_workspace.png",
+      "world_extent_m": [
+        -0.02,
+        0.62,
+        -0.01333333333333334,
+        0.41333333333333333
+      ],
+      "resolution": [
+        1920,
+        1280
+      ],
+      "camera_location": [
+        0.30000001192092896,
+        0.20000000298023224,
+        1.0
+      ],
+      "camera_euler": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "ortho_scale_m": 0.6399999856948853,
+      "noncamera_scene_sha256": "53b2d8b96d84a2f4a746c94ac4b9d42f5854f2a7ef52d3441ab006d4f99b2b16",
+      "noncamera_scene_unchanged": true,
+      "saved_file_reopened_and_checked": true
+    },
+    "detail_row_gap": {
+      "source_blend": "renders/smoke_full_overhead.blend",
+      "source_sha256": "cfb6e5d0ed5d6fb7005ae98457cfa7c9ea10b0a147b82c39f8307b7c3af01601",
+      "blend_sha256": "9bfc5930ba6a98b148356e02c1ad66ff8493c88c227b7b4746a1747eeccc2774",
+      "image_sha256": "09b9dba1eda87941f15ec3a24d9bfdffe3910dac080b30f16276948fc810911c",
+      "image": "detail_row_gap.png",
+      "world_extent_m": [
+        0.17,
+        0.45,
+        0.115,
+        0.22
+      ],
+      "resolution": [
+        2040,
+        765
+      ],
+      "camera_location": [
+        0.3100000023841858,
+        0.16750000417232513,
+        1.0
+      ],
+      "camera_euler": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "ortho_scale_m": 0.2800000011920929,
+      "noncamera_scene_sha256": "71eb6d607e8cf15a3ded0b8a8e96f574dd010ea7307b46cc0c95e3eea4fd1525",
+      "noncamera_scene_unchanged": true,
+      "saved_file_reopened_and_checked": true
+    },
+    "detail_clearance": {
+      "source_blend": "renders/smoke_partial_overhead.blend",
+      "source_sha256": "458bace2e625b5b69063562233bcfcce0d666167241307748452612c31db34f0",
+      "blend_sha256": "ac79d8fdcf83474263a5915876061f2971e1c4643f9e0e95ca7dc05f147c5562",
+      "image_sha256": "e3493e865ff5f4cd5e385e18ec6ada9504973b8b83b92358b3271cee88a51ab2",
+      "image": "detail_clearance.png",
+      "world_extent_m": [
+        0.13,
+        0.31,
+        0.162,
+        0.24008823529411766
+      ],
+      "resolution": [
+        2040,
+        885
+      ],
+      "camera_location": [
+        0.2199999988079071,
+        0.20104411244392395,
+        1.0
+      ],
+      "camera_euler": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "ortho_scale_m": 0.18000000715255737,
+      "noncamera_scene_sha256": "be2319839332324caace68975b6ad540593c7ee5230a72eb99962d63a8c438d4",
+      "noncamera_scene_unchanged": true,
+      "saved_file_reopened_and_checked": true
+    }
+  }
+}

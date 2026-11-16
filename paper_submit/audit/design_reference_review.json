@@ -1,0 +1,90 @@
+{
+  "method": "Primary PDFs downloaded for research and rendered; actual pages directly inspected, not inferred from abstracts. Reference PDFs/previews stay in build/ and are not redistributed in the manuscript package.",
+  "references": [
+    {
+      "title": "CLIPort",
+      "venue": "CoRL 2021",
+      "url": "https://arxiv.org/pdf/2109.12098",
+      "file": "cliport.pdf",
+      "inspected": [
+        "Figure 3, PDF page 6",
+        "Figure 4, PDF page 8"
+      ],
+      "observed": "Grouped seen/unseen score bars; aligned language-conditioned Input/Pick/Place images.",
+      "adopted": "Make each comparison answer a stated question and connect qualitative layouts to the command.",
+      "correction": "Earlier review incorrectly called Figure 3 curves; the actual figure uses grouped bars.",
+      "locally_inspected_pdf_sha256": "3cc19664beabda203cb1a1ad86659f75f60a099189820d92d59d20067c9ab003"
+    },
+    {
+      "title": "StructFormer",
+      "venue": "ICRA 2022",
+      "url": "https://arxiv.org/pdf/2110.10189",
+      "file": "structformer.pdf",
+      "inspected": [
+        "Figure 1, PDF page 1",
+        "Figure 4, PDF page 5"
+      ],
+      "observed": "Language/spatial structure correspondence and aligned arrangement examples across methods.",
+      "adopted": "Use the saved arrangement to explain spatial structure and constraint satisfaction. No unsupported component ablations are suggested.",
+      "locally_inspected_pdf_sha256": "4a608385f1ee1ec736dde217cd9a7d9c93f5d714b9bc8756533902fce2fadf35"
+    },
+    {
+      "title": "DINOv2",
+      "venue": "TMLR 2024",
+      "url": "https://arxiv.org/pdf/2304.07193",
+      "file": "dinov2.pdf",
+      "inspected": [
+        "Figure 2, PDF page 3",
+        "Figure 6, PDF page 10"
+      ],
+      "observed": "Controlled comparisons use consistent visual encodings across tasks and conditions.",
+      "adopted": "One release color/marker vocabulary and explicit empirical contrasts; no ornamental chart complexity.",
+      "locally_inspected_pdf_sha256": "3add205547f3ece5fb1ac7a91720aa9fabf02d9cde29a096643ff022449f3e91"
+    },
+    {
+      "title": "Segment Anything",
+      "venue": "ICCV 2023",
+      "url": "https://openaccess.thecvf.com/content/ICCV2023/papers/Kirillov_Segment_Anything_ICCV_2023_paper.pdf",
+      "file": "sam_iccv2023.pdf",
+      "inspected": [
+        "Figure 7, PDF page 8",
+        "Figure 8, PDF page 9"
+      ],
+      "observed": "Comparative deltas and confidence intervals are tied to defined evaluation units; qualitative examples use marked closeups.",
+      "adopted": "Expose meaningful paired uncertainty; use linked context/detail to explain exact geometry rather than repeat numerical headlines.",
+      "locally_inspected_pdf_sha256": "77992e7a518edcaf5200a750299b98f99de051066f7c1dac357e6baf8ce068bb"
+    },
+    {
+      "title": "Transporter Networks",
+      "venue": "CoRL 2020, proceedings 2021",
+      "url": "https://proceedings.mlr.press/v155/zeng21a/zeng21a.pdf",
+      "file": "transporter.pdf",
+      "inspected": [
+        "Figure 2, PDF page 3",
+        "Figures 9\u201310, PDF pages 18\u201319"
+      ],
+      "observed": "Render-to-representation explanation and repeated comparisons expose the spatial prediction mechanism.",
+      "adopted": "Explain the distinction between visible mesh footprints and the geometry actually scored.",
+      "locally_inspected_pdf_sha256": "fc28aa1593d49611035fdaab33e522917cddfd2e3d4da5d369db4dff99178b66"
+    },
+    {
+      "title": "Knolling Bot: Teaching Robots the Human Notion of Tidiness",
+      "venue": "NeurIPS 2025 Creative AI Track",
+      "url": "https://proceedings.neurips.cc/paper_files/paper/2025/file/91ae44cea7a1a23e24941b83d55427d7-Paper-Creative_AI_Track.pdf",
+      "file": "knolling.pdf",
+      "inspected": [
+        "Figures 1\u20132, PDF page 2",
+        "Figure 5, PDF page 6"
+      ],
+      "observed": "Aligned before/state/execution/after views connect the task and preferences to behavior.",
+      "adopted": "Preserve matched source/predicted views and relate the layout to instruction clauses. No execution panel is fabricated for this project.",
+      "locally_inspected_pdf_sha256": "b4f5138153659fc697b7cc952c79ca49ac14df254ace903e2132a97ac80e051f"
+    }
+  ],
+  "scope": "Borrowed analytical and composition principles only. No external figure artwork, experimental values, or evaluation breadth copied.",
+  "current_figure_questions": {
+    "3": "Which commands gain and which emitted errors persist?",
+    "4": "How does the saved prediction satisfy the language constraints?",
+    "7": "Why can visible footprint separation disagree with the strict envelope score?"
+  }
+}
