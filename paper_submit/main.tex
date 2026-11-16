@@ -27,10 +27,17 @@
 \newcommand{\code}[1]{\texttt{\small #1}}
 \newcommand{\Hbeta}{H_{\beta}}
 \title{\normalfont\LARGE\bfseries Knolling Bot: Language-Guided Object Arrangement}
-\author{Minjae Bang\\Department of Computer Science, Columbia University}
-\hypersetup{pdftitle={Knolling Bot: Language-Guided Object Arrangement},pdfauthor={Minjae Bang},pdfsubject={Language-conditioned object arrangement; course research paper}}
+\author{Minjae Bang\\
+Department of Computer Science\\
+Columbia University
+\And
+Hod Lipson\\
+Department of Mechanical Engineering\\
+Columbia University}
+\hypersetup{pdftitle={Knolling Bot: Language-Guided Object Arrangement},pdfauthor={Minjae Bang, Hod Lipson},pdfsubject={Language-conditioned object arrangement; course research paper}}
 \begin{document}
 \maketitle
+\vspace{-8pt}
 \lhead{}
 \rhead{}
 \renewcommand{\headrulewidth}{0pt}
@@ -39,12 +46,11 @@ We present a system that predicts object arrangements from overhead RGB images a
 \end{abstract}
 \vspace{-8pt}
 \begin{figure}[H]
-\centering\includegraphics[width=0.91\linewidth]{figures/qualitative_full_annotated.pdf}
+\centering\includegraphics[width=0.84\linewidth]{figures/qualitative_full_annotated.pdf}
 \caption{\textbf{Language-guided arrangement.} Matched Blender views show a saved six-object validation prediction with the original meshes and poses. The instruction requests horizontal axes, increasing area, and 30\,mm gaps. The prediction uses the original overhead RGB input.}
 \label{fig:qualitative}
 \end{figure}
 \vspace{-10pt}
-\enlargethispage{8pt}
 \section{Introduction}
 Knolling organizes objects into aligned, evenly spaced layouts for assembly preparation. A visually tidy arrangement can still move an unselected object, violate a gap, or extend beyond the requested region. Satisfying a complete instruction requires perception, language grounding, and geometric reasoning to work together.
 
@@ -56,7 +62,6 @@ Knolling Bot predicts tidy placements sequentially \citep{hu2025knolling}, and \
 \clearpage
 \section{Method}
 \label{sec:method}
-\enlargethispage{15pt}
 Given overhead RGB $I\in[0,1]^{3\times384\times576}$ and an English instruction $t$, the system predicts planar poses $\hat P=\{(\hat x_i,\hat y_i,\hat\theta_i)\}_{i=1}^{\hat N}$ in a $0.60\times0.40$\,m workspace. Orientation follows the undirected long axis and is therefore $\pi$-periodic. Commands arrange all objects, select a color, or preserve the scene. Preferences specify the region, 15/20/30\,mm gaps, color grouping, area order, and orientation. A vertical-orientation command rotates objects while rows continue to run left to right.
 
 \vspace{2pt}
@@ -116,7 +121,6 @@ Size order & At most 5\% area inversion \\\bottomrule
 
 \section{Results and Analysis}
 \label{sec:results}
-\enlargethispage{14pt}
 \paragraph{Paired release comparison.}
 v1.0.0 is the baseline implementation, and v2.0.0 keeps that learned model while refining inference; these releases are not published \emph{Knolling Bot 2.0} \citep{hu2023knolling2}. Table~\ref{tab:main} evaluates one bundle: 10\,mm duplicate suppression, sentence-consistent region and gap choices, stricter named-color selection, and feasibility-gated row and color repair.
 
