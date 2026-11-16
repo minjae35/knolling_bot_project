@@ -58,8 +58,6 @@ def generate():
     parts.append(picture('renders/full_after.png',302,21,94,62.6666667))
     parts.append(r'\path[draw=white,line width=1bp,fill=white] (46.5,51.5) rectangle (91.5,81.8333);'+'\n')
     parts.append(picture('audit/evidence/qualitative_full_source.png',47,52,44,29.3333333))
-    label(0,94,'Blender view + RGB inset',muted=True)
-    label(396,94,'Saved poses; same camera','east',muted=True)
     route([(92,66),(101,66),(101,45),(104,45)])
     box(104,28,70,34,'objectblue',10)
     label(139,37,'RT-DETR-R18','center')
@@ -69,12 +67,12 @@ def generate():
         glyph(obj,192+(i%4)*9,34+(i//4)*16,108,(i%3-1)*.22)
     label(170,76,r'$O\in\mathbb{R}^{N\times12}$','center')
     route([(228,45),(240,45)])
+    # Clear the incoming arrowhead and split the gap to the outgoing arrow.
     order=sorted(objects,key=lambda o:(-o['target_pose']['y_m'],o['target_pose']['x_m']))
-    for i,obj in enumerate(order):glyph(obj,243+(i%2)*15,29+(i//2)*10,132)
+    for i,obj in enumerate(order):glyph(obj,249+(i%2)*15,29+(i//2)*10,132)
     label(262,76,r'rows $r$ / order $\pi$','center')
     route([(273,45),(301,45)])
     label(287,59,'rules','center',color='ochre!75!ink')
-    label(128,94,'Object / row glyphs are schematic',muted=True)
     route([(202,27),(202,19),(287,19),(287,45)],aux=True,dashed=True,arrow=False)
     parts.append(r'\fill[muted] (287,45) circle[radius=.7bp];'+'\n')
     label(249,10,'held / no-op','center',muted=True)
@@ -111,24 +109,25 @@ def generate():
     label(50,144,'MiniLM','center')
     route([(70,144),(82,144)],color='violet!85!ink')
     tensor(84,136,24,16,color='violet',rows=7)
-    label(48,160,r'$7\times128$ queries','center',muted=True)
     label(96,160,r'$Z$','center',muted=True)
     route([(110,144),(126,144)],color='violet!85!ink')
     label(130,144,r'$g(t)\in\mathbb R^{13}$')
     route([(118,144),(118,160),(186,160)],color='violet!85!ink')
     label(190,160,r'Grounder$(O,Z)\to m(O,t)$')
-    label(394,144,r'$S\in\mathbb R^{N\times2}$: object sizes','east',muted=True)
+    label(394,144,r'Object sizes $S$','east',muted=True)
 
     # Names sit above the schemas. Module names sit below them, so text
     # does not share a row with the tensor brackets.
     tensor(0,195,44,12,cols=[(2,'objectblue'),(2,'teal'),(2,'ochre'),(3,'objectred'),(3,'violet')])
     label(26,183,r'$O:N\times12$','center')
     route([(46,201),(112,201)])
-    stack(79,211,'Relation MLP',r'$12\to128\to128$')
+    stack(79,211,'Relation MLP')
     tensor(116,195,28,12)
     label(130,183,r'$H:N\times128$','center')
     route([(146,201),(214,201)],color='objectblue!85!ink')
-    stack(188,211,'Set attention',r'4 heads; $g,S$')
+    stack(188,211,'Set attention')
+    # Left edge matches "Set attention", so the longer subtitle clears the branch at x=158.
+    label(163,228.7,'4-head attention','west',muted=True,size=9)
     tensor(218,195,28,12)
     label(232,183,r'$\widetilde H:N\times128$','center')
     route([(248,201),(322,201)],color='teal!85!ink')
@@ -136,14 +135,13 @@ def generate():
     tensor(326,195,28,12,cols=[(1,'teal'),(1,'teal')])
     label(340,183,r'$(r,\pi)$','center')
 
-    # Pose is one baseline. The arrow stops before the words, then the
-    # output tensor continues the row.
+    # Original H enters the pose heads. Predicted (r, π) enters the operator
+    # above its label, before pose computation; it does not merge into the output.
     route([(158,201),(158,243),(180,243)],color='objectblue!85!ink')
     parts.append(r'\fill[objectblue!85!ink] (158,201) circle[radius=.8bp];'+'\n')
-    label(128,243,r'original $H$','center',muted=True)
     label(204,243,'Pose heads','center')
-    label(236,243,r'conditioned on $g,S$',muted=True)
-    route([(340,207),(340,237)],color='teal!85!ink')
+    route([(230,243),(324,243)],color='teal!85!ink')
+    route([(340,208),(340,230),(224,230),(224,237)],color='teal!85!ink')
     tensor(328,237,28,12,cols=[(1,'teal'),(1,'teal'),(1,'teal')])
     label(362,243,r'$(x,y,\theta)$')
 

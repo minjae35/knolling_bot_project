@@ -1,0 +1,48 @@
+{
+  "status": "PASS",
+  "integration_status": "Review-only proposal; user approval pending. Canonical manuscript and all existing assets remain unchanged.",
+  "date": "2026-11-16",
+  "protected_canonical_files": 263,
+  "all_protected_hashes_unchanged": true,
+  "canonical_pdf_sha256": "77b5da1d3ff115107e7e6fd1c7614cb724b6f4ff5c5b59d5c8cca3bdca65262a",
+  "panels_abc_pixel_identical": true,
+  "comparison_equal_scale": true,
+  "panel_nominal_size_bp": [
+    396,
+    143
+  ],
+  "full_figure_nominal_size_bp": [
+    396,
+    251
+  ],
+  "out_of_bounds_labels": [],
+  "proposal_source": "proposal_d.tex",
+  "exports_sha256": {
+    "proposal_d.pdf": "a0ca3152109af4b0d1bcf9f7349507c87c59b9548a8d724ee2ee16cd76852bfc",
+    "proposal_d.png": "81898c23c9e8a2a8277cdb9627ae390e1cdffa0afb7c2ecc02f6cbd1279fc559",
+    "proposal_d.svg": "fe57dbc92fd030abdd9cd3515d5d2fb0f54636d24c28020374ab3fbdea106198",
+    "comparison.pdf": "1079142dc112835fd0a5f006455565fbf8963faf4c9364e26c0d06bde921425a",
+    "comparison.png": "168cbae9eddca1ece89fe22bc048730baaf76165e879808d83dece55cc4bc3f3",
+    "figure2_proposal_context.pdf": "d2235edeef234e6176233cc69d5cd67fec64ed5d310bcec0baa2cefe6d763025",
+    "figure2_proposal_context.png": "7970146957c37deec5580eee5253ee2327673895e17c525b7a686f77c4a42b00"
+  },
+  "verified_dimensions": {
+    "O": "N x 12",
+    "Z": "7 x 128",
+    "g": "13",
+    "m": "N",
+    "S": "N x 2",
+    "H": "N x 128",
+    "context_H": "N x 128"
+  },
+  "reviewed_dependencies": [
+    "Text-only global g versus object-conditioned m.",
+    "S extracted from object representation O.",
+    "Context(H,g,S) drives row and pointer selection only.",
+    "Original H bypass, g/S conditioning, and predicted row/order feed pose computation.",
+    "Output is a neural proposal before subsequent geometric refinement."
+  ],
+  "inference_or_training_run": false,
+  "canonical_latex_or_pdf_compiled_or_written": false,
+  "visual_review": "Independent reviewer found clearer computational flow, appropriate operator grammar, and no collisions or clipping. Final refinement standardizes output-arrow gaps and gives pose g/S a separate direct input port."
+}

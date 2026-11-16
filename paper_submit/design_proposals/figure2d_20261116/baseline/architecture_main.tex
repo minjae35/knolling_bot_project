@@ -1,0 +1,176 @@
+\documentclass[border=0bp]{standalone}
+\usepackage[T1]{fontenc}
+\usepackage{times,amsmath,amssymb,graphicx,xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,calc,positioning,patterns}
+\pdfinfoomitdate=1
+\pdftrailerid{}
+\definecolor{ink}{HTML}{202020}
+\definecolor{muted}{HTML}{626262}
+\definecolor{hairline}{HTML}{B9B9B9}
+\definecolor{accent}{HTML}{284E67}
+\definecolor{signal}{HTML}{A33D36}
+\definecolor{objectred}{HTML}{D45B59}
+\definecolor{objectgreen}{HTML}{55A870}
+\definecolor{objectblue}{HTML}{507BC2}
+\definecolor{teal}{HTML}{087E81}
+\definecolor{ochre}{HTML}{B27A46}
+\definecolor{violet}{HTML}{7563A6}
+\tikzset{
+ every node/.style={font=\fontsize{10}{12}\selectfont,inner sep=0bp,outer sep=0bp,text=ink},
+ flow/.style={draw=ink,line width=.45bp,-{Latex[length=3bp,width=2bp]}},
+ auxflow/.style={draw=muted,line width=.35bp,-{Latex[length=3bp,width=2bp]}},
+ measure/.style={draw=ink,line width=.4bp,{Latex[length=2.4bp,width=1.6bp]}-{Latex[length=2.4bp,width=1.6bp]}},
+ envelope/.style={draw=muted,line width=.35bp,dash pattern=on 2bp off 1.5bp,fill=none},
+ frame/.style={draw=hairline,line width=.35bp,fill=none},
+ leader/.style={draw=muted,line width=.35bp},
+ module/.style={draw=ink,line width=.45bp,fill=white,minimum height=30bp,align=center,inner xsep=3bp,inner ysep=3bp},
+}
+\begin{document}
+\begin{tikzpicture}[x=1bp,y=-1bp,line cap=butt,line join=miter]
+\node[anchor=west,font=\fontsize{10}{12}\selectfont] at (0.00000,8.00000) {\textbf{a}\quad Source scene};
+\node[anchor=west,font=\fontsize{10}{12}\selectfont] at (108.00000,8.00000) {\textbf{b}\quad Object structure};
+\node[anchor=west,font=\fontsize{10}{12}\selectfont] at (302.00000,8.00000) {\textbf{c}\quad Predicted layout};
+\node[anchor=north west] at (0,21) {\includegraphics[width=94bp,height=62.6666667bp]{renders/full_before.png}};
+\node[anchor=north west] at (302,21) {\includegraphics[width=94bp,height=62.6666667bp]{renders/full_after.png}};
+\path[draw=white,line width=1bp,fill=white] (46.5,51.5) rectangle (91.5,81.8333);
+\node[anchor=north west] at (47,52) {\includegraphics[width=44bp,height=29.3333333bp]{audit/evidence/qualitative_full_source.png}};
+\draw[flow] (92,66) -- (101,66) -- (101,45) -- (104,45);
+\path[draw=objectblue!85!ink,line width=.45bp,fill=objectblue!10] (104,28) rectangle (174,62);
+\node[anchor=center] at (139.00000,37.00000) {RT-DETR-R18};
+\node[anchor=center,text=muted] at (139.00000,54.00000) {+ ROI / size};
+\draw[flow] (174,45) -- (186,45);
+\path[fill=objectgreen,draw=white,line width=.2bp] (187.8390690,35.7808855) -- (195.0060599,37.3835638) -- (196.1609310,32.2191145) -- (188.9939401,30.6164362) -- cycle;
+\path[fill=objectblue,draw=white,line width=.2bp] (202.2960000,36.2680000) -- (202.7384649,36.2244210) -- (203.1639260,36.0953588) -- (203.5560333,35.8857731) -- (203.8997182,35.6037182) -- (204.1817731,35.2600333) -- (204.3913588,34.8679260) -- (204.5204210,34.4424649) -- (204.5640000,34.0000000) -- (204.5204210,33.5575351) -- (204.3913588,33.1320740) -- (204.1817731,32.7399667) -- (203.8997182,32.3962818) -- (203.5560333,32.1142269) -- (203.1639260,31.9046412) -- (202.7384649,31.7755790) -- (202.2960000,31.7320000) -- (199.7040000,31.7320000) -- (199.2615351,31.7755790) -- (198.8360740,31.9046412) -- (198.4439667,32.1142269) -- (198.1002818,32.3962818) -- (197.8182269,32.7399667) -- (197.6086412,33.1320740) -- (197.4795790,33.5575351) -- (197.4360000,34.0000000) -- (197.4795790,34.4424649) -- (197.6086412,34.8679260) -- (197.8182269,35.2600333) -- (198.1002818,35.6037182) -- (198.4439667,35.8857731) -- (198.8360740,36.0953588) -- (199.2615351,36.2244210) -- (199.7040000,36.2680000) -- cycle;
+\path[fill=objectred,draw=white,line width=.2bp] (207.1416964,36.7971858) -- (213.7774868,35.3132942) -- (214.3519202,34.4079548) -- (213.7636430,31.7772476) -- (212.8583036,31.2028142) -- (206.2225132,32.6867058) -- (205.6480798,33.5920452) -- (206.2363570,36.2227524) -- cycle;
+\path[fill=objectblue,draw=white,line width=.2bp] (214.7163268,35.5874369) -- (222.1995084,37.2608216) -- (223.2836732,32.4125631) -- (215.8004916,30.7391784) -- cycle;
+\path[fill=objectgreen,draw=white,line width=.2bp] (189.2460000,51.8360000) -- (194.7540000,51.8360000) -- (194.7540000,48.1640000) -- (189.2460000,48.1640000) -- cycle;
+\path[fill=objectgreen,draw=white,line width=.2bp] (198.0449318,52.2654874) -- (204.6385634,50.7910234) -- (205.0657062,50.1178223) -- (204.6282693,48.1616554) -- (203.9550682,47.7345126) -- (197.3614366,49.2089766) -- (196.9342938,49.8821777) -- (197.3717307,51.8383446) -- cycle;
+\path[fill=objectgreen,draw=white,line width=.2bp] (212.2876147,51.8948971) -- (212.5502995,51.9270580) -- (212.8142112,51.9073537) -- (213.0692078,51.8365414) -- (213.3054899,51.7173423) -- (213.5139774,51.5543373) -- (213.6866581,51.3537904) -- (213.8168960,51.1234087) -- (213.8996862,50.8720456) -- (213.9318471,50.6093607) -- (213.9121428,50.3454490) -- (213.8413304,50.0904524) -- (213.7221314,49.8541703) -- (213.5591263,49.6456829) -- (213.3585795,49.4730022) -- (213.1281978,49.3427642) -- (212.8768346,49.2599740) -- (207.7123853,48.1051029) -- (207.4497005,48.0729420) -- (207.1857888,48.0926463) -- (206.9307922,48.1634586) -- (206.6945101,48.2826577) -- (206.4860226,48.4456627) -- (206.3133419,48.6462096) -- (206.1831040,48.8765913) -- (206.1003138,49.1279544) -- (206.0681529,49.3906393) -- (206.0878572,49.6545510) -- (206.1586696,49.9095476) -- (206.2778686,50.1458297) -- (206.4408737,50.3543171) -- (206.6414205,50.5269978) -- (206.8718022,50.6572358) -- (207.1231654,50.7400260) -- cycle;
+\path[fill=objectred,draw=white,line width=.2bp] (215.5569600,51.8360000) -- (222.4430400,51.8360000) -- (223.1040000,51.1750400) -- (223.1040000,48.8249600) -- (222.4430400,48.1640000) -- (215.5569600,48.1640000) -- (214.8960000,48.8249600) -- (214.8960000,51.1750400) -- cycle;
+\node[anchor=center] at (170.00000,76.00000) {$O\in\mathbb{R}^{N\times12}$};
+\draw[flow] (228,45) -- (240,45);
+\path[fill=objectred,draw=white,line width=.2bp] (244.8446400,31.5740000) -- (253.1553600,31.5740000) -- (254.0820000,30.6473600) -- (254.0820000,27.3526400) -- (253.1553600,26.4260000) -- (244.8446400,26.4260000) -- (243.9180000,27.3526400) -- (243.9180000,30.6473600) -- cycle;
+\path[fill=objectred,draw=white,line width=.2bp] (259.7918400,31.2440000) -- (268.2081600,31.2440000) -- (269.0160000,30.4361600) -- (269.0160000,27.5638400) -- (268.2081600,26.7560000) -- (259.7918400,26.7560000) -- (258.9840000,27.5638400) -- (258.9840000,30.4361600) -- cycle;
+\path[fill=objectgreen,draw=white,line width=.2bp] (244.5120000,42.2340000) -- (253.4880000,42.2340000) -- (253.4880000,35.7660000) -- (244.5120000,35.7660000) -- cycle;
+\path[fill=objectgreen,draw=white,line width=.2bp] (259.8710400,40.9140000) -- (268.1289600,40.9140000) -- (268.8180000,40.2249600) -- (268.8180000,37.7750400) -- (268.1289600,37.0860000) -- (259.8710400,37.0860000) -- (259.1820000,37.7750400) -- (259.1820000,40.2249600) -- cycle;
+\path[fill=objectgreen,draw=white,line width=.2bp] (252.2340000,50.6500000) -- (252.5558990,50.6182957) -- (252.8654277,50.5244012) -- (253.1506909,50.3719249) -- (253.4007262,50.1667262) -- (253.6059249,49.9166909) -- (253.7584012,49.6314277) -- (253.8522957,49.3218990) -- (253.8840000,49.0000000) -- (253.8522957,48.6781010) -- (253.7584012,48.3685723) -- (253.6059249,48.0833091) -- (253.4007262,47.8332738) -- (253.1506909,47.6280751) -- (252.8654277,47.4755988) -- (252.5558990,47.3817043) -- (252.2340000,47.3500000) -- (245.7660000,47.3500000) -- (245.4441010,47.3817043) -- (245.1345723,47.4755988) -- (244.8493091,47.6280751) -- (244.5992738,47.8332738) -- (244.3940751,48.0833091) -- (244.2415988,48.3685723) -- (244.1477043,48.6781010) -- (244.1160000,49.0000000) -- (244.1477043,49.3218990) -- (244.2415988,49.6314277) -- (244.3940751,49.9166909) -- (244.5992738,50.1667262) -- (244.8493091,50.3719249) -- (245.1345723,50.5244012) -- (245.4441010,50.6182957) -- (245.7660000,50.6500000) -- cycle;
+\path[fill=objectgreen,draw=white,line width=.2bp] (260.6340000,51.2440000) -- (267.3660000,51.2440000) -- (267.3660000,46.7560000) -- (260.6340000,46.7560000) -- cycle;
+\path[fill=objectblue,draw=white,line width=.2bp] (244.3140000,62.0360000) -- (253.6860000,62.0360000) -- (253.6860000,55.9640000) -- (244.3140000,55.9640000) -- cycle;
+\path[fill=objectblue,draw=white,line width=.2bp] (265.5840000,61.7720000) -- (266.1247904,61.7187368) -- (266.6447985,61.5609941) -- (267.1240407,61.3048338) -- (267.5441000,60.9601000) -- (267.8888338,60.5400407) -- (268.1449941,60.0607985) -- (268.3027368,59.5407904) -- (268.3560000,59.0000000) -- (268.3027368,58.4592096) -- (268.1449941,57.9392015) -- (267.8888338,57.4599593) -- (267.5441000,57.0399000) -- (267.1240407,56.6951662) -- (266.6447985,56.4390059) -- (266.1247904,56.2812632) -- (265.5840000,56.2280000) -- (262.4160000,56.2280000) -- (261.8752096,56.2812632) -- (261.3552015,56.4390059) -- (260.8759593,56.6951662) -- (260.4559000,57.0399000) -- (260.1111662,57.4599593) -- (259.8550059,57.9392015) -- (259.6972632,58.4592096) -- (259.6440000,59.0000000) -- (259.6972632,59.5407904) -- (259.8550059,60.0607985) -- (260.1111662,60.5400407) -- (260.4559000,60.9601000) -- (260.8759593,61.3048338) -- (261.3552015,61.5609941) -- (261.8752096,61.7187368) -- (262.4160000,61.7720000) -- cycle;
+\node[anchor=center] at (262.00000,76.00000) {rows $r$ / order $\pi$};
+\draw[flow] (273,45) -- (301,45);
+\node[anchor=center,text=ochre!75!ink] at (287.00000,59.00000) {rules};
+\draw[draw=muted,line width=.35bp,dash pattern=on 2bp off 1.5bp] (202,27) -- (202,19) -- (287,19) -- (287,45);
+\fill[muted] (287,45) circle[radius=.7bp];
+\node[anchor=center,text=muted] at (249.00000,10.00000) {held / no-op};
+\draw[draw=hairline,line width=.35bp] (0,106) -- (396,106);
+\node[anchor=west,font=\fontsize{10}{12}\selectfont] at (0.00000,118.00000) {\textbf{d}\quad Factorized language, structure, and pose};
+\node[anchor=center] at (5.00000,144.00000) {$t$};
+\draw[flow,draw=violet!85!ink] (12,144) -- (30,144);
+\node[anchor=center] at (50.00000,144.00000) {MiniLM};
+\draw[flow,draw=violet!85!ink] (70,144) -- (82,144);
+\path[fill=violet!22,draw=none] (84,136.5) rectangle (108,137.78571428571428);
+\path[fill=violet!22,draw=none] (84,138.78571428571428) rectangle (108,140.07142857142858);
+\path[fill=violet!22,draw=none] (84,141.07142857142858) rectangle (108,142.35714285714286);
+\path[fill=violet!22,draw=none] (84,143.35714285714286) rectangle (108,144.64285714285714);
+\path[fill=violet!22,draw=none] (84,145.64285714285714) rectangle (108,146.92857142857142);
+\path[fill=violet!22,draw=none] (84,147.92857142857142) rectangle (108,149.21428571428572);
+\path[fill=violet!22,draw=none] (84,150.21428571428572) rectangle (108,151.5);
+\draw[draw=ink,line width=.45bp] (85,135) -- (83,135) -- (83,153) -- (85,153);
+\draw[draw=ink,line width=.45bp] (107,135) -- (109,135) -- (109,153) -- (107,153);
+\node[anchor=center,text=muted] at (96.00000,160.00000) {$Z$};
+\draw[flow,draw=violet!85!ink] (110,144) -- (126,144);
+\node[anchor=west] at (130.00000,144.00000) {$g(t)\in\mathbb R^{13}$};
+\draw[flow,draw=violet!85!ink] (118,144) -- (118,160) -- (186,160);
+\node[anchor=west] at (190.00000,160.00000) {Grounder$(O,Z)\to m(O,t)$};
+\node[anchor=east,text=muted] at (394.00000,144.00000) {Object sizes $S$};
+\path[fill=objectblue!20,draw=white,line width=.25bp] (0,195.0) rectangle (3.6666666666666665,199.0);
+\path[fill=objectblue!20,draw=white,line width=.25bp] (3.6666666666666665,195.0) rectangle (7.333333333333333,199.0);
+\path[fill=teal!20,draw=white,line width=.25bp] (7.333333333333333,195.0) rectangle (11.0,199.0);
+\path[fill=teal!20,draw=white,line width=.25bp] (11.0,195.0) rectangle (14.666666666666666,199.0);
+\path[fill=ochre!20,draw=white,line width=.25bp] (14.666666666666666,195.0) rectangle (18.333333333333332,199.0);
+\path[fill=ochre!20,draw=white,line width=.25bp] (18.333333333333332,195.0) rectangle (22.0,199.0);
+\path[fill=objectred!20,draw=white,line width=.25bp] (22.0,195.0) rectangle (25.666666666666668,199.0);
+\path[fill=objectred!20,draw=white,line width=.25bp] (25.666666666666668,195.0) rectangle (29.333333333333336,199.0);
+\path[fill=objectred!20,draw=white,line width=.25bp] (29.333333333333336,195.0) rectangle (33.0,199.0);
+\path[fill=violet!20,draw=white,line width=.25bp] (33.0,195.0) rectangle (36.666666666666664,199.0);
+\path[fill=violet!20,draw=white,line width=.25bp] (36.666666666666664,195.0) rectangle (40.33333333333333,199.0);
+\path[fill=violet!20,draw=white,line width=.25bp] (40.33333333333333,195.0) rectangle (43.99999999999999,199.0);
+\path[fill=objectblue!20,draw=white,line width=.25bp] (0,199.0) rectangle (3.6666666666666665,203.0);
+\path[fill=objectblue!20,draw=white,line width=.25bp] (3.6666666666666665,199.0) rectangle (7.333333333333333,203.0);
+\path[fill=teal!20,draw=white,line width=.25bp] (7.333333333333333,199.0) rectangle (11.0,203.0);
+\path[fill=teal!20,draw=white,line width=.25bp] (11.0,199.0) rectangle (14.666666666666666,203.0);
+\path[fill=ochre!20,draw=white,line width=.25bp] (14.666666666666666,199.0) rectangle (18.333333333333332,203.0);
+\path[fill=ochre!20,draw=white,line width=.25bp] (18.333333333333332,199.0) rectangle (22.0,203.0);
+\path[fill=objectred!20,draw=white,line width=.25bp] (22.0,199.0) rectangle (25.666666666666668,203.0);
+\path[fill=objectred!20,draw=white,line width=.25bp] (25.666666666666668,199.0) rectangle (29.333333333333336,203.0);
+\path[fill=objectred!20,draw=white,line width=.25bp] (29.333333333333336,199.0) rectangle (33.0,203.0);
+\path[fill=violet!20,draw=white,line width=.25bp] (33.0,199.0) rectangle (36.666666666666664,203.0);
+\path[fill=violet!20,draw=white,line width=.25bp] (36.666666666666664,199.0) rectangle (40.33333333333333,203.0);
+\path[fill=violet!20,draw=white,line width=.25bp] (40.33333333333333,199.0) rectangle (43.99999999999999,203.0);
+\path[fill=objectblue!20,draw=white,line width=.25bp] (0,203.0) rectangle (3.6666666666666665,207.0);
+\path[fill=objectblue!20,draw=white,line width=.25bp] (3.6666666666666665,203.0) rectangle (7.333333333333333,207.0);
+\path[fill=teal!20,draw=white,line width=.25bp] (7.333333333333333,203.0) rectangle (11.0,207.0);
+\path[fill=teal!20,draw=white,line width=.25bp] (11.0,203.0) rectangle (14.666666666666666,207.0);
+\path[fill=ochre!20,draw=white,line width=.25bp] (14.666666666666666,203.0) rectangle (18.333333333333332,207.0);
+\path[fill=ochre!20,draw=white,line width=.25bp] (18.333333333333332,203.0) rectangle (22.0,207.0);
+\path[fill=objectred!20,draw=white,line width=.25bp] (22.0,203.0) rectangle (25.666666666666668,207.0);
+\path[fill=objectred!20,draw=white,line width=.25bp] (25.666666666666668,203.0) rectangle (29.333333333333336,207.0);
+\path[fill=objectred!20,draw=white,line width=.25bp] (29.333333333333336,203.0) rectangle (33.0,207.0);
+\path[fill=violet!20,draw=white,line width=.25bp] (33.0,203.0) rectangle (36.666666666666664,207.0);
+\path[fill=violet!20,draw=white,line width=.25bp] (36.666666666666664,203.0) rectangle (40.33333333333333,207.0);
+\path[fill=violet!20,draw=white,line width=.25bp] (40.33333333333333,203.0) rectangle (43.99999999999999,207.0);
+\draw[draw=ink,line width=.45bp] (1,194) -- (-1,194) -- (-1,208) -- (1,208);
+\draw[draw=ink,line width=.45bp] (43,194) -- (45,194) -- (45,208) -- (43,208);
+\node[anchor=center] at (26.00000,183.00000) {$O:N\times12$};
+\draw[flow] (46,201) -- (112,201);
+\node[anchor=north, align=center] at (79.00000,211.00000) {Relation MLP};
+\path[fill=objectblue!22,draw=none] (116,195.5) rectangle (144,198.5);
+\path[fill=objectblue!22,draw=none] (116,199.5) rectangle (144,202.5);
+\path[fill=objectblue!22,draw=none] (116,203.5) rectangle (144,206.5);
+\draw[draw=ink,line width=.45bp] (117,194) -- (115,194) -- (115,208) -- (117,208);
+\draw[draw=ink,line width=.45bp] (143,194) -- (145,194) -- (145,208) -- (143,208);
+\node[anchor=center] at (130.00000,183.00000) {$H:N\times128$};
+\draw[flow,draw=objectblue!85!ink] (146,201) -- (214,201);
+\node[anchor=north, align=center] at (188.00000,211.00000) {Set attention\\[2pt]{\color{muted}\fontsize{9}{11}\selectfont 4-head attention}};
+\path[fill=objectblue!22,draw=none] (218,195.5) rectangle (246,198.5);
+\path[fill=objectblue!22,draw=none] (218,199.5) rectangle (246,202.5);
+\path[fill=objectblue!22,draw=none] (218,203.5) rectangle (246,206.5);
+\draw[draw=ink,line width=.45bp] (219,194) -- (217,194) -- (217,208) -- (219,208);
+\draw[draw=ink,line width=.45bp] (245,194) -- (247,194) -- (247,208) -- (245,208);
+\node[anchor=center] at (232.00000,183.00000) {$\widetilde H:N\times128$};
+\draw[flow,draw=teal!85!ink] (248,201) -- (322,201);
+\node[anchor=north, align=center] at (285.00000,211.00000) {Rows + pointer ($g$)};
+\path[fill=teal!20,draw=white,line width=.25bp] (326,195.0) rectangle (340.0,199.0);
+\path[fill=teal!20,draw=white,line width=.25bp] (340.0,195.0) rectangle (354.0,199.0);
+\path[fill=teal!20,draw=white,line width=.25bp] (326,199.0) rectangle (340.0,203.0);
+\path[fill=teal!20,draw=white,line width=.25bp] (340.0,199.0) rectangle (354.0,203.0);
+\path[fill=teal!20,draw=white,line width=.25bp] (326,203.0) rectangle (340.0,207.0);
+\path[fill=teal!20,draw=white,line width=.25bp] (340.0,203.0) rectangle (354.0,207.0);
+\draw[draw=ink,line width=.45bp] (327,194) -- (325,194) -- (325,208) -- (327,208);
+\draw[draw=ink,line width=.45bp] (353,194) -- (355,194) -- (355,208) -- (353,208);
+\node[anchor=center] at (340.00000,183.00000) {$(r,\pi)$};
+\draw[flow,draw=objectblue!85!ink] (158,201) -- (158,243) -- (180,243);
+\fill[objectblue!85!ink] (158,201) circle[radius=.8bp];
+\node[anchor=center] at (204.00000,243.00000) {Pose heads};
+\draw[flow,draw=teal!85!ink] (230,243) -- (324,243);
+\draw[flow,draw=teal!85!ink] (340,208) -- (340,230) -- (290,230) -- (290,243);
+\fill[teal!85!ink] (290,243) circle[radius=.8bp];
+\path[fill=teal!20,draw=white,line width=.25bp] (328,237.0) rectangle (337.3333333333333,241.0);
+\path[fill=teal!20,draw=white,line width=.25bp] (337.3333333333333,237.0) rectangle (346.66666666666663,241.0);
+\path[fill=teal!20,draw=white,line width=.25bp] (346.66666666666663,237.0) rectangle (355.99999999999994,241.0);
+\path[fill=teal!20,draw=white,line width=.25bp] (328,241.0) rectangle (337.3333333333333,245.0);
+\path[fill=teal!20,draw=white,line width=.25bp] (337.3333333333333,241.0) rectangle (346.66666666666663,245.0);
+\path[fill=teal!20,draw=white,line width=.25bp] (346.66666666666663,241.0) rectangle (355.99999999999994,245.0);
+\path[fill=teal!20,draw=white,line width=.25bp] (328,245.0) rectangle (337.3333333333333,249.0);
+\path[fill=teal!20,draw=white,line width=.25bp] (337.3333333333333,245.0) rectangle (346.66666666666663,249.0);
+\path[fill=teal!20,draw=white,line width=.25bp] (346.66666666666663,245.0) rectangle (355.99999999999994,249.0);
+\draw[draw=ink,line width=.45bp] (329,236) -- (327,236) -- (327,250) -- (329,250);
+\draw[draw=ink,line width=.45bp] (355,236) -- (357,236) -- (357,250) -- (355,250);
+\node[anchor=west] at (362.00000,243.00000) {$(x,y,\theta)$};
+
+\pgfresetboundingbox
+\path[use as bounding box] (0,0) rectangle (396,251);
+\end{tikzpicture}
+\end{document}

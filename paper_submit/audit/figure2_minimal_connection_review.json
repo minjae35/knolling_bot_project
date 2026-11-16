@@ -1,0 +1,98 @@
+{
+  "status": "PASS",
+  "date": "2026-11-16",
+  "scope": "Retain CURRENT tensor design; correct only the predicted row/order input connection.",
+  "change": "Route (r,pi) into Pose heads before its output. Remove obsolete output junction.",
+  "old_route": [
+    [
+      340,
+      208
+    ],
+    [
+      340,
+      230
+    ],
+    [
+      290,
+      230
+    ],
+    [
+      290,
+      243
+    ]
+  ],
+  "new_route": [
+    [
+      340,
+      208
+    ],
+    [
+      340,
+      230
+    ],
+    [
+      224,
+      230
+    ],
+    [
+      224,
+      237
+    ]
+  ],
+  "removed_dot": [
+    290,
+    243
+  ],
+  "figure_text_and_positions_identical": true,
+  "figure_difference_bounds_bp": [
+    223.0,
+    229.75,
+    291.0,
+    244.0
+  ],
+  "figure_other_pixels_unchanged": true,
+  "all_manuscript_text_identical": true,
+  "changed_manuscript_pages": [
+    2
+  ],
+  "unchanged_manuscript_pages": [
+    1,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+  ],
+  "baseline_total_pages": 14,
+  "current_total_pages": 14,
+  "preexisting_pagination_retained": true,
+  "paper_sources_and_captions_unchanged": true,
+  "other_figures_unchanged": true,
+  "unchanged_protected_file_count": 253,
+  "changed_files": [
+    "knolling_bot_v2_paper.pdf",
+    "audit/architecture_style_revision.json",
+    "audit/final_architecture.json",
+    "audit/architecture_main_typeset.json",
+    "audit/architecture_typeset_review.json",
+    "figures/architecture_main.pdf",
+    "figures/architecture_main.svg",
+    "figures/architecture_main.png",
+    "scripts/architecture_figure.py",
+    "figure_sources/architecture_main.tex"
+  ],
+  "pdf_sha256": "becb07a61fde6ed9662319dac423fa317ea243e25e1cf65745fe681ee3429ba8",
+  "code_support": [
+    "src/knolling_model/experiments/set_context.py:55-58",
+    "src/knolling_model/experiments/row_layout.py:238-274"
+  ],
+  "no_model_inference_or_training": true,
+  "proposal_not_adopted": true
+}
