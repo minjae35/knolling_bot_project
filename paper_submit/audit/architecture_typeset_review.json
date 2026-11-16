@@ -69,9 +69,9 @@
     },
     "text_bounds": "PASS",
     "exports_sha256": {
-      "pdf": "b36b561caeda68fe8dc398662e20317d12d07c184debd187462d6509db7266e1",
-      "svg": "dd7cb5d245b097829b925d3131821933d61449f38a916e2d189a65d30c7b0c29",
-      "png": "7b627757efe95cfa9447cf447a059ef83a9becd0a94c4bdfef57f14d29f57339"
+      "pdf": "428e8e41b0e3736916af72a3ebe978615b8a7e7030f6ab29e62a9d0422eb5776",
+      "svg": "99832b8debea0087575ff6b7fd3f47d1dadee0434c9168bb1b14133237e0066f",
+      "png": "7031d0048779150afbf137e4c1f9bb1c8fb1868719c96554f19426acd525de0f"
     }
   }
 }

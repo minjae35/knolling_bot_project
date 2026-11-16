@@ -58,11 +58,14 @@ def generate():
     parts.append(picture('renders/full_after.png',302,21,94,62.6666667))
     parts.append(r'\path[draw=white,line width=1bp,fill=white] (46.5,51.5) rectangle (91.5,81.8333);'+'\n')
     parts.append(picture('audit/evidence/qualitative_full_source.png',47,52,44,29.3333333))
-    route([(92,66),(101,66),(101,45),(104,45)])
-    box(104,28,70,34,'objectblue',10)
-    label(139,37,'RT-DETR-R18','center')
-    label(139,54,'+ ROI / size','center',muted=True)
-    route([(174,45),(186,45)])
+    # Leave the image before turning, then match the two arrows. The tip stays short of the glyphs.
+    corner,shaft,tip=99,8.5,186
+    box_x=corner+shaft
+    route([(92,66),(corner,66),(corner,45),(box_x,45)])
+    box(box_x,28,70,34,'objectblue',10)
+    label(box_x+35,37,'RT-DETR-R18','center')
+    label(box_x+35,54,'+ ROI / size','center',muted=True)
+    route([(box_x+70,45),(tip,45)])
     for i,obj in enumerate(objects):
         glyph(obj,192+(i%4)*9,34+(i//4)*16,108,(i%3-1)*.22)
     label(170,76,r'$O\in\mathbb{R}^{N\times12}$','center')
@@ -127,7 +130,7 @@ def generate():
     route([(146,201),(214,201)],color='objectblue!85!ink')
     stack(188,211,'Set attention')
     # Left edge matches "Set attention", so the longer subtitle clears the branch at x=158.
-    label(163,228.7,'4-head attention','west',muted=True,size=9)
+    label(163,227.2,'4-head attention','west',muted=True,size=9)
     tensor(218,195,28,12)
     label(232,183,r'$\widetilde H:N\times128$','center')
     route([(248,201),(322,201)],color='teal!85!ink')
