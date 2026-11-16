@@ -1,7 +1,0 @@
-# Direct dependencies for analysis, vector figures, and PDF checks.
-# No model/runtime or GPU dependencies are required.
-matplotlib==3.11.2
-numpy==2.5.4
-pillow==13.0.0
-pymupdf==2.1
-shapely==2.2.0
