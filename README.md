@@ -15,7 +15,7 @@ v2.0.0 is the current system. v1.0.0 is the preceding baseline. Both were scored
 | v1.0.0 | 287/384 | 84/127 | 118/129 | 489/640 (76.4%) |
 | v2.0.0 | 311/384 | 104/127 | 125/129 | 540/640 (84.4%) |
 
-v2.0.0 kept every v1.0.0 success and added 51 scenes (24 full, 20 partial, 7 no-op). The gain is 8.0 percentage points. A family bootstrap of 10,000 resamples, seed 20261112, gave a 95% interval of +4.8 to +11.6. Twenty-nine families improved and none got worse. Spacing accounts for 71 of the 100 remaining v2.0.0 failures. Tolerances are in [docs/evaluation.md](docs/evaluation.md).
+v2.0.0 kept every v1.0.0 success and added 51 scenes (24 full, 20 partial, 7 no-op). The gain is 8.0 percentage points. A family bootstrap of 10,000 resamples, seed 20261112, gave a 95% interval of +4.8 to +11.6. Twenty-nine families improved and none got worse. Spacing accounts for 71 of the 100 remaining v2.0.0 failures. Tolerances are in [docs/evaluation.md](docs/evaluation.md). See [Limitations](docs/limitations.md) for the scope of these results.
 
 ## Examples
 
@@ -128,14 +128,4 @@ python experiments/end_to_end/score_holdout.py \
 
 Run it from the repository root. The script sets its own `PYTHONPATH` and cache variables. Scoring rules are in [docs/evaluation.md](docs/evaluation.md). Seeds, the checkpoint layout, and a smaller decoder test are in [docs/reproducibility.md](docs/reproducibility.md).
 
-## Documentation
-
-- [Architecture](docs/architecture.md)
-- [Dataset](docs/dataset.md) and [dataset contract](docs/dataset-contract.md)
-- [Evaluation](docs/evaluation.md)
-- [Reproducibility](docs/reproducibility.md)
-- [v2.0.0 release record](docs/v2.0.0.md)
-- [Limitations](docs/limitations.md)
-- [Third-party notices](docs/third-party-notices.md)
-
-No robot arm has executed these poses. This repository has no `LICENSE` file, so the tree does not grant a license to reuse the code.
+No robot arm has executed these poses. This repository has no `LICENSE` file and does not grant a license to reuse the project code. See [Third-party notices](docs/third-party-notices.md) for dependency and model-license information.
